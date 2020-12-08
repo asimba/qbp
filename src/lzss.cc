@@ -14,11 +14,7 @@ lzss::lzss(){
   }
   else return;
   lzbuf_pntr=lzbuf=(uint8_t *)calloc(LZ_BUF_SIZE*2,sizeof(uint8_t));
-  if(lzbuf){
-    lzbuf_indx=buf_size=0;
-    op_code=true;
-    finalize=false;
-  }
+  if(lzbuf) lzbuf_indx=buf_size=0;
   else free(cbuffer);
 }
 
@@ -34,22 +30,21 @@ void lzss::set_operators(io_operator r, io_operator w, eof_operator e){
 }
 
 int32_t lzss::lzss_write(void* file, char *buf, int32_t ln){
-  int32_t retln=0;
   uint32_t c;
-  if(finalize) ln+=buf_size;
+  if(!buf) ln+=buf_size;
   while(ln){
-    retln=LZ_BUF_SIZE-buf_size;
-    if(finalize==false){
+    int32_t retln=LZ_BUF_SIZE-buf_size;
+    if(buf){
       if(retln!=0){
         if(retln>ln) retln=ln;
         memcpy(lzbuf_pntr+buf_size,buf,retln);
         buf+=retln;
         ln-=retln;
         buf_size+=retln;
-      }
+      };
     }
     else ln-=buf_size;
-    if((finalize==false)&&(ln==0)) break;
+    if((buf)&&(ln==0)) break;
     voc.search(lzbuf_pntr,buf_size);
     if(cflags_count==5){
       cbuffer[0]|=0xa0;
@@ -82,6 +77,16 @@ int32_t lzss::lzss_write(void* file, char *buf, int32_t ln){
       lzbuf_indx+=c;
     };
     buf_size-=c;
+  };
+  if(!buf){
+    if(cflags_count){
+      cbuffer[0]|=(cflags_count<<5);
+      if(pack.rc32_write(file,(char*)cbuffer,cbuffer_position)<0) return -1;
+    };
+    pack.finalize=true;
+    while(pack.eof==false){
+      if(pack.rc32_write(file,NULL,0)<0) return -1;
+    };
   };
   return 1;
 }
@@ -135,27 +140,13 @@ int32_t lzss::lzss_read(void* file, char *buf, int32_t ln){
       };
       cbuffer[0]<<=1;
       cflags_count--;
-      if(finalize) break;
     };
   };
   return rl;
 }
 
-int lzss::is_eof(FILE* file){
-  if(finalize&&(buf_size==0)){
-    if(op_code){
-      if(cflags_count){
-        cbuffer[0]|=(cflags_count<<5);
-        if(pack.rc32_write(file,(char*)cbuffer,cbuffer_position)<0) return -1;
-      };
-      pack.finalize=true;
-      while(pack.eof==false){
-        if(pack.rc32_write(file,NULL,0)<0) return -1;
-      };
-      return 1;
-    }
-    else return 1;
-  }
+int lzss::is_eof(){
+  if((buf_size==0)&&(pack.eof)) return 1;
   else return 0;
 }
 

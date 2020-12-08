@@ -35,8 +35,7 @@ int main(int argc, char *argv[]){
                 l=fread(buffer,sizeof(char),_RC32_BUFFER_SIZE,istream);
                 if(l<0) break;
                 if(l==0){
-                  pack.finalize=true;
-                  while(pack.is_eof(ostream)==0){
+                  while(pack.is_eof()==0){
                     if(pack.lzss_write(ostream,NULL,0)<0) break;
                   };
                   break;
@@ -59,7 +58,7 @@ int main(int argc, char *argv[]){
                   l=pack.lzss_read(istream,buffer,_RC32_BUFFER_SIZE);
                   if(l<=0) break;
                   if(fwrite(buffer,sizeof(char),l,ostream)<0) break;
-                  if(pack.is_eof(istream)) break;
+                  if(pack.is_eof()) break;
                 };
                 fclose(ostream);
               };
