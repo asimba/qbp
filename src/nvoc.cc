@@ -10,7 +10,7 @@ nvoc::nvoc(){
   vocarea=(int32_t *)calloc(0x10000,sizeof(int32_t));
   if(vocarea){
     vocindx=(struct vocpntr *)calloc(0x10000,sizeof(struct vocpntr));
-    if(vocindx==NULL) free(vocarea);
+    if(!vocindx) free(vocarea);
     else{
       vocbuf=(uint8_t *)calloc(0x10000,sizeof(uint8_t));
       if(vocbuf){
@@ -72,15 +72,6 @@ void nvoc::write(uint8_t *str,uint16_t size){
     voclast++;
     vocroot++;
   };
-}
-
-void nvoc::write_woupdate(uint8_t *str,uint16_t size){
-  while(size--) vocbuf[vocroot++]=*str++;
-}
-
-void nvoc::read(uint8_t *str,uint16_t index,uint16_t size){
-  index+=vocroot;
-  while(size--) *str++=vocbuf[index++];
 }
 
 /***********************************************************************************************************/

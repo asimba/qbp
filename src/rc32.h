@@ -18,20 +18,18 @@
 
   class rc32{
     private:
+      uint8_t *pqbuffer;
       uint32_t low;
       uint32_t hlp;
       uint32_t range;
-      bool init;
-      uint8_t *pqbuffer;
       uint32_t bufsize;
       uint32_t rbufsize;
-    public:
-      uint32_t *frequency;
-      bool eof;
-      bool finalize;
       io_operator read;
       io_operator write;
       eof_operator is_eof;
+    public:
+      uint32_t *frequency;
+      bool eof;
       void set_operators(io_operator r, io_operator w, eof_operator e);
       int32_t rc32_read(void* file, char *buf, int32_t lenght);
       int32_t rc32_write(void* file, char *buf, int32_t lenght);

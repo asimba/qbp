@@ -11,22 +11,21 @@ void rc32::set_operators(io_operator r, io_operator w, eof_operator e){
 }
 
 int32_t rc32::rc32_read(void* file, char *buf, int32_t lenght){
-  if((read==NULL)||(is_eof==NULL)){
+  if((!read)||(!is_eof)){
     eof=true;
     return -1;
   }
-  if(init){
-    if((bufsize=(*read)(file,(char *)pqbuffer,_RC32_BUFFER_SIZE))<0)return -1;
-    if((bufsize==0)&&(*is_eof)(file)) finalize=true;
+  if(!hlp){
+    if((bufsize=(*read)(file,(char *)pqbuffer,_RC32_BUFFER_SIZE))<=0)
+      return -1;
     for(uint16_t i=0;i<sizeof(uint32_t);i++){
       hlp<<=8;
       hlp|=pqbuffer[rbufsize++];
       bufsize--;
     }
-    init=false;
   };
   while(lenght--){
-    if(finalize&&(hlp==0)){
+    if(!hlp){
       eof=true;
       return 1;
     };
@@ -47,19 +46,20 @@ int32_t rc32::rc32_read(void* file, char *buf, int32_t lenght){
       };
     };
     while((range<0x10000)||(hlp<low)){
-      if(((low&0xff0000)==0xff0000)&&(range+(uint16_t)low>=0x10000)) range=0x10000-(uint16_t)low;
+      if(((low&0xff0000)==0xff0000)&&(range+(uint16_t)low>=0x10000))
+        range=0x10000-(uint16_t)low;
       hlp<<=8;
-      if(finalize==false){
-        if(bufsize==0){
-          if((bufsize=(*read)(file,(char *)pqbuffer,_RC32_BUFFER_SIZE))<0) return -1;
-          if((bufsize==0)&&(*is_eof)(file)) finalize=true;
-          rbufsize=0;
-        };
-        if(bufsize){
-          hlp|=pqbuffer[rbufsize++];
-          bufsize--;
-        };
+      if(bufsize==0){
+        if((bufsize=(*read)(file,(char *)pqbuffer,_RC32_BUFFER_SIZE))<0)
+          return -1;
+        if((bufsize==0)&&(*is_eof)(file)) hlp=0;
+        rbufsize=0;
       };
+      if(bufsize){
+        hlp|=pqbuffer[rbufsize++];
+        bufsize--;
+      };
+      if(!hlp) break;
       low<<=8;
       range<<=8;
     };
@@ -69,18 +69,20 @@ int32_t rc32::rc32_read(void* file, char *buf, int32_t lenght){
 }
 
 int32_t rc32::rc32_write(void* file, char *buf, int32_t lenght){
-  if(write==NULL){
+  if(!write){
     eof=true;
     return -1;
   }
-  if((lenght==0)&&finalize){
-    if(bufsize&&((*write)(file,(char *)pqbuffer,bufsize)==0)) return -1;
+  if((!lenght)&&(!buf)){
+    if(bufsize&&((*write)(file,(char *)pqbuffer,bufsize)==0))
+      return -1;
     bufsize=0;
     for(int i=sizeof(uint32_t);i>0;i--){
       pqbuffer[bufsize++]=(uint8_t)(low>>24);
       low<<=8;
     }
-    if((*write)(file,(char *)pqbuffer,bufsize)==0) return -1;
+    if((*write)(file,(char *)pqbuffer,bufsize)==0)
+      return -1;
     eof=true;
   }
   else while(lenght--){
@@ -97,9 +99,11 @@ int32_t rc32::rc32_write(void* file, char *buf, int32_t lenght){
       };
     };
     while(range<0x10000){
-      if(((low&0xff0000)==0xff0000)&&(range+(uint16_t)low>=0x10000)) range=0x10000-(uint16_t)low;
+      if(((low&0xff0000)==0xff0000)&&(range+(uint16_t)low>=0x10000))
+        range=0x10000-(uint16_t)low;
       if(bufsize==_RC32_BUFFER_SIZE){
-        if((*write)(file,(char *)pqbuffer,bufsize)==0) return -1;
+        if((*write)(file,(char *)pqbuffer,bufsize)==0)
+          return -1;
         bufsize=0;
       };
       pqbuffer[bufsize++]=(uint8_t)(low>>24);
@@ -112,16 +116,14 @@ int32_t rc32::rc32_write(void* file, char *buf, int32_t lenght){
 }
 
 rc32::rc32(){
+  pqbuffer=(uint8_t *)calloc(_RC32_BUFFER_SIZE,sizeof(uint8_t));
+  if(!pqbuffer) return;
   frequency=(uint32_t *)calloc(257,sizeof(uint32_t));
-  if(frequency){
-    pqbuffer=(uint8_t *)calloc(_RC32_BUFFER_SIZE,sizeof(uint8_t));
-    if(pqbuffer==NULL) free(frequency);
-    else for(low=0; low<257; low++) frequency[low]=low;
-  };
+  if(frequency) for(low=0; low<257; low++) frequency[low]=low;
+  else return;
   range=0xffffffff;
   low=bufsize=rbufsize=hlp=0;
-  eof=finalize=false;
-  init=true;
+  eof=false;
   read=write=NULL;
   is_eof=NULL;
 }

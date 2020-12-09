@@ -21,11 +21,9 @@
   class lzss{
     private:
       uint8_t *cbuffer;
-      uint8_t *lzbuf_pntr;
       uint8_t cflags_count;
       uint8_t cbuffer_position;
       uint16_t buf_size;
-      uint32_t lzbuf_indx;
       rc32 pack;
       nvoc voc;
     public:
