@@ -67,8 +67,9 @@ int32_t lzss::lzss_write(void* file, char *buf, int32_t ln){
     memmove(lzbuf,lzbuf+c,LZ_BUF_SIZE-c);
     buf_size-=c;
   };
-  if(!buf){
+  if(!buf&&!buf_size){
     if(cflags_count){
+      cbuffer[0]<<=(5-cflags_count);
       cbuffer[0]|=(cflags_count<<5);
       if(pack.rc32_write(file,(char*)cbuffer,cbuffer_position)<0) return -1;
     };
@@ -82,7 +83,10 @@ int32_t lzss::lzss_write(void* file, char *buf, int32_t ln){
 int32_t lzss::lzss_read(void* file, char *buf, int32_t ln){
   int32_t rl=0;
   uint16_t c=0;
-  if(pack.eof) return 0;
+  if(pack.eof){
+    buf_size=0;
+    return 0;
+  };
   while(ln){
     if(buf_size){
       int32_t r=(ln>buf_size)?buf_size:ln;
@@ -98,7 +102,7 @@ int32_t lzss::lzss_read(void* file, char *buf, int32_t ln){
         if(pack.rc32_read(file,(char*)cbuffer,1)<0) return -1;
         cflags_count=cbuffer[0]>>5;
         cbuffer[0]<<=3;
-        if(pack.eof||(cflags_count==0)||(cflags_count==7)) return rl;
+        if(pack.eof||(cflags_count==0)||(cflags_count==6)||(cflags_count==7)) return rl;
         cbuffer_position=1;
         c=0;
         uint8_t f=cbuffer[0];
