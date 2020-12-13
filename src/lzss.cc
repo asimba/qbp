@@ -6,11 +6,12 @@
 
 lzss::lzss(){
   lzbuf=NULL;
-  buf_size=cbuffer[0]=cflags_count=0;
+  buf_size=cflags_count=0;
   cbuffer_position=1;
   if((!pack.frequency)||(!voc.vocindx)) return;
   cbuffer=(uint8_t *)calloc(LZ_CAPACITY+1,sizeof(uint8_t));
   if(!cbuffer) return;
+  cbuffer[0]=0;
   lzbuf=(uint8_t *)calloc(LZ_BUF_SIZE*2,sizeof(uint8_t));
   if(!lzbuf) free(cbuffer);
 }
