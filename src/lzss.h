@@ -29,8 +29,8 @@
     public:
       uint8_t *lzbuf;
       void set_operators(io_operator r, io_operator w, eof_operator e);
-      int32_t lzss_write(void* file, char *buf, int32_t ln);
-      int32_t lzss_read(void* file, char *buf, int32_t ln);
+      int32_t write(void* file, char *buf, int32_t ln);
+      int32_t read(void* file, char *buf, int32_t ln);
       int is_eof();
       lzss();
       ~lzss();

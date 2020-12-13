@@ -27,7 +27,7 @@ void lzss::set_operators(io_operator r, io_operator w, eof_operator e){
   if(r&&w&&e) pack.set_operators(r,w,e);
 }
 
-int32_t lzss::lzss_write(void* file, char *buf, int32_t ln){
+int32_t lzss::write(void* file, char *buf, int32_t ln){
   uint32_t c;
   if(!buf) ln+=buf_size;
   while(ln){
@@ -46,7 +46,7 @@ int32_t lzss::lzss_write(void* file, char *buf, int32_t ln){
     voc.search(lzbuf,buf_size);
     if(cflags_count==5){
       cbuffer[0]|=0xa0;
-      if(pack.rc32_write(file,(char*)cbuffer,cbuffer_position)<0) return -1;
+      if(pack.write(file,(char*)cbuffer,cbuffer_position)<0) return -1;
       cflags_count=0;
       cbuffer[0]=0;
       cbuffer_position=1;
@@ -72,16 +72,16 @@ int32_t lzss::lzss_write(void* file, char *buf, int32_t ln){
     if(cflags_count){
       cbuffer[0]<<=(5-cflags_count);
       cbuffer[0]|=(cflags_count<<5);
-      if(pack.rc32_write(file,(char*)cbuffer,cbuffer_position)<0) return -1;
+      if(pack.write(file,(char*)cbuffer,cbuffer_position)<0) return -1;
     };
     while(!pack.eof){
-      if(pack.rc32_write(file,NULL,0)<0) return -1;
+      if(pack.write(file,NULL,0)<0) return -1;
     };
   };
   return 1;
 }
 
-int32_t lzss::lzss_read(void* file, char *buf, int32_t ln){
+int32_t lzss::read(void* file, char *buf, int32_t ln){
   int32_t rl=0;
   uint16_t c=0;
   if(pack.eof){
@@ -100,10 +100,11 @@ int32_t lzss::lzss_read(void* file, char *buf, int32_t ln){
     }
     else{
       if(cflags_count==0){
-        if(pack.rc32_read(file,(char*)cbuffer,1)<0) return -1;
+        if(pack.read(file,(char*)cbuffer,1)<0) return -1;
         cflags_count=cbuffer[0]>>5;
         cbuffer[0]<<=3;
-        if(pack.eof||(cflags_count==0)||(cflags_count==6)||(cflags_count==7)) return rl;
+        if(pack.eof||(cflags_count==0)||(cflags_count==6)||(cflags_count==7))
+          return rl;
         cbuffer_position=1;
         c=0;
         uint8_t f=cbuffer[0];
@@ -112,7 +113,8 @@ int32_t lzss::lzss_read(void* file, char *buf, int32_t ln){
           else c+=3;
           f<<=1;
         };
-        if(pack.rc32_read(file,(char*)(&cbuffer[1]),c)<0) return -1;
+        if(pack.read(file,(char*)(&cbuffer[1]),c)<0)
+          return -1;
       };
       if(cbuffer[0]&0x80){
         lzbuf[0]=cbuffer[cbuffer_position];

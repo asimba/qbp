@@ -1,17 +1,19 @@
 #include "lzss.h"
 
-int32_t read_operator(void *file, char *buffer, int32_t lenght){
-    int32_t ret=0;
-    if((ret=fread(buffer,sizeof(uint8_t),_RC32_BUFFER_SIZE,(FILE*)file))==0){
-      if(ferror((FILE*)file)) return -1;
-    };
-    return ret;
+int32_t read_operator(void *file, char *buffer){
+  buffer[0]=fgetc((FILE*)file);
+  if(ferror((FILE*)file)) return -1;
+  if(feof((FILE*)file)){
+    buffer[0]=0;
+    return 0;
+  }
+  return 1;
 }
 
-int32_t write_operator(void *file, char *buffer, int32_t lenght){
-    int32_t ret=0;
-    if(lenght&&((ret=fwrite(buffer,sizeof(uint8_t),lenght,(FILE*)file))==0)) return -1;
-    return ret;
+int32_t write_operator(void *file, char *buffer){
+  fputc(*buffer,(FILE*)file);
+  if(ferror((FILE*)file)) return -1;
+  return 1;
 }
 
 int32_t is_eof_operator(void *file){
@@ -19,7 +21,7 @@ int32_t is_eof_operator(void *file){
 }
 
 int main(int argc, char *argv[]){
-  char *buffer=(char *)calloc(_RC32_BUFFER_SIZE,sizeof(char));
+  char *buffer=(char *)calloc(32768,sizeof(char));
   if(buffer){
     lzss pack;
     pack.set_operators(read_operator,write_operator,is_eof_operator);
@@ -32,15 +34,15 @@ int main(int argc, char *argv[]){
             if((ostream=fopen64(argv[3],"wb"))!=NULL){
               int l=0;
               while(1){
-                l=fread(buffer,sizeof(char),_RC32_BUFFER_SIZE,istream);
+                l=fread(buffer,sizeof(char),32768,istream);
                 if(l<0) break;
                 if(l==0){
                   while(pack.is_eof()==0){
-                    if(pack.lzss_write(ostream,NULL,0)<0) break;
+                    if(pack.write(ostream,NULL,0)<0) break;
                   };
                   break;
                 };
-                if(pack.lzss_write(ostream,buffer,l)<0) break;
+                if(pack.write(ostream,buffer,l)<0) break;
               };
               fclose(ostream);
             };
@@ -55,7 +57,7 @@ int main(int argc, char *argv[]){
               if((ostream=fopen64(argv[3],"wb"))!=NULL){
                 int l=0;
                 while(1){
-                  l=pack.lzss_read(istream,buffer,_RC32_BUFFER_SIZE);
+                  l=pack.read(istream,buffer,32768);
                   if(l<=0) break;
                   if(fwrite(buffer,sizeof(char),l,ostream)<0) break;
                   if(pack.is_eof()) break;
