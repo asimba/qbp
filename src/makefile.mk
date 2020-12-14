@@ -14,12 +14,12 @@ endif
 ARCH = x86-64
 TUNE = generic
 
-CFLAGS_T = -Wall -march=$(ARCH) -mtune=$(TUNE) -O2 -fno-exceptions -static -s
+CFLAGS_T = -Wall -march=$(ARCH) -mtune=$(TUNE) -O2 -fno-exceptions -fno-ident -fno-stack-protector -fomit-frame-pointer -static -s
 
 CFLAGS = $(CFLAGS_T)
 
 INCLUDES =  -I.
-LDFLAGS = -Wall -march=$(ARCH) -mtune=$(TUNE) -O2 -fno-exceptions -static -s
+LDFLAGS = -Wall -march=$(ARCH) -mtune=$(TUNE) -O2 -fno-exceptions -fno-ident -fno-stack-protector -fomit-frame-pointer -static -s
 LFLAGS = 
 
 SRCDIR = .

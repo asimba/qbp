@@ -5,9 +5,25 @@
 /***********************************************************************************************************/
 
 void rc32::set_operators(io_operator r, io_operator w, eof_operator e){
-  if(r) read_op=r;
-  if(w) write_op=w;
-  if(e) is_eof=e;
+  if(r&&w&&e){
+    read_op=r;
+    write_op=w;
+    is_eof=e;
+  };
+}
+
+void rc32::rescale(uint16_t i){
+  uint16_t j;
+  low+=frequency[i]*range;
+  range*=frequency[i+1]-frequency[i];
+  for(j=i+1; j<257; j++) frequency[j]++;
+  if(frequency[256]>0xffff){
+    frequency[0]>>=1;
+    for(j=1; j<257; j++){
+      frequency[j]>>=1;
+      if(frequency[j]<=frequency[j-1]) frequency[j]=frequency[j-1]+1;
+    };
+  };
 }
 
 int32_t rc32::read(void* file, char *buf, int32_t lenght){
@@ -28,16 +44,7 @@ int32_t rc32::read(void* file, char *buf, int32_t lenght){
     if(count>=frequency[256]) return -1;
     for(i=255; frequency[i]>count; i--) if(!i) break;
     *buf=(uint8_t)i;
-    low+=frequency[i]*range;
-    range*=frequency[i+1]-frequency[i];
-    for(i=(uint8_t)*buf+1; i<257; i++) frequency[i]++;
-    if(frequency[256]>=0x10000){
-      frequency[0]>>=1;
-      for(i=1; i<257; i++){
-        frequency[i]>>=1;
-        if(frequency[i]<=frequency[i-1]) frequency[i]=frequency[i-1]+1;
-      };
-    };
+    rescale(i);
     while((range<0x10000)||(hlp<low)){
       if(((low&0xff0000)==0xff0000)&&(range+(uint16_t)low>=0x10000))
         range=0x10000-(uint16_t)low;
@@ -63,18 +70,9 @@ int32_t rc32::write(void* file, char *buf, int32_t lenght){
     eof=true;
   }
   else while(lenght--){
-    uint16_t i;
+    uint16_t i=(uint8_t)*buf;
     range/=frequency[256];
-    low+=frequency[(uint8_t)*buf]*range;
-    range*=frequency[(uint8_t)*buf+1]-frequency[(uint8_t)*buf];
-    for(i=(uint8_t)*buf+1; i<257; i++) frequency[i]++;
-    if(frequency[256]>=0x10000){
-      frequency[0]>>=1;
-      for(i=1; i<257; i++){
-        frequency[i]>>=1;
-        if(frequency[i]<=frequency[i-1]) frequency[i]=frequency[i-1]+1;
-      };
-    };
+    rescale(i);
     while(range<0x10000){
       if(((low&0xff0000)==0xff0000)&&(range+(uint16_t)low>=0x10000))
         range=0x10000-(uint16_t)low;
@@ -88,9 +86,6 @@ int32_t rc32::write(void* file, char *buf, int32_t lenght){
 }
 
 rc32::rc32(){
-  frequency=(uint32_t *)calloc(257,sizeof(uint32_t));
-  if(frequency) for(low=0; low<257; low++) frequency[low]=low;
-  else return;
   range=0xffffffff;
   low=hlp=0;
   lowp=&((char *)&low)[3];
@@ -98,6 +93,8 @@ rc32::rc32(){
   eof=false;
   read_op=write_op=NULL;
   is_eof=NULL;
+  frequency=(uint32_t *)calloc(257,sizeof(uint32_t));
+  if(frequency) for(low=0; low<257; low++) frequency[low]=low;
 }
 
 rc32::~rc32(){

@@ -24,6 +24,7 @@
       io_operator read_op;
       io_operator write_op;
       eof_operator is_eof;
+      void rescale(uint16_t i);
     public:
       uint32_t *frequency;
       bool eof;

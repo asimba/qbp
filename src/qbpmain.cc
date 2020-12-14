@@ -30,19 +30,17 @@ int main(int argc, char *argv[]){
       FILE *ostream=NULL;
       if(argv[1][0]=='c'){
         if(access(argv[3],F_OK)!=0){
-          if((istream=fopen64(argv[2],"rb"))!=NULL){
-            if((ostream=fopen64(argv[3],"wb"))!=NULL){
+          if((istream=fopen64(argv[2],"rb"))){
+            if((ostream=fopen64(argv[3],"wb"))){
               int l=0;
               while(1){
                 l=fread(buffer,sizeof(char),32768,istream);
                 if(l<0) break;
-                if(l==0){
-                  while(pack.is_eof()==0){
-                    if(pack.write(ostream,NULL,0)<0) break;
-                  };
+                if(!l){
+                  pack.write(ostream,NULL,0);
                   break;
-                };
-                if(pack.write(ostream,buffer,l)<0) break;
+                }
+                else if(pack.write(ostream,buffer,l)<0) break;
               };
               fclose(ostream);
             };
@@ -53,8 +51,8 @@ int main(int argc, char *argv[]){
       else{
         if(argv[1][0]=='d'){
           if(access(argv[3],F_OK)!=0){
-            if((istream=fopen64(argv[2],"rb"))!=NULL){
-              if((ostream=fopen64(argv[3],"wb"))!=NULL){
+            if((istream=fopen64(argv[2],"rb"))){
+              if((ostream=fopen64(argv[3],"wb"))){
                 int l=0;
                 while(1){
                   l=pack.read(istream,buffer,32768);

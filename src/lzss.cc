@@ -67,6 +67,7 @@ int32_t lzss::write(void* file, char *buf, int32_t ln){
     voc.write(lzbuf,c);
     memmove(lzbuf,lzbuf+c,LZ_BUF_SIZE-c);
     buf_size-=c;
+    if(!buf) ln+=buf_size;
   };
   if(!buf&&!buf_size){
     if(cflags_count){
