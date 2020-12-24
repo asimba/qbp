@@ -1,0 +1,2 @@
+Windows: tcc *.c -o qbp.exe -m32 -Wl,-subsystem=console
+Linux: tcc *.c -o qbp -s -Os
