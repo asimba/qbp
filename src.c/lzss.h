@@ -39,8 +39,8 @@
 
   void lzss_initialize(lzss_data *lzssd);
   void lzss_release(lzss_data *lzssd);
-  int32_t lzss_write(lzss_data *lzssd,void* file,char *buf,int32_t ln);
-  int32_t lzss_read(lzss_data *lzssd,void* file,char *buf,int32_t ln);
+  int lzss_write(lzss_data *lzssd,char *buf,int ln);
+  int lzss_read(lzss_data *lzssd,char *buf,int ln);
   int lzss_is_eof(lzss_data *lzssd);
 
 #endif

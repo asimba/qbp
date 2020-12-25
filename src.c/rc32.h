@@ -18,12 +18,13 @@
     uint32_t *frequency;
     char *lowp;
     char *hlpp;
+    void *file;
     char eof;
   } rc32_data;
 
   void rc32_initialize(rc32_data *rc32d);
   void rc32_release(rc32_data *rc32d);
-  int32_t rc32_read(rc32_data *rc32d,void* file,char *buf,int32_t lenght);
-  int32_t rc32_write(rc32_data *rc32d,void* file,char *buf,int32_t lenght);
+  int rc32_read(rc32_data *rc32d,char *buf,int lenght);
+  int rc32_write(rc32_data *rc32d,char *buf,int lenght);
 
 #endif

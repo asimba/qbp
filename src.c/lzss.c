@@ -41,8 +41,9 @@ void lzss_release(lzss_data *lzssd){
   if(lzssd->lzbuf) free(lzssd->lzbuf);
 }
 
-void lzss_voc_search(lzss_data *lzssd){
-  lzssd->offset=lzssd->lenght=0;
+static void lzss_voc_search(lzss_data *lzssd){
+  lzssd->offset=0;
+  lzssd->lenght=1;
   if(lzssd->buf_size<3) return;
   uint8_t *str=lzssd->lzbuf;
   uint16_t size=lzssd->buf_size;
@@ -66,7 +67,7 @@ void lzss_voc_search(lzss_data *lzssd){
   else lzssd->lenght=1;
 }
 
-void lzss_voc_write(lzss_data *lzssd){
+static void lzss_voc_write(lzss_data *lzssd){
   vocpntr *indx;
   uint8_t *str=lzssd->lzbuf;
   uint16_t size=lzssd->lenght;
@@ -88,9 +89,8 @@ void lzss_voc_write(lzss_data *lzssd){
   };
 }
 
-int32_t lzss_write(lzss_data *lzssd,void* file,char *buf,int32_t ln){
-  if(!buf) ln+=lzssd->buf_size;
-  while(ln){
+int lzss_write(lzss_data *lzssd,char *buf,int ln){
+  while(1){
     if(buf){
       int16_t r=LZ_BUF_SIZE-lzssd->buf_size;
       if(r){
@@ -100,13 +100,12 @@ int32_t lzss_write(lzss_data *lzssd,void* file,char *buf,int32_t ln){
         buf+=r;
         ln-=r;
       };
-    }
-    else ln-=lzssd->buf_size;
+    };
     if((buf)&&(ln==0)) break;
     lzss_voc_search(lzssd);
     if(lzssd->cflags_count==5){
       lzssd->cbuffer[0]|=0xa0;
-      if(rc32_write(&lzssd->pack,file,(char*)lzssd->cbuffer,lzssd->cbuffer_position)<0) return -1;
+      if(rc32_write(&lzssd->pack,(char*)lzssd->cbuffer,lzssd->cbuffer_position)<0) return -1;
       lzssd->cflags_count=0;
       lzssd->cbuffer[0]=0;
       lzssd->cbuffer_position=1;
@@ -125,22 +124,22 @@ int32_t lzss_write(lzss_data *lzssd,void* file,char *buf,int32_t ln){
     lzss_voc_write(lzssd);
     memmove(lzssd->lzbuf,lzssd->lzbuf+lzssd->lenght,LZ_BUF_SIZE-lzssd->lenght);
     lzssd->buf_size-=lzssd->lenght;
-    if(!buf) ln+=lzssd->buf_size;
-  };
-  if(!buf&&!lzssd->buf_size){
-    if(lzssd->cflags_count){
-      lzssd->cbuffer[0]<<=(5-lzssd->cflags_count);
-      lzssd->cbuffer[0]|=(lzssd->cflags_count<<5);
-      if(rc32_write(&lzssd->pack,file,(char*)lzssd->cbuffer,lzssd->cbuffer_position)<0) return -1;
-    };
-    while(!lzssd->pack.eof){
-      if(rc32_write(&lzssd->pack,file,NULL,0)<0) return -1;
-    };
+    if(!buf&&!lzssd->buf_size){
+      if(lzssd->cflags_count){
+        lzssd->cbuffer[0]<<=(5-lzssd->cflags_count);
+        lzssd->cbuffer[0]|=(lzssd->cflags_count<<5);
+        if(rc32_write(&lzssd->pack,(char*)lzssd->cbuffer,lzssd->cbuffer_position)<0) return -1;
+      };
+      while(!lzssd->pack.eof){
+        if(rc32_write(&lzssd->pack,NULL,0)<0) return -1;
+      };
+      break;
+    }
   };
   return 1;
 }
 
-int32_t lzss_read(lzss_data *lzssd,void* file,char *buf,int32_t ln){
+int lzss_read(lzss_data *lzssd,char *buf,int ln){
   int32_t rl=0;
   uint16_t c=0;
   if(lzssd->pack.eof){
@@ -159,7 +158,7 @@ int32_t lzss_read(lzss_data *lzssd,void* file,char *buf,int32_t ln){
     }
     else{
       if(lzssd->cflags_count==0){
-        if(rc32_read(&lzssd->pack,file,(char*)lzssd->cbuffer,1)<0) return -1;
+        if(rc32_read(&lzssd->pack,(char*)lzssd->cbuffer,1)<0) return -1;
         lzssd->cflags_count=lzssd->cbuffer[0]>>5;
         lzssd->cbuffer[0]<<=3;
         if(lzssd->pack.eof||(lzssd->cflags_count==0)||(lzssd->cflags_count==6)||(lzssd->cflags_count==7))
@@ -172,7 +171,7 @@ int32_t lzss_read(lzss_data *lzssd,void* file,char *buf,int32_t ln){
           else c+=3;
           f<<=1;
         };
-        if(rc32_read(&lzssd->pack,file,(char*)(&lzssd->cbuffer[1]),c)<0)
+        if(rc32_read(&lzssd->pack,(char*)(&lzssd->cbuffer[1]),c)<0)
           return -1;
       };
       if(lzssd->cbuffer[0]&0x80){
