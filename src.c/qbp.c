@@ -8,7 +8,7 @@
 #endif
 
 /***********************************************************************************************************/
-//Р‘Р°Р·РѕРІР°СЏ СЂРµР°Р»РёР·Р°С†РёСЏ СѓРїР°РєРѕРІРєРё/СЂР°СЃРїР°РєРѕРІРєРё С„Р°Р№Р»Р° РїРѕ СѓРїСЂРѕС‰С‘РЅРЅРѕРјСѓ Р°Р»РіРѕСЂРёС‚РјСѓ LZSS+RC32
+//Базовая реализация упаковки/распаковки файла по упрощённому алгоритму LZSS+RC32
 /***********************************************************************************************************/
 
 #define LZ_BUF_SIZE 258
@@ -31,11 +31,13 @@ uint16_t voclast;
 uint16_t vocroot;
 uint16_t offset;
 uint16_t lenght;
+uint16_t symbol;
 uint32_t low;
 uint32_t hlp;
 uint32_t range;
 uint8_t cflags_count;
 uint8_t cbuffer_position;
+uint32_t *fc;
 char *lowp;
 char *hlpp;
 char eofs;
@@ -49,65 +51,19 @@ void pack_initialize(){
   range=0xffffffff;
   lowp=&((char *)&low)[3];
   hlpp=&((char *)&hlp)[0];
-  for(uint16_t i=0; i<257; i++) frequency[i]=i;
-  for(uint32_t i=0;i<0x10000;i++)
+  fc=&frequency[256];
+  uint32_t i;
+  for(i=0;i<257;i++) frequency[i]=i;
+  for(i=0;i<0x10000;i++)
     vocarea[i]=vocindx[i].in=vocindx[i].out=-1;
 }
 
-void pack_voc_search(){
-  offset=0;
-  lenght=1;
-  if(buf_size<3) return;
-  uint8_t *str=lzbuf;
-  uint16_t size=buf_size;
-  int32_t cnode=vocindx[*(uint16_t*)str].in;
-  char ds=(str[0]^str[1])?0:1;
-  while(cnode>=0){
-    if(str[lenght]==vocbuf[(uint16_t)(cnode+lenght)]){
-      uint16_t tnode=cnode+2;
-      uint16_t cl=2;
-      while((cl<size)&&(str[cl]==vocbuf[tnode++])) cl++;
-      if(cl>=lenght){
-        lenght=cl;
-        offset=cnode;
-      };
-      if(lenght==size) break;
-    };
-    cnode=vocarea[cnode];
-    if(ds&&(cnode>=0)) cnode=vocarea[cnode];
-  };
-  if(lenght>2) offset-=vocroot;
-  else lenght=1;
-}
-
-void pack_voc_write(){
-  vocpntr *indx;
-  uint8_t *str=lzbuf;
-  uint16_t size=lenght;
-  union {uint8_t c[sizeof(uint16_t)];uint16_t i16;} u;
-  while(size--){
-    u.c[0]=vocbuf[vocroot];
-    u.c[1]=vocbuf[(uint16_t)(vocroot+1)];
-    vocindx[u.i16].in=vocarea[vocroot];
-    vocarea[vocroot]=-1;
-    vocbuf[vocroot]=*str++;
-    u.c[0]=vocbuf[voclast];
-    u.c[1]=vocbuf[vocroot];
-    indx=&vocindx[u.i16];
-    if(indx->in>=0) vocarea[indx->out]=voclast;
-    else indx->in=voclast;
-    indx->out=voclast;
-    voclast++;
-    vocroot++;
-  };
-}
-
-void rc32_rescale(uint16_t i){
+void rc32_rescale(){
   uint16_t j;
-  low+=frequency[i]*range;
-  range*=frequency[i+1]-frequency[i];
-  for(j=i+1; j<257; j++) frequency[j]++;
-  if(frequency[256]>0xffff){
+  low+=frequency[symbol]*range;
+  range*=frequency[symbol+1]-frequency[symbol];
+  for(j=symbol+1; j<257; j++) frequency[j]++;
+  if(*fc>0xffff){
     frequency[0]>>=1;
     for(j=1; j<257; j++){
       frequency[j]>>=1;
@@ -133,13 +89,12 @@ int rc32_read(uint8_t *buf,int lenght,FILE *ifile){
       eofs=1;
       return 1;
     };
-    uint16_t i;
-    range/=frequency[256];
+    range/=*fc;
     uint32_t count=(hlp-low)/range;
-    if(count>=frequency[256]) return -1;
-    for(i=255; frequency[i]>count; i--) if(!i) break;
-    *buf=(uint8_t)i;
-    rc32_rescale(i);
+    if(count>=*fc) return -1;
+    for(symbol=255; frequency[symbol]>count; symbol--) if(!symbol) break;
+    *buf=(uint8_t)symbol;
+    rc32_rescale();
     while((range<0x10000)||(hlp<low)){
       if(((low&0xff0000)==0xff0000)&&(range+(uint16_t)low>=0x10000))
         range=0x10000-(uint16_t)low;
@@ -166,9 +121,9 @@ int rc32_write(uint8_t *buf,int lenght,FILE *ofile){
     eofs=1;
   }
   else while(lenght--){
-    uint16_t i=*buf;
-    range/=frequency[256];
-    rc32_rescale(i);
+    symbol=*buf;
+    range/=*fc;
+    rc32_rescale();
     while(range<0x10000){
       if(((low&0xff0000)==0xff0000)&&(range+(uint16_t)low>=0x10000))
         range=0x10000-(uint16_t)low;
@@ -184,6 +139,10 @@ int rc32_write(uint8_t *buf,int lenght,FILE *ofile){
 
 int pack_file(FILE *ifile,FILE *ofile){
   char eoff=0;
+  vocpntr *indx;
+  uint8_t *str;
+  uint16_t size;
+  union {uint8_t c[sizeof(uint16_t)];uint16_t i16;} u;
   while(1){
     if(!eoff){
       int r=LZ_BUF_SIZE-buf_size;
@@ -194,12 +153,31 @@ int pack_file(FILE *ifile,FILE *ofile){
         else buf_size+=r;
       };
     };
-    pack_voc_search();
+    offset=0;
+    lenght=1;
+    if(buf_size>=LZ_MIN_MATCH){
+      int32_t cnode=vocindx[*(uint16_t*)lzbuf].in;
+      char ds=(lzbuf[0]^lzbuf[1])?0:1;
+      while(cnode>=0){
+        if(lzbuf[lenght]==vocbuf[(uint16_t)(cnode+lenght)]){
+          uint16_t tnode=cnode+2;
+          uint16_t cl=2;
+          while((cl<buf_size)&&(lzbuf[cl]==vocbuf[tnode++])) cl++;
+          if(cl>=lenght&&cl>2){
+            lenght=cl;
+            offset=cnode;
+          };
+          if(lenght==buf_size) break;
+        };
+        cnode=vocarea[cnode];
+        if(ds&&(cnode>=0)) cnode=vocarea[cnode];
+      };
+      if(lenght>1) offset-=vocroot;
+    };
     if(cflags_count==5){
       cbuffer[0]|=0xa0;
       if(rc32_write(cbuffer,cbuffer_position,ofile)<0) return -1;
-      cflags_count=0;
-      cbuffer[0]=0;
+      cflags_count=cbuffer[0]=0;
       cbuffer_position=1;
     };
     cbuffer[0]<<=1;
@@ -209,11 +187,27 @@ int pack_file(FILE *ifile,FILE *ofile){
     }
     else{
       cbuffer[0]|=0x01;
-      cbuffer[cbuffer_position]=lzbuf[0];
+      cbuffer[cbuffer_position]=*lzbuf;
     };
     cbuffer_position++;
     cflags_count++;
-    pack_voc_write();
+    str=lzbuf;
+    size=lenght;
+    while(size--){
+      u.c[0]=vocbuf[vocroot];
+      u.c[1]=vocbuf[(uint16_t)(vocroot+1)];
+      vocindx[u.i16].in=vocarea[vocroot];
+      vocarea[vocroot]=-1;
+      vocbuf[vocroot]=*str++;
+      u.c[0]=vocbuf[voclast];
+      u.c[1]=vocbuf[vocroot];
+      indx=&vocindx[u.i16];
+      if(indx->in>=0) vocarea[indx->out]=voclast;
+      else indx->in=voclast;
+      indx->out=voclast;
+      voclast++;
+      vocroot++;
+    };
     memmove(lzbuf,lzbuf+lenght,LZ_BUF_SIZE-lenght);
     buf_size-=lenght;
     if(eoff&&!buf_size){
