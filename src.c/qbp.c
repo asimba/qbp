@@ -8,7 +8,7 @@
 #endif
 
 /***********************************************************************************************************/
-//Базовая реализация упаковки/распаковки файла по упрощённому алгоритму LZSS+RC32
+//Р‘Р°Р·РѕРІР°СЏ СЂРµР°Р»РёР·Р°С†РёСЏ СѓРїР°РєРѕРІРєРё/СЂР°СЃРїР°РєРѕРІРєРё С„Р°Р№Р»Р° РїРѕ СѓРїСЂРѕС‰С‘РЅРЅРѕРјСѓ Р°Р»РіРѕСЂРёС‚РјСѓ LZSS+RC32
 /***********************************************************************************************************/
 
 #define LZ_BUF_SIZE 258
@@ -74,16 +74,6 @@ void rc32_rescale(){
 }
 
 int rc32_read(uint8_t *buf,int lenght,FILE *ifile){
-  if(!hlp){
-    for(uint16_t i=0;i<sizeof(uint32_t);i++){
-      hlp<<=8;
-      *hlpp=fgetc(ifile);
-      if(ferror(ifile)||feof(ifile)){
-        hlp=0;
-        return -1;
-      };
-    }
-  };
   while(lenght--){
     if(!hlp){
       eofs=1;
@@ -112,15 +102,7 @@ int rc32_read(uint8_t *buf,int lenght,FILE *ifile){
 }
 
 int rc32_write(uint8_t *buf,int lenght,FILE *ofile){
-  if(!lenght){
-    for(int i=sizeof(uint32_t);i>0;i--){
-      fputc(*lowp,ofile);
-      if(ferror(ofile)) return -1;
-      low<<=8;
-    }
-    eofs=1;
-  }
-  else while(lenght--){
+  while(lenght--){
     symbol=*buf;
     range/=*fc;
     rc32_rescale();
@@ -137,31 +119,33 @@ int rc32_write(uint8_t *buf,int lenght,FILE *ofile){
   return 1;
 }
 
-int pack_file(FILE *ifile,FILE *ofile){
+void pack_file(FILE *ifile,FILE *ofile){
   char eoff=0;
   vocpntr *indx;
   uint8_t *str;
-  uint16_t size;
+  uint16_t i,tnode,cl;
+  int32_t cnode;
   union {uint8_t c[sizeof(uint16_t)];uint16_t i16;} u;
   while(1){
     if(!eoff){
-      int r=LZ_BUF_SIZE-buf_size;
-      if(r){
-        r=fread(lzbuf+buf_size,1,r,ifile);
-        if(ferror(ifile)) return -1;
-        if(!r&&feof(ifile)) eoff=1;
-        else buf_size+=r;
+      if(LZ_BUF_SIZE-buf_size){
+        lzbuf[buf_size]=fgetc(ifile);
+        if(ferror(ifile)) break;
+        if(feof(ifile)) eoff=1;
+        else{
+          buf_size++;
+          continue;
+        };
       };
     };
     offset=0;
     lenght=1;
     if(buf_size>=LZ_MIN_MATCH){
-      int32_t cnode=vocindx[*(uint16_t*)lzbuf].in;
-      char ds=(lzbuf[0]^lzbuf[1])?0:1;
+      cnode=vocindx[*(uint16_t*)lzbuf].in;
       while(cnode>=0){
         if(lzbuf[lenght]==vocbuf[(uint16_t)(cnode+lenght)]){
-          uint16_t tnode=cnode+2;
-          uint16_t cl=2;
+          tnode=cnode+2;
+          cl=2;
           while((cl<buf_size)&&(lzbuf[cl]==vocbuf[tnode++])) cl++;
           if(cl>=lenght&&cl>2){
             lenght=cl;
@@ -170,15 +154,8 @@ int pack_file(FILE *ifile,FILE *ofile){
           if(lenght==buf_size) break;
         };
         cnode=vocarea[cnode];
-        if(ds&&(cnode>=0)) cnode=vocarea[cnode];
       };
       if(lenght>1) offset-=vocroot;
-    };
-    if(cflags_count==5){
-      cbuffer[0]|=0xa0;
-      if(rc32_write(cbuffer,cbuffer_position,ofile)<0) return -1;
-      cflags_count=cbuffer[0]=0;
-      cbuffer_position=1;
     };
     cbuffer[0]<<=1;
     if(lenght>=LZ_MIN_MATCH){
@@ -192,8 +169,8 @@ int pack_file(FILE *ifile,FILE *ofile){
     cbuffer_position++;
     cflags_count++;
     str=lzbuf;
-    size=lenght;
-    while(size--){
+    i=lenght;
+    while(i--){
       u.c[0]=vocbuf[vocroot];
       u.c[1]=vocbuf[(uint16_t)(vocroot+1)];
       vocindx[u.i16].in=vocarea[vocroot];
@@ -210,70 +187,75 @@ int pack_file(FILE *ifile,FILE *ofile){
     };
     memmove(lzbuf,lzbuf+lenght,LZ_BUF_SIZE-lenght);
     buf_size-=lenght;
-    if(eoff&&!buf_size){
-      if(cflags_count){
-        cbuffer[0]<<=(5-cflags_count);
-        cbuffer[0]|=(cflags_count<<5);
-        if(rc32_write(cbuffer,cbuffer_position,ofile)<0) return -1;
-      };
-      while(!eofs){
-        if(rc32_write(NULL,0,ofile)<0) return -1;
-      };
-      break;
-    }
-  };
-  return 1;
-}
-
-int unpack_file(FILE *ifile, FILE *ofile){
-  uint16_t c=0;
-  while(1){
-    if(buf_size){
-      fwrite(lzbuf,1,buf_size,ofile);
-      if(ferror(ofile)) return -1;
-      buf_size=0;
-    }
-    else{
-      if(eofs) return 1;
-      if(cflags_count==0){
-        if(rc32_read(cbuffer,1,ifile)<0) return -1;
-        cflags_count=cbuffer[0]>>5;
-        cbuffer[0]<<=3;
-        if(eofs||(cflags_count==0)||(cflags_count==6)||(cflags_count==7))
-          return 1;
-        cbuffer_position=1;
-        c=0;
-        uint8_t f=cbuffer[0];
-        for(uint8_t cf=0; cf<cflags_count; cf++){
-          if(f&0x80) c++;
-          else c+=3;
-          f<<=1;
-        };
-        if(rc32_read(&cbuffer[1],c,ifile)<0)
-          return -1;
-      };
-      if(cbuffer[0]&0x80){
-        lzbuf[0]=cbuffer[cbuffer_position];
-        vocbuf[vocroot++]=cbuffer[cbuffer_position];
-        buf_size=1;
-      }
-      else{
-        c=cbuffer[cbuffer_position++]+LZ_MIN_MATCH;
-        buf_size=*(uint16_t*)&cbuffer[cbuffer_position++]+vocroot;
-        for(uint16_t i=0; i<c; i++){
-          lzbuf[i]=vocbuf[buf_size++];
+    if(eoff&&!buf_size) eofs=1;
+    if((cflags_count==5)||eofs){
+      cbuffer[0]<<=(5-cflags_count);
+      cbuffer[0]|=(cflags_count<<5);
+      if(rc32_write(cbuffer,cbuffer_position,ofile)<0) break;
+      cflags_count=cbuffer[0]=0;
+      cbuffer_position=1;
+      if(eofs){
+        for(i=sizeof(uint32_t);i>0;i--){
+          fputc(*lowp,ofile);
+          if(ferror(ofile)) return;
+          low<<=8;
         }
-        for(uint16_t i=0; i<c; i++){
-          vocbuf[vocroot++]=lzbuf[i];
-        };
-        buf_size=c;
+        break;
       };
-      cbuffer[0]<<=1;
-      cbuffer_position++;
-      cflags_count--;
     };
   };
-  return 1;
+  return;
+}
+
+void unpack_file(FILE *ifile, FILE *ofile){
+  uint16_t i,c=0;
+  if(!hlp){
+    for(i=0;i<sizeof(uint32_t);i++){
+      hlp<<=8;
+      *hlpp=fgetc(ifile);
+      if(ferror(ifile)||feof(ifile)){
+        hlp=0;
+        return;
+      };
+    }
+  };
+  while(1){
+    if(eofs) break;
+    if(cflags_count==0){
+      if(rc32_read(cbuffer,1,ifile)<0) break;
+      cflags_count=cbuffer[0]>>5;
+      cbuffer[0]<<=3;
+      if(eofs||(cflags_count==0)||(cflags_count==6)||(cflags_count==7)) break;
+      cbuffer_position=1;
+      c=0;
+      uint8_t f=cbuffer[0];
+      for(uint8_t cf=0;cf<cflags_count;cf++){
+        if(f&0x80) c++;
+        else c+=3;
+        f<<=1;
+      };
+      if(rc32_read(&cbuffer[1],c,ifile)<0) break;
+    };
+    if(cbuffer[0]&0x80){
+      fputc(cbuffer[cbuffer_position],ofile);
+      if(ferror(ofile)) break;
+      vocbuf[vocroot++]=cbuffer[cbuffer_position];
+    }
+    else{
+      c=cbuffer[cbuffer_position++]+LZ_MIN_MATCH;
+      buf_size=*(uint16_t*)&cbuffer[cbuffer_position++]+vocroot;
+      for(i=0;i<c;i++){
+        lzbuf[i]=vocbuf[buf_size++];
+        fputc(lzbuf[i],ofile);
+        if(ferror(ofile)) return;
+      };
+      for(i=0;i<c;i++) vocbuf[vocroot++]=lzbuf[i];
+    };
+    cbuffer[0]<<=1;
+    cbuffer_position++;
+    cflags_count--;
+  };
+  return;
 }
 
 /***********************************************************************************************************/
