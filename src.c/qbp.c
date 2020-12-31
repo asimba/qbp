@@ -21,7 +21,7 @@ typedef struct{
 } vocpntr;
 
 uint8_t cbuffer[LZ_CAPACITY+1];
-uint8_t lzbuf[LZ_BUF_SIZE*2];
+uint8_t lzbuf[LZ_BUF_SIZE+1];
 uint8_t vocbuf[0x10000];
 int32_t vocarea[0x10000];
 vocpntr vocindx[0x10000];
@@ -54,8 +54,10 @@ void pack_initialize(){
   fc=&frequency[256];
   uint32_t i;
   for(i=0;i<257;i++) frequency[i]=i;
-  for(i=0;i<0x10000;i++)
+  for(i=0;i<0x10000;i++){
     vocarea[i]=vocindx[i].in=vocindx[i].out=-1;
+    vocbuf[i]=0;
+  };
 }
 
 void rc32_rescale(){
@@ -73,8 +75,8 @@ void rc32_rescale(){
   };
 }
 
-int rc32_read(uint8_t *buf,int lenght,FILE *ifile){
-  while(lenght--){
+int rc32_read(uint8_t *buf,int l,FILE *ifile){
+  while(l--){
     if(!hlp){
       eofs=1;
       return 1;
@@ -91,8 +93,10 @@ int rc32_read(uint8_t *buf,int lenght,FILE *ifile){
       hlp<<=8;
       *hlpp=fgetc(ifile);
       if(ferror(ifile)) return -1;
-      if(feof(ifile)) hlp=0;
-      if(!hlp) break;
+      if(feof(ifile)){
+        hlp=0;
+        break;
+      }
       low<<=8;
       range<<=8;
     };
@@ -101,8 +105,8 @@ int rc32_read(uint8_t *buf,int lenght,FILE *ifile){
   return 1;
 }
 
-int rc32_write(uint8_t *buf,int lenght,FILE *ofile){
-  while(lenght--){
+int rc32_write(uint8_t *buf,int l,FILE *ofile){
+  while(l--){
     symbol=*buf;
     range/=*fc;
     rc32_rescale();
