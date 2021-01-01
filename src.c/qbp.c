@@ -12,7 +12,7 @@
 /***********************************************************************************************************/
 
 #define LZ_BUF_SIZE 258
-#define LZ_CAPACITY 15
+#define LZ_CAPACITY 24
 #define LZ_MIN_MATCH 3
 
 typedef struct{
@@ -144,57 +144,62 @@ void pack_file(FILE *ifile,FILE *ofile){
     };
     offset=0;
     lenght=1;
-    if(buf_size>=LZ_MIN_MATCH){
-      cnode=vocindx[*(uint16_t*)lzbuf].in;
-      while(cnode>=0){
-        if(lzbuf[lenght]==vocbuf[(uint16_t)(cnode+lenght)]){
-          tnode=cnode+2;
-          cl=2;
-          while((cl<buf_size)&&(lzbuf[cl]==vocbuf[tnode++])) cl++;
-          if(cl>=lenght&&cl>2){
-            lenght=cl;
-            offset=cnode;
-          };
-          if(lenght==buf_size) break;
-        };
-        cnode=vocarea[cnode];
-      };
-      if(lenght>1) offset-=vocroot;
-    };
     cbuffer[0]<<=1;
-    if(lenght>=LZ_MIN_MATCH){
-      cbuffer[cbuffer_position++]=(uint8_t)(lenght-LZ_MIN_MATCH);
-      *(uint16_t*)&cbuffer[cbuffer_position++]=offset;
+    if(buf_size){
+      if(buf_size>=LZ_MIN_MATCH){
+        cnode=vocindx[*(uint16_t*)lzbuf].in;
+        while(cnode>=0){
+          if(lzbuf[lenght]==vocbuf[(uint16_t)(cnode+lenght)]){
+            tnode=cnode+2;
+            cl=2;
+            while((cl<buf_size)&&(lzbuf[cl]==vocbuf[tnode++])) cl++;
+            if(cl>=lenght&&cl>2){
+              lenght=cl;
+              offset=cnode;
+            };
+            if(lenght==buf_size) break;
+          };
+          cnode=vocarea[cnode];
+        };
+        if(lenght>1) offset-=vocroot;
+      };
+      if(lenght>=LZ_MIN_MATCH){
+        cbuffer[cbuffer_position++]=(uint8_t)(lenght-LZ_MIN_MATCH);
+        *(uint16_t*)&cbuffer[cbuffer_position++]=offset;
+      }
+      else{
+        cbuffer[0]|=0x01;
+        cbuffer[cbuffer_position]=*lzbuf;
+      };
+      str=lzbuf;
+      i=lenght;
+      while(i--){
+        u.c[0]=vocbuf[vocroot];
+        u.c[1]=vocbuf[(uint16_t)(vocroot+1)];
+        vocindx[u.i16].in=vocarea[vocroot];
+        vocarea[vocroot]=-1;
+        vocbuf[vocroot]=*str++;
+        u.c[0]=vocbuf[voclast];
+        u.c[1]=vocbuf[vocroot];
+        indx=&vocindx[u.i16];
+        if(indx->in>=0) vocarea[indx->out]=voclast;
+        else indx->in=voclast;
+        indx->out=voclast;
+        voclast++;
+        vocroot++;
+      };
+      memmove(lzbuf,lzbuf+lenght,LZ_BUF_SIZE-lenght);
+      buf_size-=lenght;
     }
     else{
-      cbuffer[0]|=0x01;
-      cbuffer[cbuffer_position]=*lzbuf;
+      cbuffer[cbuffer_position++]=0;
+      *(uint16_t*)&cbuffer[cbuffer_position++]=0xffff;
+      if(eoff) eofs=1;
     };
     cbuffer_position++;
     cflags_count++;
-    str=lzbuf;
-    i=lenght;
-    while(i--){
-      u.c[0]=vocbuf[vocroot];
-      u.c[1]=vocbuf[(uint16_t)(vocroot+1)];
-      vocindx[u.i16].in=vocarea[vocroot];
-      vocarea[vocroot]=-1;
-      vocbuf[vocroot]=*str++;
-      u.c[0]=vocbuf[voclast];
-      u.c[1]=vocbuf[vocroot];
-      indx=&vocindx[u.i16];
-      if(indx->in>=0) vocarea[indx->out]=voclast;
-      else indx->in=voclast;
-      indx->out=voclast;
-      voclast++;
-      vocroot++;
-    };
-    memmove(lzbuf,lzbuf+lenght,LZ_BUF_SIZE-lenght);
-    buf_size-=lenght;
-    if(eoff&&!buf_size) eofs=1;
-    if((cflags_count==5)||eofs){
-      cbuffer[0]<<=(5-cflags_count);
-      cbuffer[0]|=(cflags_count<<5);
+    if((cflags_count==8)||eofs){
+      cbuffer[0]<<=(8-cflags_count);
       if(rc32_write(cbuffer,cbuffer_position,ofile)<0) break;
       cflags_count=cbuffer[0]=0;
       cbuffer_position=1;
@@ -224,12 +229,10 @@ void unpack_file(FILE *ifile, FILE *ofile){
     }
   };
   while(1){
-    if(eofs) break;
     if(cflags_count==0){
       if(rc32_read(cbuffer,1,ifile)<0) break;
-      cflags_count=cbuffer[0]>>5;
-      cbuffer[0]<<=3;
-      if(eofs||(cflags_count==0)||(cflags_count==6)||(cflags_count==7)) break;
+      if(eofs) break;
+      cflags_count=8;
       cbuffer_position=1;
       c=0;
       uint8_t f=cbuffer[0];
@@ -247,7 +250,9 @@ void unpack_file(FILE *ifile, FILE *ofile){
     }
     else{
       c=cbuffer[cbuffer_position++]+LZ_MIN_MATCH;
-      buf_size=*(uint16_t*)&cbuffer[cbuffer_position++]+vocroot;
+      buf_size=*(uint16_t*)&cbuffer[cbuffer_position++];
+      if(buf_size==0xffff) break;
+      buf_size+=vocroot;
       for(i=0;i<c;i++){
         lzbuf[i]=vocbuf[buf_size++];
         fputc(lzbuf[i],ofile);
