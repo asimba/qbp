@@ -1,0 +1,2 @@
+Windows: tcc *.c -o qbp.exe -m32 -Wl,-subsystem=console
+Linux  : gcc qbp.c -Os -s -o ./qbp -fdata-sections -ffunction-sections -Wl,--gc-sections
