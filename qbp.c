@@ -161,11 +161,10 @@ void pack_file(FILE *ifile,FILE *ofile){
           };
           cnode=vocarea[cnode];
         };
-        if(lenght>1) offset-=vocroot;
       };
       if(lenght>=LZ_MIN_MATCH){
         cbuffer[cbuffer_position++]=(uint8_t)(lenght-LZ_MIN_MATCH);
-        *(uint16_t*)&cbuffer[cbuffer_position++]=offset;
+        *(uint16_t*)&cbuffer[cbuffer_position++]=offset-vocroot;
       }
       else{
         cbuffer[0]|=0x01;
