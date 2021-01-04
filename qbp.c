@@ -11,7 +11,7 @@
 //Базовая реализация упаковки/распаковки файла по упрощённому алгоритму LZSS+RC32
 /***********************************************************************************************************/
 
-#define LZ_BUF_SIZE 258
+#define LZ_BUF_SIZE 257
 #define LZ_CAPACITY 24
 #define LZ_MIN_MATCH 3
 
@@ -21,7 +21,6 @@ typedef struct{
 } vocpntr;
 
 uint8_t cbuffer[LZ_CAPACITY+1];
-uint8_t lzbuf[LZ_BUF_SIZE+1];
 uint8_t vocbuf[0x10000];
 int32_t vocarea[0x10000];
 vocpntr vocindx[0x10000];
@@ -117,33 +116,47 @@ int rc32_write(uint8_t *buf,int l,FILE *ofile){
 void pack_file(FILE *ifile,FILE *ofile){
   char eoff=0,eofs=0;
   vocpntr *indx;
-  uint8_t *str;
   uint16_t i,tnode,cl;
   int32_t cnode;
   union {uint8_t c[sizeof(uint16_t)];uint16_t i16;} u;
   while(1){
     if(!eoff){
       if(LZ_BUF_SIZE-buf_size){
-        lzbuf[buf_size]=fgetc(ifile);
+        symbol=fgetc(ifile);
         if(ferror(ifile)) break;
         if(feof(ifile)) eoff=1;
         else{
+          u.c[0]=vocbuf[vocroot];
+          u.c[1]=vocbuf[(uint16_t)(vocroot+1)];
+          vocindx[u.i16].in=vocarea[vocroot];
+          vocarea[vocroot]=-1;
+          vocbuf[vocroot]=symbol;
+          u.c[0]=vocbuf[voclast];
+          u.c[1]=vocbuf[vocroot];
+          indx=&vocindx[u.i16];
+          if(indx->in>=0) vocarea[indx->out]=voclast;
+          else indx->in=voclast;
+          indx->out=voclast;
+          voclast++;
+          vocroot++;
           buf_size++;
           continue;
         };
       };
     };
-    offset=0;
     lenght=1;
     cbuffer[0]<<=1;
+    symbol=vocroot-buf_size;
     if(buf_size){
       if(buf_size>=LZ_MIN_MATCH){
-        cnode=vocindx[*(uint16_t*)lzbuf].in;
-        while(cnode>=0){
-          if(lzbuf[lenght]==vocbuf[(uint16_t)(cnode+lenght)]){
+        u.c[0]=vocbuf[symbol];
+        u.c[1]=vocbuf[symbol+1];
+        cnode=vocindx[u.i16].in;
+        while(cnode>=0&&cnode!=symbol&&cnode+lenght!=symbol){
+          if(vocbuf[(uint16_t)(symbol+lenght)]==vocbuf[(uint16_t)(cnode+lenght)]){
             tnode=cnode+2;
             cl=2;
-            while((cl<buf_size)&&(lzbuf[cl]==vocbuf[tnode++])) cl++;
+            while((cl<buf_size)&&(vocbuf[(uint16_t)(symbol+cl)]==vocbuf[tnode++])) cl++;
             if(cl>=lenght&&cl>2){
               lenght=cl;
               offset=cnode;
@@ -154,36 +167,18 @@ void pack_file(FILE *ifile,FILE *ofile){
         };
       };
       if(lenght>=LZ_MIN_MATCH){
-        cbuffer[cbuffer_position++]=(uint8_t)(lenght-LZ_MIN_MATCH);
-        *(uint16_t*)&cbuffer[cbuffer_position++]=offset-vocroot;
+        cbuffer[cbuffer_position++]=lenght-LZ_MIN_MATCH;
+        *(uint16_t*)&cbuffer[cbuffer_position++]=offset;
       }
       else{
         cbuffer[0]|=0x01;
-        cbuffer[cbuffer_position]=*lzbuf;
+        cbuffer[cbuffer_position]=vocbuf[symbol];
       };
-      str=lzbuf;
-      i=lenght;
-      while(i--){
-        u.c[0]=vocbuf[vocroot];
-        u.c[1]=vocbuf[(uint16_t)(vocroot+1)];
-        vocindx[u.i16].in=vocarea[vocroot];
-        vocarea[vocroot]=-1;
-        vocbuf[vocroot]=*str++;
-        u.c[0]=vocbuf[voclast];
-        u.c[1]=vocbuf[vocroot];
-        indx=&vocindx[u.i16];
-        if(indx->in>=0) vocarea[indx->out]=voclast;
-        else indx->in=voclast;
-        indx->out=voclast;
-        voclast++;
-        vocroot++;
-      };
-      memmove(lzbuf,lzbuf+lenght,LZ_BUF_SIZE-lenght);
       buf_size-=lenght;
     }
     else{
-      cbuffer[cbuffer_position++]=0;
-      *(uint16_t*)&cbuffer[cbuffer_position++]=0xffff;
+      cbuffer[cbuffer_position]=0xff;
+      cbuffer_position+=2;
       if(eoff) eofs=1;
     };
     cbuffer_position++;
@@ -235,16 +230,16 @@ void unpack_file(FILE *ifile, FILE *ofile){
       vocbuf[vocroot++]=cbuffer[cbuffer_position];
     }
     else{
-      lenght=cbuffer[cbuffer_position++]+LZ_MIN_MATCH;
+      lenght=cbuffer[cbuffer_position++];
+      if(lenght==0xff) break;
+      lenght+=LZ_MIN_MATCH;
       offset=*(uint16_t*)&cbuffer[cbuffer_position++];
-      if(offset==0xffff) break;
-      offset+=vocroot;
       for(i=0;i<lenght;i++){
-        lzbuf[i]=vocbuf[offset++];
-        fputc(lzbuf[i],ofile);
+        symbol=vocbuf[offset++];
+        fputc((uint8_t)symbol,ofile);
         if(ferror(ofile)) return;
+        vocbuf[vocroot++]=symbol;
       };
-      for(i=0;i<lenght;i++) vocbuf[vocroot++]=lzbuf[i];
     };
     cbuffer[0]<<=1;
     cbuffer_position++;
