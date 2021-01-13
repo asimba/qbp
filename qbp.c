@@ -35,26 +35,20 @@ uint32_t low;
 uint32_t hlp;
 uint32_t range;
 uint8_t cflags_count;
-uint8_t cbuffer_position;
 uint32_t *fc;
 char *lowp;
 char *hlpp;
 
 void pack_initialize(){
-  buf_size=cflags_count=offset=\
-    lenght=vocroot=cbuffer[0]=low=hlp=0;
-  cbuffer_position=1;
-  voclast=0xffff;
-  range=0xffffffff;
+  buf_size=cflags_count=vocroot=*cbuffer=low=hlp=0;
+  voclast=range=0xffffffff;
   lowp=&((char *)&low)[3];
   hlpp=&((char *)&hlp)[0];
   fc=&frequency[256];
   uint32_t i;
   for(i=0;i<257;i++) frequency[i]=i;
-  for(i=0;i<0x10000;i++){
-    vocarea[i]=vocindx[i].in=vocindx[i].out=-1;
-    vocbuf[i]=0;
-  };
+  for(i=0;i<0x10000;i++)
+    vocbuf[i]=vocarea[i]=vocindx[i].in=vocindx[i].out=-1;
 }
 
 void rc32_rescale(){
@@ -116,9 +110,11 @@ int rc32_write(uint8_t *buf,int l,FILE *ofile){
 void pack_file(FILE *ifile,FILE *ofile){
   char eoff=0,eofs=0;
   vocpntr *indx;
-  uint16_t i,tnode,cl;
+  register uint16_t cl;
   int32_t cnode;
+  uint8_t *cpos=&cbuffer[1];
   union {uint8_t c[sizeof(uint16_t)];uint16_t i16;} u;
+  cflags_count=8;
   while(1){
     if(!eoff){
       if(LZ_BUF_SIZE-buf_size){
@@ -144,20 +140,19 @@ void pack_file(FILE *ifile,FILE *ofile){
         };
       };
     };
-    lenght=1;
-    cbuffer[0]<<=1;
+    *cbuffer<<=1;
     symbol=vocroot-buf_size;
     if(buf_size){
+      lenght=1;
       if(buf_size>=LZ_MIN_MATCH){
         u.c[0]=vocbuf[symbol];
         u.c[1]=vocbuf[symbol+1];
         cnode=vocindx[u.i16].in;
         while(cnode>=0&&cnode!=symbol&&cnode+lenght!=symbol){
           if(vocbuf[(uint16_t)(symbol+lenght)]==vocbuf[(uint16_t)(cnode+lenght)]){
-            tnode=cnode+2;
             cl=2;
-            while((cl<buf_size)&&(vocbuf[(uint16_t)(symbol+cl)]==vocbuf[tnode++])) cl++;
-            if(cl>=lenght&&cl>2){
+            while(vocbuf[(uint16_t)(symbol+cl)]==vocbuf[cnode+cl]&&cl<buf_size) cl++;
+            if(cl>lenght){
               lenght=cl;
               offset=cnode;
             };
@@ -167,29 +162,29 @@ void pack_file(FILE *ifile,FILE *ofile){
         };
       };
       if(lenght>=LZ_MIN_MATCH){
-        cbuffer[cbuffer_position++]=lenght-LZ_MIN_MATCH;
-        *(uint16_t*)&cbuffer[cbuffer_position++]=offset;
+        *cpos++=lenght-LZ_MIN_MATCH;
+        *(uint16_t*)cpos++=offset;
+        buf_size-=lenght;
       }
       else{
-        cbuffer[0]|=0x01;
-        cbuffer[cbuffer_position]=vocbuf[symbol];
+        *cbuffer|=0x01;
+        *cpos=vocbuf[symbol];
+        buf_size--;
       };
-      buf_size-=lenght;
     }
     else{
-      cbuffer[cbuffer_position]=0xff;
-      cbuffer_position+=2;
+      *cpos++=0xff;
       if(eoff) eofs=1;
     };
-    cbuffer_position++;
-    cflags_count++;
-    if((cflags_count==8)||eofs){
-      cbuffer[0]<<=(8-cflags_count);
-      if(rc32_write(cbuffer,cbuffer_position,ofile)<0) break;
-      cflags_count=cbuffer[0]=0;
-      cbuffer_position=1;
+    cpos++;
+    cflags_count--;
+    if(!cflags_count||eofs){
+      *cbuffer<<=cflags_count;
+      if(rc32_write(cbuffer,cpos-cbuffer,ofile)<0) break;
+      cflags_count=8;
+      cpos=&cbuffer[1];
       if(eofs){
-        for(i=sizeof(uint32_t);i>0;i--){
+        for(cl=sizeof(uint32_t);cl;cl--){
           fputc(*lowp,ofile);
           if(ferror(ofile)) return;
           low<<=8;
@@ -203,6 +198,7 @@ void pack_file(FILE *ifile,FILE *ofile){
 
 void unpack_file(FILE *ifile, FILE *ofile){
   uint16_t i;
+  uint8_t *cpos=cbuffer;
   if(!hlp){
     for(i=0;i<sizeof(uint32_t);i++){
       hlp<<=8;
@@ -212,28 +208,28 @@ void unpack_file(FILE *ifile, FILE *ofile){
   };
   while(1){
     if(!cflags_count){
-      if(rc32_read(cbuffer,1,ifile)<0) break;
+      cpos=cbuffer;
+      if(rc32_read(cpos++,1,ifile)<0) break;
       cflags_count=8;
-      cbuffer_position=1;
       lenght=0;
-      symbol=cbuffer[0];
+      symbol=*cbuffer;
       for(i=0;i<cflags_count;i++){
         if(symbol&0x80) lenght++;
         else lenght+=3;
         symbol<<=1;
       };
-      if(rc32_read(&cbuffer[1],lenght,ifile)<0) break;
+      if(rc32_read(cpos,lenght,ifile)<0) break;
     };
-    if(cbuffer[0]&0x80){
-      fputc(cbuffer[cbuffer_position],ofile);
+    if(*cbuffer&0x80){
+      fputc(*cpos,ofile);
       if(ferror(ofile)) break;
-      vocbuf[vocroot++]=cbuffer[cbuffer_position];
+      vocbuf[vocroot++]=*cpos;
     }
     else{
-      lenght=cbuffer[cbuffer_position++];
+      lenght=*cpos++;
       if(lenght==0xff) break;
       lenght+=LZ_MIN_MATCH;
-      offset=*(uint16_t*)&cbuffer[cbuffer_position++];
+      offset=*(uint16_t*)cpos++;
       for(i=0;i<lenght;i++){
         symbol=vocbuf[offset++];
         fputc((uint8_t)symbol,ofile);
@@ -241,8 +237,8 @@ void unpack_file(FILE *ifile, FILE *ofile){
         vocbuf[vocroot++]=symbol;
       };
     };
-    cbuffer[0]<<=1;
-    cbuffer_position++;
+    *cbuffer<<=1;
+    cpos++;
     cflags_count--;
   };
   return;
