@@ -20,6 +20,7 @@ typedef struct{
   int32_t out;
 } vocpntr;
 
+uint8_t flags;
 uint8_t cbuffer[LZ_CAPACITY+1];
 uint8_t vocbuf[0x10000];
 int32_t vocarea[0x10000];
@@ -34,13 +35,12 @@ uint16_t symbol;
 uint32_t low;
 uint32_t hlp;
 uint32_t range;
-uint8_t cflags_count;
 uint32_t *fc;
 char *lowp;
 char *hlpp;
 
 void pack_initialize(){
-  buf_size=cflags_count=vocroot=*cbuffer=low=hlp=0;
+  buf_size=flags=vocroot=*cbuffer=low=hlp=0;
   voclast=range=0xffffffff;
   lowp=&((char *)&low)[3];
   hlpp=&((char *)&hlp)[0];
@@ -108,13 +108,13 @@ int rc32_write(uint8_t *buf,int l,FILE *ofile){
 }
 
 void pack_file(FILE *ifile,FILE *ofile){
+  union {uint8_t c[sizeof(uint16_t)];uint16_t i16;} u;
+  register uint16_t i;
   char eoff=0,eofs=0;
   vocpntr *indx;
-  register uint16_t cl;
   int32_t cnode;
   uint8_t *cpos=&cbuffer[1];
-  union {uint8_t c[sizeof(uint16_t)];uint16_t i16;} u;
-  cflags_count=8;
+  flags=8;
   while(1){
     if(!eoff){
       if(LZ_BUF_SIZE-buf_size){
@@ -143,17 +143,18 @@ void pack_file(FILE *ifile,FILE *ofile){
     *cbuffer<<=1;
     symbol=vocroot-buf_size;
     if(buf_size){
-      lenght=1;
-      if(buf_size>=LZ_MIN_MATCH){
+      lenght=LZ_MIN_MATCH;
+      if(buf_size>LZ_MIN_MATCH){
         u.c[0]=vocbuf[symbol];
         u.c[1]=vocbuf[symbol+1];
         cnode=vocindx[u.i16].in;
-        while(cnode>=0&&cnode!=symbol&&cnode+lenght!=symbol){
+        while(cnode>=0&&cnode!=symbol&&(uint16_t)(cnode+lenght)!=symbol){
           if(vocbuf[(uint16_t)(symbol+lenght)]==vocbuf[(uint16_t)(cnode+lenght)]){
-            cl=2;
-            while(vocbuf[(uint16_t)(symbol+cl)]==vocbuf[cnode+cl]&&cl<buf_size) cl++;
-            if(cl>lenght){
-              lenght=cl;
+            i=2;
+            uint16_t j=symbol+i,k=cnode+i;
+            while(vocbuf[j++]==vocbuf[k]&&k++!=symbol&&i<buf_size) i++;
+            if(i>=lenght){
+              lenght=i;
               offset=cnode;
             };
             if(lenght==buf_size) break;
@@ -161,8 +162,8 @@ void pack_file(FILE *ifile,FILE *ofile){
           cnode=vocarea[cnode];
         };
       };
-      if(lenght>=LZ_MIN_MATCH){
-        *cpos++=lenght-LZ_MIN_MATCH;
+      if(lenght>LZ_MIN_MATCH){
+        *cpos++=lenght-LZ_MIN_MATCH-1;
         *(uint16_t*)cpos++=offset;
         buf_size-=lenght;
       }
@@ -177,14 +178,14 @@ void pack_file(FILE *ifile,FILE *ofile){
       if(eoff) eofs=1;
     };
     cpos++;
-    cflags_count--;
-    if(!cflags_count||eofs){
-      *cbuffer<<=cflags_count;
+    flags--;
+    if(!flags||eofs){
+      *cbuffer<<=flags;
       if(rc32_write(cbuffer,cpos-cbuffer,ofile)<0) break;
-      cflags_count=8;
+      flags=8;
       cpos=&cbuffer[1];
       if(eofs){
-        for(cl=sizeof(uint32_t);cl;cl--){
+        for(i=sizeof(uint32_t);i;i--){
           fputc(*lowp,ofile);
           if(ferror(ofile)) return;
           low<<=8;
@@ -207,13 +208,13 @@ void unpack_file(FILE *ifile, FILE *ofile){
     }
   };
   while(1){
-    if(!cflags_count){
+    if(!flags){
       cpos=cbuffer;
       if(rc32_read(cpos++,1,ifile)<0) break;
-      cflags_count=8;
+      flags=8;
       lenght=0;
       symbol=*cbuffer;
-      for(i=0;i<cflags_count;i++){
+      for(i=0;i<flags;i++){
         if(symbol&0x80) lenght++;
         else lenght+=3;
         symbol<<=1;
@@ -228,7 +229,7 @@ void unpack_file(FILE *ifile, FILE *ofile){
     else{
       lenght=*cpos++;
       if(lenght==0xff) break;
-      lenght+=LZ_MIN_MATCH;
+      lenght+=LZ_MIN_MATCH+1;
       offset=*(uint16_t*)cpos++;
       for(i=0;i<lenght;i++){
         symbol=vocbuf[offset++];
@@ -239,7 +240,7 @@ void unpack_file(FILE *ifile, FILE *ofile){
     };
     *cbuffer<<=1;
     cpos++;
-    cflags_count--;
+    flags--;
   };
   return;
 }
