@@ -11,7 +11,7 @@
 //Базовая реализация упаковки/распаковки файла по упрощённому алгоритму LZSS+RC32
 /***********************************************************************************************************/
 
-#define LZ_BUF_SIZE 257
+#define LZ_BUF_SIZE 259
 #define LZ_CAPACITY 24
 #define LZ_MIN_MATCH 3
 
@@ -164,7 +164,7 @@ void pack_file(FILE *ifile,FILE *ofile){
       };
       if(lenght>LZ_MIN_MATCH){
         *cpos++=lenght-LZ_MIN_MATCH-1;
-        *(uint16_t*)cpos++=offset;
+        *(uint16_t*)cpos++=(uint16_t)(offset-vocroot-LZ_BUF_SIZE+buf_size);
         buf_size-=lenght;
       }
       else{
@@ -174,7 +174,8 @@ void pack_file(FILE *ifile,FILE *ofile){
       };
     }
     else{
-      *cpos++=0xff;
+      *cpos++;
+      *(uint16_t*)cpos++=0xffff;
       if(eoff) eofs=1;
     };
     cpos++;
@@ -228,9 +229,10 @@ void unpack_file(FILE *ifile, FILE *ofile){
     }
     else{
       lenght=*cpos++;
-      if(lenght==0xff) break;
       lenght+=LZ_MIN_MATCH+1;
       offset=*(uint16_t*)cpos++;
+      if(offset==0xffff) break;
+      offset+=(uint16_t)(vocroot+LZ_BUF_SIZE);
       for(i=0;i<lenght;i++){
         symbol=vocbuf[offset++];
         fputc((uint8_t)symbol,ofile);
