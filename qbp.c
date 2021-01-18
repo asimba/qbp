@@ -109,7 +109,7 @@ int rc32_write(uint8_t *buf,int l,FILE *ofile){
 
 void pack_file(FILE *ifile,FILE *ofile){
   union {uint8_t c[sizeof(uint16_t)];uint16_t i16;} u;
-  register uint16_t i;
+  uint16_t i,rle;
   char eoff=0,eofs=0;
   vocpntr *indx;
   int32_t cnode;
@@ -143,12 +143,17 @@ void pack_file(FILE *ifile,FILE *ofile){
     *cbuffer<<=1;
     symbol=vocroot-buf_size;
     if(buf_size){
+      rle=1;
+      while(rle<buf_size){
+        if(vocbuf[symbol]==vocbuf[(uint16_t)(symbol+rle)]) rle++;
+        else break;
+      };
       lenght=LZ_MIN_MATCH;
       if(buf_size>LZ_MIN_MATCH){
         u.c[0]=vocbuf[symbol];
         u.c[1]=vocbuf[symbol+1];
         cnode=vocindx[u.i16].in;
-        while(cnode>=0&&cnode!=symbol&&(uint16_t)(cnode+lenght)!=symbol){
+        while(cnode>=0&&cnode!=symbol&&(uint16_t)(cnode+lenght)!=symbol&&lenght<buf_size){
           if(vocbuf[(uint16_t)(symbol+lenght)]==vocbuf[(uint16_t)(cnode+lenght)]){
             i=2;
             uint16_t j=symbol+i,k=cnode+i;
@@ -157,20 +162,26 @@ void pack_file(FILE *ifile,FILE *ofile){
               lenght=i;
               offset=cnode;
             };
-            if(lenght==buf_size) break;
           };
           cnode=vocarea[cnode];
         };
       };
-      if(lenght>LZ_MIN_MATCH){
-        *cpos++=lenght-LZ_MIN_MATCH-1;
-        *(uint16_t*)cpos++=(uint16_t)(offset-vocroot-LZ_BUF_SIZE+buf_size);
-        buf_size-=lenght;
+      if(rle>lenght){
+        *cpos++=rle-LZ_MIN_MATCH-1;
+        *(uint16_t*)cpos++=((uint16_t)(vocbuf[symbol]))+0xfeff;
+        buf_size-=rle;
       }
       else{
-        *cbuffer|=0x01;
-        *cpos=vocbuf[symbol];
-        buf_size--;
+        if(lenght>LZ_MIN_MATCH){
+          *cpos++=lenght-LZ_MIN_MATCH-1;
+          *(uint16_t*)cpos++=(uint16_t)(offset-vocroot-LZ_BUF_SIZE+buf_size);
+          buf_size-=lenght;
+        }
+        else{
+          *cbuffer|=0x01;
+          *cpos=vocbuf[symbol];
+          buf_size--;
+        };
       };
     }
     else{
@@ -232,12 +243,21 @@ void unpack_file(FILE *ifile, FILE *ofile){
       lenght+=LZ_MIN_MATCH+1;
       offset=*(uint16_t*)cpos++;
       if(offset==0xffff) break;
-      offset+=(uint16_t)(vocroot+LZ_BUF_SIZE);
-      for(i=0;i<lenght;i++){
-        symbol=vocbuf[offset++];
-        fputc((uint8_t)symbol,ofile);
-        if(ferror(ofile)) return;
-        vocbuf[vocroot++]=symbol;
+      if(offset>0xfefe){
+        symbol=offset-0xfeff;
+        for(i=0;i<lenght;i++){
+          fputc((uint8_t)symbol,ofile);
+          vocbuf[vocroot++]=symbol;
+        };
+      }
+      else{
+        offset+=(uint16_t)(vocroot+LZ_BUF_SIZE);
+        for(i=0;i<lenght;i++){
+          symbol=vocbuf[offset++];
+          fputc((uint8_t)symbol,ofile);
+          if(ferror(ofile)) return;
+          vocbuf[vocroot++]=symbol;
+        };
       };
     };
     *cbuffer<<=1;

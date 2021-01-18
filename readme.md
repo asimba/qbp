@@ -1,6 +1,6 @@
 # qbp  
   
-Simple LZSS+RC32 compression algorithm realization.  
+Simple LZSS+RLE+RC32 compression algorithm realization.  
   
 --- 
 Usage : ./bin/qbp \<OPTIONS\> \<SOURCE\> \<DESTINATION\>  
