@@ -8,7 +8,7 @@
 #endif
 
 /***********************************************************************************************************/
-//Базовая реализация упаковки/распаковки файла по упрощённому алгоритму LZSS+RC32
+//Базовая реализация упаковки/распаковки файла по упрощённому алгоритму LZSS+RLE+RC32
 /***********************************************************************************************************/
 
 #define LZ_BUF_SIZE 259
@@ -151,7 +151,7 @@ void pack_file(FILE *ifile,FILE *ofile){
       lenght=LZ_MIN_MATCH;
       if(buf_size>LZ_MIN_MATCH){
         u.c[0]=vocbuf[symbol];
-        u.c[1]=vocbuf[symbol+1];
+        u.c[1]=vocbuf[(uint16_t)(symbol+1)];
         cnode=vocindx[u.i16].in;
         while(cnode>=0&&cnode!=symbol&&(uint16_t)(cnode+lenght)!=symbol&&lenght<buf_size){
           if(vocbuf[(uint16_t)(symbol+lenght)]==vocbuf[(uint16_t)(cnode+lenght)]){
