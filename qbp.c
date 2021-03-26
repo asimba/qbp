@@ -109,7 +109,7 @@ int rc32_write(uint8_t *buf,int l,FILE *ofile){
 
 void pack_file(FILE *ifile,FILE *ofile){
   union {uint8_t c[sizeof(uint16_t)];uint16_t i16;} u;
-  uint16_t i,rle;
+  uint16_t i,rle,rle_shift;
   char eoff=0,eofs=0;
   vocpntr *indx;
   int32_t cnode;
@@ -153,12 +153,14 @@ void pack_file(FILE *ifile,FILE *ofile){
         u.c[0]=vocbuf[symbol];
         u.c[1]=vocbuf[(uint16_t)(symbol+1)];
         cnode=vocindx[u.i16].in;
+        rle_shift=(uint16_t)(vocroot-LZ_BUF_SIZE+buf_size);
         while(cnode>=0&&cnode!=symbol&&(uint16_t)(cnode+lenght)!=symbol&&lenght<buf_size){
           if(vocbuf[(uint16_t)(symbol+lenght)]==vocbuf[(uint16_t)(cnode+lenght)]){
             i=2;
             uint16_t j=symbol+i,k=cnode+i;
             while(vocbuf[j++]==vocbuf[k]&&k++!=symbol&&i<buf_size) i++;
             if(i>=lenght){
+              if((uint16_t)(cnode-rle_shift)>=0xfeff) break;
               lenght=i;
               offset=cnode;
             };
