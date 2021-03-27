@@ -176,7 +176,7 @@ void pack_file(FILE *ifile,FILE *ofile){
       else{
         if(lenght>LZ_MIN_MATCH){
           *cpos++=lenght-LZ_MIN_MATCH-1;
-          *(uint16_t*)cpos++=(uint16_t)(offset-vocroot-LZ_BUF_SIZE+buf_size);
+          *(uint16_t*)cpos++=(uint16_t)(offset-rle_shift);
           buf_size-=lenght;
         }
         else{
