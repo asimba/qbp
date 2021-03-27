@@ -128,7 +128,7 @@ void pack_file(FILE *ifile,FILE *ofile){
         u.c[0]=vocbuf[symbol];
         u.c[1]=vocbuf[(uint16_t)(symbol+1)];
         cnode=vocindx[u.i16].in;
-        rle_shift=(uint16_t)(vocroot-LZ_BUF_SIZE+buf_size);
+        rle_shift=(uint16_t)(vocroot+LZ_BUF_SIZE-buf_size);
         while(cnode>=0&&cnode!=symbol&&(uint16_t)(cnode+lenght)!=symbol&&lenght<buf_size){
           if(vocbuf[(uint16_t)(symbol+lenght)]==vocbuf[(uint16_t)(cnode+lenght)]){
             i=2;
