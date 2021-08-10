@@ -48,7 +48,6 @@ void pack_initialize(){
   uint32_t i;
   for(i=0;i<257;i++) frequency[i]=i;
   for(i=0;i<0x10000;i++){
-    vocbuf[i]=(uint8_t)i;
     vocbuf[i]=0xff;
     vocindx[i].in=1;
     vocindx[i].out=0;
@@ -56,6 +55,8 @@ void pack_initialize(){
   };
   vocindx[0xffff].in=0;
   vocindx[0xffff].out=0xfffe;
+  vocarea[0xfffe]=0xfffe;
+  vocarea[0xffff]=0xffff;
 }
 
 void rc32_rescale(){
