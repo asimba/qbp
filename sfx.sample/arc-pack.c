@@ -22,6 +22,7 @@ uint8_t flags;
 uint8_t cbuffer[LZ_CAPACITY+1];
 uint8_t vocbuf[0x10000];
 uint16_t vocarea[0x10000];
+uint16_t hashes[0x10000];
 vocpntr vocindx[0x10000];
 uint32_t frequency[257];
 uint16_t buf_size;
@@ -39,7 +40,8 @@ char *hlpp;
 
 void pack_initialize(){
   buf_size=flags=vocroot=*cbuffer=low=hlp=0;
-  voclast=range=0xffffffff;
+  voclast=0xfffd;
+  range=0xffffffff;
   lowp=&((char *)&low)[3];
   hlpp=&((char *)&hlp)[0];
   fc=&frequency[256];
@@ -47,12 +49,15 @@ void pack_initialize(){
   for(i=0;i<257;i++) frequency[i]=i;
   for(i=0;i<0x10000;i++){
     vocbuf[i]=0xff;
+    hashes[i]=0xf3f3;
     vocindx[i].in=1;
     vocindx[i].out=0;
     vocarea[i]=(uint16_t)(i+1);
   };
-  vocindx[0xffff].in=0;
-  vocindx[0xffff].out=0xfffe;
+  vocindx[0xf3f3].in=0;
+  vocindx[0xf3f3].out=0xfffc;
+  vocarea[0xfffc]=0xfffc;
+  vocarea[0xfffd]=0xfffd;
   vocarea[0xfffe]=0xfffe;
   vocarea[0xffff]=0xffff;
 }
@@ -91,8 +96,7 @@ int rc32_write(uint8_t *buf,int l,FILE *ofile){
 }
 
 void pack_file(FILE *ifile,FILE *ofile){
-  union {uint8_t c[sizeof(uint16_t)];uint16_t i16;} u;
-  uint16_t i,rle,rle_shift,cnode;
+  uint16_t i,rle,rle_shift,cnode,h;
   char eoff=0,eofs=0;
   vocpntr *indx;
   uint8_t *cpos=&cbuffer[1];
@@ -104,18 +108,23 @@ void pack_file(FILE *ifile,FILE *ofile){
         if(ferror(ifile)) break;
         if(feof(ifile)) eoff=1;
         else{
-          u.c[0]=vocbuf[vocroot];
-          u.c[1]=vocbuf[(uint16_t)(vocroot+1)];
+          h=hashes[vocroot];
           if(vocarea[vocroot]==vocroot){
-            vocindx[u.i16].in=1;
-            vocindx[u.i16].out=0;
+            vocindx[h].in=1;
+            vocindx[h].out=0;
           }
-          else vocindx[u.i16].in=vocarea[vocroot];
+          else vocindx[h].in=vocarea[vocroot];
           vocarea[vocroot]=vocroot;
-          vocbuf[vocroot]=symbol;
-          u.c[0]=vocbuf[voclast];
-          u.c[1]=vocbuf[vocroot];
-          indx=&vocindx[u.i16];
+          vocbuf[vocroot]=(uint8_t)symbol;
+          h=(uint16_t)vocbuf[voclast];
+          h=h<<4;
+          h^=(uint16_t)vocbuf[(uint16_t)(voclast+1)];
+          h=h<<(h&1?2:0);
+          h^=(uint16_t)vocbuf[(uint16_t)(voclast+2)];
+          h=h<<(h&1?2:0);
+          h^=(uint16_t)vocbuf[vocroot];
+          hashes[voclast]=h;
+          indx=&vocindx[h];
           if(indx->in==1&&indx->out==0) indx->in=voclast;
           else vocarea[indx->out]=voclast;
           indx->out=voclast;
@@ -136,13 +145,11 @@ void pack_file(FILE *ifile,FILE *ofile){
       };
       lenght=LZ_MIN_MATCH;
       if(buf_size>LZ_MIN_MATCH){
-        u.c[0]=vocbuf[symbol];
-        u.c[1]=vocbuf[(uint16_t)(symbol+1)];
-        cnode=vocindx[u.i16].in;
+        cnode=vocindx[hashes[symbol]].in;
         rle_shift=(uint16_t)(vocroot+LZ_BUF_SIZE-buf_size);
         while(cnode!=symbol){
           if(vocbuf[(uint16_t)(symbol+lenght)]==vocbuf[(uint16_t)(cnode+lenght)]){
-            i=2;
+            i=0;
             uint16_t j=symbol+i,k=cnode+i;
             while(vocbuf[j++]==vocbuf[k]&&k++!=symbol) i++;
             if(i>=lenght){
