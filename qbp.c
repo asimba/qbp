@@ -51,13 +51,13 @@ void pack_initialize(){
   for(i=0;i<257;i++) frequency[i]=i;
   for(i=0;i<0x10000;i++){
     vocbuf[i]=0xff;
-    hashes[i]=0xf3f3;
+    hashes[i]=0xc0c0;
     vocindx[i].in=1;
     vocindx[i].out=0;
     vocarea[i]=(uint16_t)(i+1);
   };
-  vocindx[0xf3f3].in=0;
-  vocindx[0xf3f3].out=0xfffc;
+  vocindx[0xc0c0].in=0;
+  vocindx[0xc0c0].out=0xfffc;
   vocarea[0xfffc]=0xfffc;
   vocarea[0xfffd]=0xfffd;
   vocarea[0xfffe]=0xfffe;
@@ -126,7 +126,7 @@ void pack_file(FILE *ifile,FILE *ofile){
   vocpntr *indx;
   uint8_t *cpos=&cbuffer[1];
   flags=8;
-  while(1){
+  for(;;){
     if(!eoff){
       if(LZ_BUF_SIZE-buf_size){
         symbol=fgetc(ifile);
@@ -142,11 +142,11 @@ void pack_file(FILE *ifile,FILE *ofile){
           vocarea[vocroot]=vocroot;
           vocbuf[vocroot]=(uint8_t)symbol;
           h=(uint16_t)vocbuf[voclast];
-          h=h<<4;
+          h<<=4;
           h^=(uint16_t)vocbuf[(uint16_t)(voclast+1)];
-          h=h<<(h&1?2:0);
+          h<<=4;
           h^=(uint16_t)vocbuf[(uint16_t)(voclast+2)];
-          h=h<<(h&1?2:0);
+          h=(h<<2)^(h>>14);
           h^=(uint16_t)vocbuf[vocroot];
           hashes[voclast]=h;
           indx=&vocindx[h];
