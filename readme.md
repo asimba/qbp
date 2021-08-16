@@ -34,6 +34,7 @@ _Source hash (SHA1)_ | 2996e86fb978f93cca8f566cc56998923e7fe581 |
 
 Packer | Options | Resulting size (bytes) | Time (sec)|
 ----- | ----- | ----- | ----- |  
+zpaq (v7.15) | -m5 -t1 | 168590743 | 2842,39 |  
 paq8o9 | -1 | 193022025 | 7613,65 |  
 rk | -mx | 208096232 | 1657,54 |  
 xz | -9 -e | 211776220 | 871,57 |  
