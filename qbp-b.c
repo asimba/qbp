@@ -1,5 +1,3 @@
-#include <malloc.h>
-#include <string.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -20,12 +18,11 @@ typedef struct{
   uint16_t out;
 } vocpntr;
 
-uint8_t ibuf[0x20000];
-uint8_t obuf[0x20000];
+uint8_t ibuf[0x10000];
+uint8_t obuf[0x10000];
 int32_t icbuf;
 int32_t ocbuf;
 uint32_t rpos;
-char ebuf;
 uint8_t flags;
 uint8_t cbuffer[LZ_CAPACITY+1];
 uint8_t vocbuf[0x10000];
@@ -47,7 +44,7 @@ char *lowp;
 char *hlpp;
 
 void pack_initialize(){
-  buf_size=flags=vocroot=*cbuffer=low=hlp=icbuf=ocbuf=ebuf=rpos=0;
+  buf_size=flags=vocroot=*cbuffer=low=hlp=icbuf=ocbuf=rpos=0;
   voclast=0xfffd;
   range=0xffffffff;
   lowp=&((char *)&low)[3];
@@ -93,17 +90,14 @@ int rc32_read(uint8_t *buf,int l,FILE *ifile){
       hlp<<=8;
       if(icbuf>0) *hlpp=ibuf[rpos++];
       else{
-        if(ebuf==0){
-          icbuf=fread(ibuf,1,0x20000,ifile);
-          if(ferror(ifile)) return -1;
-          if(feof(ifile)) ebuf=1;
-          if(icbuf>0){
-            *hlpp=ibuf[0];
-            rpos=1;
-          };
+        icbuf=fread(ibuf,1,0x10000,ifile);
+        if(ferror(ifile)) return -1;
+        if(icbuf>0){
+          *hlpp=ibuf[0];
+          rpos=1;
         };
       }
-      if(ebuf&&icbuf<=0) return 1;
+      if(icbuf==0) return 1;
       icbuf--;
       low<<=8;
       range<<=8;
@@ -124,7 +118,7 @@ int rc32_write(uint8_t *buf,int l,FILE *ofile){
     while(range<0x10000){
       if(((low&0xff0000)==0xff0000)&&(range+(uint16_t)low>=0x10000))
         range=0x10000-(uint16_t)low;
-      if(ocbuf<0x20000) obuf[ocbuf++]=*lowp;
+      if(ocbuf<0x10000) obuf[ocbuf++]=*lowp;
       else{
         if(fwrite(obuf,1,ocbuf,ofile)<ocbuf||ferror(ofile)) return -1;
         obuf[0]=*lowp;
@@ -152,17 +146,14 @@ void pack_file(FILE *ifile,FILE *ofile){
       if(LZ_BUF_SIZE-buf_size){
         if(icbuf>0) symbol=ibuf[rpos++];
         else{
-          if(ebuf==0){
-            icbuf=fread(ibuf,1,0x20000,ifile);
-            if(ferror(ifile)) break;
-            if(feof(ifile)) ebuf=1;
-            if(icbuf>0){
-              symbol=ibuf[0];
-              rpos=1;
-            };
+          icbuf=fread(ibuf,1,0x10000,ifile);
+          if(ferror(ifile)) break;
+          if(icbuf>0){
+            rpos=0;
+            continue;
           };
         }
-        if(ebuf&&icbuf<=0) eoff=1;
+        if(icbuf==0) eoff=1;
         else{
           icbuf--;
           h=hashes[vocroot];
@@ -289,7 +280,7 @@ void unpack_file(FILE *ifile, FILE *ofile){
       if(rc32_read(cpos,lenght,ifile)<0) break;
     };
     if(*cbuffer&0x80){
-      if(ocbuf<0x20000) obuf[ocbuf++]=*cpos;
+      if(ocbuf<0x10000) obuf[ocbuf++]=*cpos;
       else{
         if(fwrite(obuf,1,ocbuf,ofile)<ocbuf||ferror(ofile)) break;
         obuf[0]=*cpos;
@@ -305,7 +296,7 @@ void unpack_file(FILE *ifile, FILE *ofile){
       if(offset>0xfefe){
         symbol=offset-0xfeff;
         for(i=0;i<lenght;i++){
-          if(ocbuf<0x20000) obuf[ocbuf++]=symbol;
+          if(ocbuf<0x10000) obuf[ocbuf++]=symbol;
           else{
             if(fwrite(obuf,1,ocbuf,ofile)<ocbuf||ferror(ofile)) return;
             obuf[0]=symbol;
@@ -318,7 +309,7 @@ void unpack_file(FILE *ifile, FILE *ofile){
         offset+=(uint16_t)(vocroot+LZ_BUF_SIZE);
         for(i=0;i<lenght;i++){
           symbol=vocbuf[offset++];
-          if(ocbuf<0x20000) obuf[ocbuf++]=symbol;
+          if(ocbuf<0x10000) obuf[ocbuf++]=symbol;
           else{
             if(fwrite(obuf,1,ocbuf,ofile)<ocbuf||ferror(ofile)) return;
             obuf[0]=symbol;
