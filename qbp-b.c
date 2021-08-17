@@ -88,12 +88,12 @@ int rc32_read(uint8_t *buf,int l,FILE *ifile){
       if(((low&0xff0000)==0xff0000)&&(range+(uint16_t)low>=0x10000))
         range=0x10000-(uint16_t)low;
       hlp<<=8;
-      if(icbuf>0) *hlpp=ibuf[rpos++];
+      if(icbuf) *hlpp=ibuf[rpos++];
       else{
         icbuf=fread(ibuf,1,0x10000,ifile);
         if(ferror(ifile)) return -1;
-        if(icbuf>0){
-          *hlpp=ibuf[0];
+        if(icbuf){
+          *hlpp=*ibuf;
           rpos=1;
         };
       }
@@ -121,7 +121,7 @@ int rc32_write(uint8_t *buf,int l,FILE *ofile){
       if(ocbuf<0x10000) obuf[ocbuf++]=*lowp;
       else{
         if(fwrite(obuf,1,ocbuf,ofile)<ocbuf||ferror(ofile)) return -1;
-        obuf[0]=*lowp;
+        *obuf=*lowp;
         ocbuf=1;
       };
       low<<=8;
@@ -144,18 +144,7 @@ void pack_file(FILE *ifile,FILE *ofile){
   for(;;){
     if(!eoff){
       if(LZ_BUF_SIZE-buf_size){
-        if(icbuf>0) symbol=ibuf[rpos++];
-        else{
-          icbuf=fread(ibuf,1,0x10000,ifile);
-          if(ferror(ifile)) break;
-          if(icbuf>0){
-            rpos=0;
-            continue;
-          };
-        }
-        if(icbuf==0) eoff=1;
-        else{
-          icbuf--;
+        if(icbuf--){
           h=hashes[vocroot];
           if(vocarea[vocroot]==vocroot){
             vocindx[h].in=1;
@@ -163,7 +152,7 @@ void pack_file(FILE *ifile,FILE *ofile){
           }
           else vocindx[h].in=vocarea[vocroot];
           vocarea[vocroot]=vocroot;
-          vocbuf[vocroot]=(uint8_t)symbol;
+          vocbuf[vocroot]=ibuf[rpos++];;
           h=(uint16_t)vocbuf[voclast];
           h<<=4;
           h^=(uint16_t)vocbuf[(uint16_t)(voclast+1)];
@@ -180,6 +169,13 @@ void pack_file(FILE *ifile,FILE *ofile){
           vocroot++;
           buf_size++;
           continue;
+        }
+        else{
+          rpos=0;
+          icbuf=fread(ibuf,1,0x10000,ifile);
+          if(ferror(ifile)) break;
+          if(icbuf) continue;
+          eoff=1;
         };
       };
     };
