@@ -10,9 +10,10 @@ qbp c source_file packed_file
 qbp d packed_file unpacked_file  
 ```  
 ---  
+
 **Options**:  
-Option  | Value |
------ | ------ |  
+Option | Value |
+----- | ----- |  
 c | compress data |  
 d | decompress data |  
   
@@ -25,6 +26,7 @@ d | decompress data |
 Written by Alexey V. Simbarsky.  
   
 ---
+
 **Test results**:  
 | | |
 ----- | ----- |  
@@ -33,7 +35,7 @@ _Source size (bytes)_ | 1000000000 |
 _Source hash (SHA1)_ | 2996e86fb978f93cca8f566cc56998923e7fe581 |  
 
 Packer | Options | Resulting size (bytes) | Packing time (sec) | Unpacking time (sec) |
------ | ----- | ----- | ----- |  
+----- | ----- | ----- | ----- | ----- |    
 zpaq (v7.15) | -m5 -t1 | 168590743 | 2842,39 | 2892,09 |  
 paq8o9 | -1 | 193022025 | 7613,65 | 7556,39 |  
 rk | -mx | 208096232 | 1657,54 | 1649,54 |  
