@@ -9,9 +9,11 @@ Usage : ./bin/qbp \<OPTIONS\> \<SOURCE\> \<DESTINATION\>
 qbp c source_file packed_file  
 qbp d packed_file unpacked_file  
 ```  
+
 ---  
 
 **Options**:  
+
 Option | Value |
 ----- | ----- |  
 c | compress data |  
@@ -28,6 +30,7 @@ Written by Alexey V. Simbarsky.
 ---
 
 **Test results**:  
+
 | | |
 ----- | ----- |  
 _Source file_ | [enwik9](https://cs.fit.edu/~mmahoney/compression/textdata.html) |  
