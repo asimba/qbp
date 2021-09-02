@@ -181,7 +181,7 @@ void pack_file(FILE *ifile,FILE *ofile){
       };
     }
     else{
-      *cpos++;
+      cpos++;
       *(uint16_t*)cpos++=0xffff;
       if(eoff) eofs=1;
     };
