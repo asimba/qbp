@@ -98,16 +98,16 @@ uint8_t unpack_file(FILE *ifile){
     else{
       lenght=*cpos+++LZ_MIN_MATCH+1;
       offset=*(uint16_t*)cpos++;
-      if(offset==0xffff) return 0;
-      if(offset>0xfefe){
+      if(offset==0x0100) return 0;
+      if(offset<0x0100){
         rle_flag=1;
-        symbol=offset-0xfeff;
+        symbol=offset;
         for(i=0;i<lenght;i++) vocbuf[vocroot++]=symbol;
         lenght--;
       }
       else{
         rle_flag=0;
-        offset+=(uint16_t)(vocroot+LZ_BUF_SIZE);
+        offset=0xffff+(uint16_t)(vocroot+LZ_BUF_SIZE)-offset;
         symbol=vocbuf[offset++];
         vocbuf[vocroot++]=symbol;
         lenght--;
