@@ -6,7 +6,7 @@
 #endif
 
 /***********************************************************************************************************/
-//Базовая реализация упаковки/распаковки файла по упрощённому алгоритму LZSS + RLE
+//Базовая реализация упаковки/распаковки файла по упрощённому алгоритму LZSS+RLE
 /***********************************************************************************************************/
 
 #define LZ_BUF_SIZE 259
@@ -139,13 +139,14 @@ void pack_file(FILE *ifile,FILE *ofile){
             uint16_t j=symbol,k=cnode;
             while(vocbuf[j++]==vocbuf[k]&&k++!=symbol) i++;
             if(i>=lenght){
-              j=0xffff-(uint16_t)(cnode-rle_shift);
               //while buf_size==LZ_BUF_SIZE: minimal offset > 0x0104;
-              if(buf_size<LZ_BUF_SIZE&&j<0x0100){
-                cnode=vocarea[cnode];
-                continue;
+              if(buf_size<LZ_BUF_SIZE){
+                if(0xffff-(uint16_t)(cnode-rle_shift)<0x0100){
+                  cnode=vocarea[cnode];
+                  continue;
+                };
               };
-              offset=j;
+              offset=cnode;
               if(i>=buf_size){
                 lenght=buf_size;
                 break;
@@ -164,7 +165,7 @@ void pack_file(FILE *ifile,FILE *ofile){
       else{
         if(lenght>LZ_MIN_MATCH){
           *cpos++=lenght-LZ_MIN_MATCH-1;
-          *(uint16_t*)cpos++=offset;
+          *(uint16_t*)cpos++=0xffff-(uint16_t)(offset-rle_shift);
           buf_size-=lenght;
         }
         else{
@@ -231,7 +232,7 @@ void unpack_file(FILE *ifile, FILE *ofile){
         };
       }
       else{
-        offset=0xffff+(uint16_t)(vocroot+LZ_BUF_SIZE)-offset;
+        offset=0xffff-offset+(uint16_t)(vocroot+LZ_BUF_SIZE);
         for(i=0;i<lenght;i++){
           c=vocbuf[offset++];
           if(wbuf(c,ofile)) return;
