@@ -98,7 +98,7 @@ uint8_t unpack_file(FILE *ifile){
     else{
       lenght=*cpos+++LZ_MIN_MATCH+1;
       offset=*(uint16_t*)cpos++;
-      if(offset==0x0100) return 0;
+      if(offset==0x0100) return 1;
       if(offset<0x0100){
         rle_flag=1;
         symbol=offset;
