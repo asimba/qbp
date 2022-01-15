@@ -70,8 +70,7 @@ void rc32_rescale(){
     uint32_t *fp=frequency;
     frequency[0]>>=1;
     for(i=1;i<257;i++){
-      frequency[i]>>=1;
-      if(frequency[i]<=*fp) frequency[i]=*fp+++1;
+      if((frequency[i]>>=1)==*fp++) frequency[i]++;
     };
   };
 }
@@ -154,7 +153,7 @@ void pack_file(FILE *ifile,FILE *ofile){
             if(i>=lenght){
               //while buf_size==LZ_BUF_SIZE: minimal offset > 0x0104;
               if(buf_size<LZ_BUF_SIZE){
-                if(0xffff-(uint16_t)(cnode-rle_shift)<0x0100){
+                if((uint16_t)(cnode-rle_shift)>0xfeff){
                   cnode=vocarea[cnode];
                   continue;
                 };

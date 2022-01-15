@@ -58,8 +58,7 @@ uint8_t rc32_getc(uint8_t *c,FILE *ifile){
     uint32_t *fp=frequency;
     frequency[0]>>=1;
     for(i=1;i<257;i++){
-      frequency[i]>>=1;
-      if(frequency[i]<=*fp) frequency[i]=*fp+++1;
+      if((frequency[i]>>=1)==*fp++) frequency[i]++;
     };
   };
   return 0;
