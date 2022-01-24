@@ -13,9 +13,12 @@ using namespace std;
 #define LZ_CAPACITY 24
 #define LZ_MIN_MATCH 3
 
-typedef struct{
-  uint16_t in;
-  uint16_t out;
+typedef union{
+  struct{
+    uint16_t in;
+    uint16_t out;
+  };
+  uint32_t val;
 } vocpntr;
 
 class packer{
@@ -90,8 +93,7 @@ void packer::init(){
   for(i=0;i<0x10000;i++){
     vocbuf[i]=0xff;
     hashes[i]=0;
-    vocindx[i].in=1;
-    vocindx[i].out=0;
+    vocindx[i].val=1;
     vocarea[i]=(uint16_t)(i+1);
   };
   vocindx[0].in=0;
@@ -210,15 +212,12 @@ void packer::pack(){
           continue;
         }
         else{
-          if(vocarea[vocroot]==vocroot){
-            vocindx[hashes[vocroot]].in=1;
-            vocindx[hashes[vocroot]].out=0;
-          }
+          if(vocarea[vocroot]==vocroot) vocindx[hashes[vocroot]].val=1;
           else vocindx[hashes[vocroot]].in=vocarea[vocroot];
           vocarea[vocroot]=vocroot;
           hashes[voclast]=hash(voclast);
           indx=&vocindx[hashes[voclast]];
-          if(indx->in==1&&indx->out==0) indx->in=voclast;
+          if(indx->val==1) indx->in=voclast;
           else vocarea[indx->out]=voclast;
           indx->out=voclast;
           voclast++;
