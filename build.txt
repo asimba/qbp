@@ -1,2 +1,9 @@
-Windows: tcc *.c -o qbp.exe -m32 -Wl,-subsystem=console
-Linux  : gcc qbp.c -Os -s -o ./qbp -fdata-sections -ffunction-sections -Wl,--gc-sections
+Windows:
+  tcc *.c -o qbp.exe -m32 -Wl,-subsystem=console
+  i686-w64-mingw32-gcc qbp.c -m32 -march=i686 -mtune=i686 -O3 -s -static -o ./qbp -fno-exceptions -fno-stack-protector -ffast-math -fno-ident -fomit-frame-pointer -fno-unwind-tables -fno-asynchronous-unwind-tables
+  i686-w64-mingw32-g++ qbp-cc.cc -m32 -march=i686 -mtune=i686 -O3 -s -o ./qbp-cc -fno-stack-protector -ffast-math -fno-ident -fomit-frame-pointer
+  rustc -C target-feature=+crt-static -C debuginfo=0 -C strip=symbols -C opt-level=3 qbp-rs.rs
+Linux  :
+  gcc qbp.c -O3 -s -o ./qbp -fno-exceptions -fno-stack-protector -ffast-math -fno-ident -fomit-frame-pointer -fno-unwind-tables -fno-asynchronous-unwind-tables
+  g++ qbp-cc.cc -O3 -s -o ./qbp-cc -fno-stack-protector -ffast-math -fno-ident -fomit-frame-pointer
+  rustc -C target-feature=+crt-static -C debuginfo=0 -C strip=symbols -C opt-level=3 qbp-rs.rs

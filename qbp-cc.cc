@@ -147,7 +147,6 @@ inline void packer::rc32_rescale(){
   for(i=symbol;i<257;i++) frequency[i]++;
   if(*fc>0xffff){
     uint32_t *fp=frequency;
-    frequency[0]>>=1;
     for(i=1;i<257;i++){
       if((frequency[i]>>=1)==*fp++) frequency[i]++;
     };

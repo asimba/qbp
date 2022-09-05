@@ -183,7 +183,6 @@ impl Packer {
       self.frequency[i as usize]+=1;
     }
     if unsafe { *self.fc>0xffff } {
-      self.frequency[0]>>=1;
       for i in 1..257 {
         self.frequency[i]>>=1;
         if self.frequency[i]==self.frequency[i-1] {
