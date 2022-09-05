@@ -81,7 +81,7 @@ packer::~packer(){
   lowp=NULL;
   hlpp=NULL;
   fc=NULL;
-  buf_size=flags=vocroot=voclast=range=*cbuffer=low=hlp=icbuf=wpos=rpos=0;
+  buf_size=flags=vocroot=voclast=range=low=hlp=icbuf=wpos=rpos=0;
 }
 
 void packer::init(){

@@ -69,7 +69,7 @@ void pack_initialize(){
   vocarea[0xffff]=0xffff;
 }
 
-uint8_t wbuf(uint8_t c,FILE *ofile){
+inline uint8_t wbuf(uint8_t c,FILE *ofile){
   if(wpos<0x10000) obuf[wpos++]=c;
   else{
     if(fwrite(obuf,1,wpos,ofile)<wpos) return 1;
@@ -79,7 +79,7 @@ uint8_t wbuf(uint8_t c,FILE *ofile){
   return 0;
 }
 
-uint8_t rbuf(uint8_t *c,FILE *ifile){
+inline uint8_t rbuf(uint8_t *c,FILE *ifile){
   if(icbuf--) *c=ibuf[rpos++];
   else{
     icbuf=fread(ibuf,1,0x10000,ifile);
@@ -94,7 +94,7 @@ uint8_t rbuf(uint8_t *c,FILE *ifile){
   return 0;
 }
 
-void rc32_rescale(){
+inline void rc32_rescale(){
   uint32_t i,j=frequency[symbol++];
   low+=j*range;
   range*=frequency[symbol]-j;
@@ -107,7 +107,7 @@ void rc32_rescale(){
   };
 }
 
-uint8_t rc32_getc(uint8_t *c,FILE *ifile){
+inline uint8_t rc32_getc(uint8_t *c,FILE *ifile){
   while((range<0x10000)||(hlp<low)){
     if(((low&0xff0000)==0xff0000)&&(range+(uint16_t)low>=0x10000))
       range=0x10000-(uint16_t)low;
@@ -136,7 +136,7 @@ uint8_t rc32_getc(uint8_t *c,FILE *ifile){
   return 0;
 }
 
-uint8_t rc32_putc(uint8_t c,FILE *ofile){
+inline uint8_t rc32_putc(uint8_t c,FILE *ofile){
   while(range<0x10000){
     if(((low&0xff0000)==0xff0000)&&(range+(uint16_t)low>=0x10000))
       range=0x10000-(uint16_t)low;
@@ -150,7 +150,7 @@ uint8_t rc32_putc(uint8_t c,FILE *ofile){
   return 0;
 }
 
-uint16_t hash(uint16_t s){
+inline uint16_t hash(uint16_t s){
   uint16_t h=0;
   for(uint8_t i=0;i<sizeof(uint32_t);i++){
     h^=vocbuf[s++];
