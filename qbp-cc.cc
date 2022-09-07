@@ -155,13 +155,12 @@ inline void packer::rc32_rescale(){
 
 inline uint8_t packer::rc32_getc(uint8_t *c){
   while((range<0x10000)||(hlp<low)){
-    if(((low&0xff0000)==0xff0000)&&(range+(uint16_t)low>=0x10000))
-      range=0x10000-(uint16_t)low;
     hlp<<=8;
     if(rbuf(hlpp)) return 1;
     if(rpos==0) return 0;
     low<<=8;
     range<<=8;
+    if((uint32_t)(range+low)<low) range=0xffffffff-low;
   };
   range/=*fc;
   uint32_t count=(hlp-low)/range;
@@ -184,11 +183,10 @@ inline uint8_t packer::rc32_getc(uint8_t *c){
 
 inline uint8_t packer::rc32_putc(uint8_t c){
   while(range<0x10000){
-    if(((low&0xff0000)==0xff0000)&&(range+(uint16_t)low>=0x10000))
-      range=0x10000-(uint16_t)low;
     if(wbuf(*lowp)) return 1;
     low<<=8;
     range<<=8;
+    if((uint32_t)(range+low)<low) range=0xffffffff-low;
   };
   symbol=c;
   range/=*fc;

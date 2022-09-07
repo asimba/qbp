@@ -109,17 +109,15 @@ inline void rc32_rescale(){
 
 inline uint8_t rc32_getc(uint8_t *c,FILE *ifile){
   while((range<0x10000)||(hlp<low)){
-    if(((low&0xff0000)==0xff0000)&&(range+(uint16_t)low>=0x10000))
-      range=0x10000-(uint16_t)low;
     hlp<<=8;
     if(rbuf(hlpp,ifile)) return 1;
     if(rpos==0) return 0;
     low<<=8;
     range<<=8;
+    if((uint32_t)(range+low)<low) range=0xffffffff-low;
   };
   range/=*fc;
   uint32_t count=(hlp-low)/range;
-  if(count>=*fc) return 1;
   symbol=0;
   uint16_t j=128;
   while(j){
@@ -138,11 +136,10 @@ inline uint8_t rc32_getc(uint8_t *c,FILE *ifile){
 
 inline uint8_t rc32_putc(uint8_t c,FILE *ofile){
   while(range<0x10000){
-    if(((low&0xff0000)==0xff0000)&&(range+(uint16_t)low>=0x10000))
-      range=0x10000-(uint16_t)low;
     if(wbuf(*lowp,ofile)) return 1;
     low<<=8;
     range<<=8;
+    if((uint32_t)(range+low)<low) range=0xffffffff-low;
   };
   symbol=c;
   range/=*fc;

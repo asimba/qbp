@@ -26,14 +26,13 @@ uint8_t rle_flag;
 
 uint8_t rc32_getc(uint8_t *c,FILE *ifile){
   while((range<0x10000)||(hlp<low)){
-    if(((low&0xff0000)==0xff0000)&&(range+(uint16_t)low>=0x10000))
-      range=0x10000-(uint16_t)low;
     hlp<<=8;
     *hlpp=fgetc(ifile);
     if(ferror(ifile)) return 1;
     if(feof(ifile)) return 0;
     low<<=8;
     range<<=8;
+    if((uint32_t)(range+low)<low) range=0xffffffff-low;
   };
   range/=*fc;
   uint32_t count=(hlp-low)/range;

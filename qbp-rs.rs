@@ -194,9 +194,6 @@ impl Packer {
 
   fn rc32_getc(&mut self,c: *mut u8)->bool {
     while self.range<0x10000 || self.hlp<self.low {
-      if (self.low&0xff0000)==0xff0000 && (self.range+(self.low as u16) as u32)>=0x10000 {
-        self.range=0x10000-(self.low as u16) as u32;
-      }
       self.hlp<<=8;
       if self.rbuf(self.hlpp) {
         return true;
@@ -206,6 +203,9 @@ impl Packer {
       };
       self.low<<=8;
       self.range<<=8;
+      if ((self.range+self.low) as u32) < self.low  {
+        self.range=0xffffffff-self.low;
+      }
     }
     unsafe { self.range/=*self.fc };
     let count: u32=(self.hlp-self.low)/self.range;
@@ -238,14 +238,14 @@ impl Packer {
   
   fn rc32_putc(&mut self,c: u8)->bool {
     while self.range<0x10000 {
-      if (self.low&0xff0000)==0xff0000 && (self.range+(self.low as u16) as u32)>=0x10000 {
-        self.range=0x10000-(self.low as u16) as u32;
-      }
       if self.wbuf(unsafe { *self.lowp }) {
         return true;
       }
       self.low<<=8;
       self.range<<=8;
+      if ((self.range+self.low) as u32) < self.low  {
+        self.range=0xffffffff-self.low;
+      }
     }
     self.symbol=c as u16;
     unsafe { self.range/=*self.fc };

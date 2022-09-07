@@ -77,12 +77,11 @@ void rc32_rescale(){
 int rc32_write(uint8_t *buf,int l,FILE *ofile){
   while(l--){
     while(range<0x10000){
-      if(((low&0xff0000)==0xff0000)&&(range+(uint16_t)low>=0x10000))
-        range=0x10000-(uint16_t)low;
       fputc(*lowp,ofile);
       if(ferror(ofile)) return -1;
       low<<=8;
       range<<=8;
+      if((uint32_t)(range+low)<low) range=0xffffffff-low;
     };
     symbol=*buf;
     range/=*fc;
