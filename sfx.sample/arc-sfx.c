@@ -9,7 +9,7 @@
 uint8_t flags;
 uint8_t cbuffer[LZ_CAPACITY+1];
 uint8_t vocbuf[0x10000];
-uint32_t frequency[257];
+uint16_t frequency[256];
 uint16_t buf_size;
 uint16_t vocroot;
 uint16_t offset;
@@ -18,7 +18,7 @@ uint16_t symbol;
 uint32_t low;
 uint32_t hlp;
 uint32_t range;
-uint32_t *fc;
+uint16_t fc;
 char *lowp;
 char *hlpp;
 uint8_t *cpos;
@@ -34,29 +34,23 @@ uint8_t rc32_getc(uint8_t *c,FILE *ifile){
     range<<=8;
     if((uint32_t)(range+low)<low) range=0xffffffff-low;
   };
-  range/=*fc;
-  uint32_t count=(hlp-low)/range;
-  if(count>=*fc) return 1;
-  symbol=0;
-  uint16_t i,j=128;
-  while(j){
-    if(frequency[symbol]<=count) symbol+=j;
-    else{
-      if(symbol) symbol-=j;
-      else break;
-    };
-    j>>=1;
+  range/=fc;
+  uint32_t count=(hlp-low)/range,s=0;
+  if(count>=fc) return 1;
+  for(symbol=0;symbol<256;symbol++){
+    if(s>count) break;
+    s+=frequency[symbol];
   };
-  if(frequency[symbol]>count&&symbol) symbol--;
+  symbol--;
+  s-=frequency[symbol];
   *c=(uint8_t)symbol;
-  j=frequency[symbol++];
-  low+=j*range;
-  range*=frequency[symbol]-j;
-  for(i=symbol;i<257;i++) frequency[i]++;
-  if(*fc>0xffff){
-    uint32_t *fp=frequency;
-    for(i=1;i<257;i++){
-      if((frequency[i]>>=1)==*fp++) frequency[i]++;
+
+  low+=s*range;
+  range*=frequency[symbol]++;
+  if(++fc==0){
+    for(uint16_t i=0;i<256;i++){
+      if((frequency[i]>>=1)==0) frequency[i]=1;
+      fc+=frequency[i];
     };
   };
   return 0;
@@ -170,8 +164,8 @@ void unarc(char *out,char *fn){
   offset=range=0xffffffff;
   lowp=&((char *)&low)[3];
   hlpp=&((char *)&hlp)[0];
-  fc=&frequency[256];
-  for(i=0;i<257;i++) frequency[i]=i;
+  for(i=0;i<256;i++) frequency[i]=1;
+  fc=256;
   for(i=0;i<0x10000;i++) vocbuf[i]=0xff;
   for(i=0;i<sizeof(uint32_t);i++){
     hlp<<=8;

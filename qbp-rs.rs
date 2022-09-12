@@ -37,7 +37,7 @@ pub struct Packer {
   vocarea: [u16; 0x10000],
   hashes: [u16; 0x10000],
   vocindx: [Vocpntr; 0x10000],
-  frequency: [u32; 257],
+  frequency: [u16; 256],
   icbuf: u32,
   wpos: u32,
   rpos: u32,
@@ -52,7 +52,7 @@ pub struct Packer {
   symbol: u16,
   lowp: *mut u8,
   hlpp: *mut u8,
-  fc: *mut u32,
+  fc: u16,
   flags: u8,
   pub ifile: File,
   pub ofile: File,
@@ -68,12 +68,12 @@ impl Packer {
       vocarea: [0 as u16; 0x10000],
       hashes: [0 as u16; 0x10000],
       vocindx: [Vocpntr{v:1 as u32,}; 0x10000],
-      frequency: [0 as u32; 257],
+      frequency: [0 as u16; 256],
       icbuf: 0,wpos: 0,rpos: 0,low: 0,hlp: 0,range: 0,
       buf_size: 0,voclast: 0,vocroot: 0,offset: 0,lenght: 0,symbol: 0,
       lowp: ptr::null_mut(),
       hlpp: ptr::null_mut(),
-      fc: ptr::null_mut(),
+      fc: 0,
       flags: 0,
       ifile:match File::open(&Path::new(i)){
         Err(why)=>{
@@ -104,9 +104,10 @@ impl Packer {
     self.rpos=0;
     self.voclast=0xfffd;
     self.range=0xffffffff;
-    for i in 0..257{
-      self.frequency[i]=i as u32;
+    for i in 0..256{
+      self.frequency[i]=1 as u16;
     };
+    self.fc=256;
     for i in 0..0x10000{
       self.vocbuf[i]=0xff;
       self.hashes[i]=0;
@@ -121,7 +122,6 @@ impl Packer {
     self.lowp=ptr::addr_of_mut!(self.low) as *mut u8;
     unsafe { self.lowp=self.lowp.add(3) };
     self.hlpp=ptr::addr_of_mut!(self.hlp) as *mut u8;
-    self.fc=ptr::addr_of_mut!(self.frequency[256]).cast();
   }
 
   fn rbuf(&mut self,c: *mut u8)->bool {
@@ -174,20 +174,18 @@ impl Packer {
     return h;
   }
 
-  fn rc32_rescale(&mut self) {
-    let j: u32=self.frequency[self.symbol as usize];
-    self.symbol+=1;
-    self.low+=j*self.range;
-    self.range*=self.frequency[self.symbol as usize]-j;
-    for i in self.symbol..257 {
-      self.frequency[i as usize]+=1;
-    }
-    if unsafe { *self.fc>0xffff } {
-      for i in 1..257 {
+  fn rc32_rescale(&mut self,s: u32) {
+    self.low+=s*self.range;
+    self.range*=self.frequency[self.symbol as usize] as u32;
+    self.frequency[self.symbol as usize]+=1;
+    self.fc+=1;
+    if self.fc==0 {
+      for i in 0..256 {
         self.frequency[i]>>=1;
-        if self.frequency[i]==self.frequency[i-1] {
-          self.frequency[i]+=1;
+        if self.frequency[i]==0 {
+          self.frequency[i]=1;
         }
+        self.fc+=self.frequency[i];
       }
     }
   }
@@ -207,32 +205,23 @@ impl Packer {
         self.range=0xffffffff-self.low;
       }
     }
-    unsafe { self.range/=*self.fc };
+    self.range/=self.fc as u32;
     let count: u32=(self.hlp-self.low)/self.range;
-    if count>=unsafe { *self.fc } {
+    if count>=self.fc as u32 {
       return true;
     }
-    self.symbol=0;
-    let mut j: u16=128;
-    while j>0 {
-      if self.frequency[self.symbol as usize]<=count {
-        self.symbol+=j;
-      }
-      else {
-        if self.symbol>0 {
-          self.symbol-=j;
-        }
-        else {
-          break;
-        }
-      }
-      j>>=1;
-    }
-    if self.frequency[self.symbol as usize]>count && self.symbol>0 {
-      self.symbol-=1;
-    }
+    let mut s: u32=0;
+    for i in 0..257 {
+      if s>count || i==256 {
+        self.symbol=i as u16;
+        break;
+      };
+      s+=self.frequency[i as usize] as u32;
+    };
+    self.symbol-=1;
+    s-=self.frequency[self.symbol as usize] as u32;
     unsafe { *c=self.symbol as u8};
-    self.rc32_rescale();
+    self.rc32_rescale(s);
     return false;
   }
   
@@ -248,8 +237,12 @@ impl Packer {
       }
     }
     self.symbol=c as u16;
-    unsafe { self.range/=*self.fc };
-    self.rc32_rescale();
+    self.range/=self.fc as u32;
+    let mut s: u32=0;
+    for i in 0..self.symbol {
+      s+=self.frequency[i as usize] as u32;
+    }
+    self.rc32_rescale(s);
     return false;
   }
 

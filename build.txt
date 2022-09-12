@@ -1,9 +1,9 @@
 Windows:
   tcc *.c -o qbp.exe -m32 -Wl,-subsystem=console
-  x86_64-w64-mingw32-gcc qbp.c -O3 -s -o ./qbp -fno-exceptions -fno-stack-protector -ffast-math -fno-ident
-  x86_64-w64-mingw32-g++ qbp-cc.cc -O3 -s -static -o ./qbp-cc -fno-stack-protector -ffast-math -fno-ident -fomit-frame-pointer -fdata-sections -ffunction-sections -Wl,--gc-sections
+  (tdm-gcc): gcc qbp.c -O3 -s -o ./qbp -fno-exceptions -ffast-math -fno-ident -fomit-frame-pointer
+  (tdm-gcc): g++ qbp-cc.cc -O3 -s -o ./qbp-cc -fno-stack-protector -ffast-math -fno-ident -fomit-frame-pointer
   rustc -C target-feature=+crt-static -C debuginfo=0 -C strip=symbols -C opt-level=3 qbp-rs.rs
 Linux  :
-  gcc qbp.c -O3 -s -o ./qbp -fno-stack-protector -ffast-math -fno-ident
-  g++ qbp-cc.cc -O3 -s -o ./qbp-cc -fno-stack-protector -ffast-math -fno-ident
+  gcc qbp.c -O3 -s -o ./qbp -fno-stack-protector
+  g++ qbp-cc.cc -O3 -s -o ./qbp-cc -fno-stack-protector
   rustc -C target-feature=+crt-static -C debuginfo=0 -C strip=symbols -C opt-level=3 qbp-rs.rs

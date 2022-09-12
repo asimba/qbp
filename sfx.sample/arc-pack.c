@@ -23,7 +23,7 @@ uint8_t vocbuf[0x10000];
 uint16_t vocarea[0x10000];
 uint16_t hashes[0x10000];
 vocpntr vocindx[0x10000];
-uint32_t frequency[257];
+uint16_t frequency[256];
 uint16_t buf_size;
 uint16_t voclast;
 uint16_t vocroot;
@@ -33,7 +33,7 @@ uint16_t symbol;
 uint32_t low;
 uint32_t hlp;
 uint32_t range;
-uint32_t *fc;
+uint16_t fc;
 char *lowp;
 char *hlpp;
 
@@ -43,9 +43,9 @@ void pack_initialize(){
   range=0xffffffff;
   lowp=&((uint8_t *)&low)[3];
   hlpp=&((uint8_t *)&hlp)[0];
-  fc=&frequency[256];
   uint32_t i;
-  for(i=0;i<257;i++) frequency[i]=i;
+  for(i=0;i<256;i++) frequency[i]=1;
+  fc=256;
   for(i=0;i<0x10000;i++){
     vocbuf[i]=0xff;
     hashes[i]=0;
@@ -61,15 +61,13 @@ void pack_initialize(){
   vocarea[0xffff]=0xffff;
 }
 
-void rc32_rescale(){
-  uint32_t i,j=frequency[symbol++];
-  low+=j*range;
-  range*=frequency[symbol]-j;
-  for(i=symbol;i<257;i++) frequency[i]++;
-  if(*fc>0xffff){
-    uint32_t *fp=frequency;
-    for(i=1;i<257;i++){
-      if((frequency[i]>>=1)==*fp++) frequency[i]++;
+void rc32_rescale(uint32_t s){
+  low+=s*range;
+  range*=frequency[symbol]++;
+  if(++fc==0){
+    for(uint16_t i=0;i<256;i++){
+      if((frequency[i]>>=1)==0) frequency[i]=1;
+      fc+=frequency[i];
     };
   };
 }
@@ -84,8 +82,10 @@ int rc32_write(uint8_t *buf,int l,FILE *ofile){
       if((uint32_t)(range+low)<low) range=0xffffffff-low;
     };
     symbol=*buf;
-    range/=*fc;
-    rc32_rescale();
+    range/=fc;
+    uint32_t s=0;
+    for(uint16_t i=0;i<symbol;i++) s+=frequency[i];
+    rc32_rescale(s);
     buf++;
   };
   return 1;
