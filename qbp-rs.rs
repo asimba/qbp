@@ -211,14 +211,13 @@ impl Packer {
       return true;
     }
     let mut s: u32=0;
-    for i in 0..257 {
-      if s>count || i==256 {
+    for i in 0..256 {
+      s+=self.frequency[i as usize] as u32;
+      if s>count {
         self.symbol=i as u16;
         break;
       };
-      s+=self.frequency[i as usize] as u32;
     };
-    self.symbol-=1;
     s-=self.frequency[self.symbol as usize] as u32;
     unsafe { *c=self.symbol as u8};
     self.rc32_rescale(s);
