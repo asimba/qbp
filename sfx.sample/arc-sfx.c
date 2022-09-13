@@ -38,13 +38,11 @@ uint8_t rc32_getc(uint8_t *c,FILE *ifile){
   uint32_t count=(hlp-low)/range,s=0;
   if(count>=fc) return 1;
   for(symbol=0;symbol<256;symbol++){
-    if(s>count) break;
     s+=frequency[symbol];
+    if(s>count) break;
   };
-  symbol--;
   s-=frequency[symbol];
   *c=(uint8_t)symbol;
-
   low+=s*range;
   range*=frequency[symbol]++;
   if(++fc==0){
