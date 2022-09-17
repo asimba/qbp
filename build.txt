@@ -1,7 +1,7 @@
 Windows:
-  tcc *.c -o qbp.exe -m32 -Wl,-subsystem=console
-  (tdm-gcc): gcc qbp.c -O3 -s -o ./qbp -fno-exceptions -ffast-math -fno-ident -fomit-frame-pointer
-  (tdm-gcc): g++ qbp-cc.cc -O3 -s -o ./qbp-cc -fno-stack-protector -ffast-math -fno-ident -fomit-frame-pointer
+  tcc qbp.c -o qbp.exe -m32 -Wl,-subsystem=console
+  (tdm-gcc): gcc qbp.c -O3 -s -o ./qbp -fno-exceptions -ffast-math -fno-ident -fomit-frame-pointer -fno-math-errno -fno-stack-protector
+  (tdm-gcc): g++ qbp-cc.cc -O3 -s -o ./qbp-cc -fno-exceptions -ffast-math -fno-ident -fomit-frame-pointer -fno-math-errno -fno-stack-protector -fno-rtti
   rustc -C target-feature=+crt-static -C debuginfo=0 -C strip=symbols -C opt-level=3 qbp-rs.rs
 Linux  :
   gcc qbp.c -O3 -s -o ./qbp -fno-stack-protector

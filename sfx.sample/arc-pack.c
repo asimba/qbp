@@ -28,7 +28,7 @@ uint16_t buf_size;
 uint16_t voclast;
 uint16_t vocroot;
 uint16_t offset;
-uint16_t lenght;
+uint16_t length;
 uint16_t symbol;
 uint32_t low;
 uint32_t hlp;
@@ -139,16 +139,16 @@ void pack_file(FILE *ifile,FILE *ofile){
         if(vocbuf[symbol]==vocbuf[(uint16_t)(symbol+rle)]) rle++;
         else break;
       };
-      lenght=LZ_MIN_MATCH;
+      length=LZ_MIN_MATCH;
       if(buf_size>LZ_MIN_MATCH){
         cnode=vocindx[hashes[symbol]].in;
         rle_shift=(uint16_t)(vocroot+LZ_BUF_SIZE-buf_size);
         while(cnode!=symbol){
-          if(vocbuf[(uint16_t)(symbol+lenght)]==vocbuf[(uint16_t)(cnode+lenght)]){
+          if(vocbuf[(uint16_t)(symbol+length)]==vocbuf[(uint16_t)(cnode+length)]){
             i=0;
             uint16_t j=symbol,k=cnode;
             while(vocbuf[j++]==vocbuf[k]&&k++!=symbol) i++;
-            if(i>=lenght){
+            if(i>=length){
               //while buf_size==LZ_BUF_SIZE: minimal offset > 0x0104;
               if(buf_size<LZ_BUF_SIZE){
                 if((uint16_t)(cnode-rle_shift)>0xfeff){
@@ -158,25 +158,25 @@ void pack_file(FILE *ifile,FILE *ofile){
               };
               offset=cnode;
               if(i>=buf_size){
-                lenght=buf_size;
+                length=buf_size;
                 break;
               }
-              else lenght=i;
+              else length=i;
             };
           };
           cnode=vocarea[cnode];
         };
       };
-      if(rle>lenght){
+      if(rle>length){
         *cpos++=rle-LZ_MIN_MATCH-1;
         *(uint16_t*)cpos++=((uint16_t)(vocbuf[symbol]));
         buf_size-=rle;
       }
       else{
-        if(lenght>LZ_MIN_MATCH){
-          *cpos++=lenght-LZ_MIN_MATCH-1;
+        if(length>LZ_MIN_MATCH){
+          *cpos++=length-LZ_MIN_MATCH-1;
           *(uint16_t*)cpos++=0xffff-(uint16_t)(offset-rle_shift);
-          buf_size-=lenght;
+          buf_size-=length;
         }
         else{
           *cbuffer|=0x01;

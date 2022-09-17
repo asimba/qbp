@@ -13,7 +13,7 @@ uint16_t frequency[256];
 uint16_t buf_size;
 uint16_t vocroot;
 uint16_t offset;
-uint16_t lenght;
+uint16_t length;
 uint16_t symbol;
 uint32_t low;
 uint32_t hlp;
@@ -56,51 +56,50 @@ uint8_t rc32_getc(uint8_t *c,FILE *ifile){
 
 uint8_t unpack_file(FILE *ifile){
   uint16_t i;
-  if(lenght){
+  if(length){
     if(!rle_flag){
       symbol=vocbuf[offset++];
       vocbuf[vocroot++]=symbol;
     };
-    lenght--;
+    length--;
   }
   else{
     if(flags==0){
       cpos=cbuffer;
       if(rc32_getc(cpos++,ifile)) return 1;
-      flags=8;
-      lenght=0;
+      offset=flags=8;
+      length=0;
       symbol=*cbuffer;
-      for(i=0;i<flags;i++){
-        if(symbol&0x80) lenght++;
-        else lenght+=3;
+      while(offset--){
+        if(symbol&0x80) length++;
+        else length+=3;
         symbol<<=1;
       };
-      for(i=lenght;i;i--)
+      while(length--)
         if(rc32_getc(cpos++,ifile)) return 1;
       cpos=cbuffer+1;
     };
-    lenght=0;
+    length=0;
     if(*cbuffer&0x80){
       symbol=*cpos;
       vocbuf[vocroot++]=*cpos;
     }
     else{
-      lenght=*cpos+++LZ_MIN_MATCH+1;
+      length=*cpos+++LZ_MIN_MATCH+1;
       offset=*(uint16_t*)cpos++;
       if(offset==0x0100) return 1;
       if(offset<0x0100){
         rle_flag=1;
         symbol=offset;
-        for(i=0;i<lenght;i++) vocbuf[vocroot++]=symbol;
-        lenght--;
+        for(i=0;i<length;i++) vocbuf[vocroot++]=symbol;
       }
       else{
         rle_flag=0;
         offset=0xffff+(uint16_t)(vocroot+LZ_BUF_SIZE)-offset;
         symbol=vocbuf[offset++];
         vocbuf[vocroot++]=symbol;
-        lenght--;
       };
+      length--;
     };
     *cbuffer<<=1;
     cpos++;
@@ -145,9 +144,9 @@ void unarc(char *out,char *fn){
   fseek(f,60,SEEK_SET);
   read_value(&range,sizeof(uint32_t),f);
   fseek(f,range+6,SEEK_SET);
-  read_value(&lenght,sizeof(uint16_t),f);
+  read_value(&length,sizeof(uint16_t),f);
   fseek(f,0x100,SEEK_CUR);
-  while(lenght--){
+  while(length--){
     read_value(&hlp,sizeof(uint32_t),f);
     read_value(&low,sizeof(uint32_t),f);
     if(low>fl){
@@ -158,7 +157,7 @@ void unarc(char *out,char *fn){
   };
   fseek(f,range,SEEK_SET);
   if(feof(f)) return;
-  buf_size=flags=vocroot=low=hlp=lenght=rle_flag=0;
+  buf_size=flags=vocroot=low=hlp=length=rle_flag=0;
   offset=range=0xffffffff;
   lowp=&((char *)&low)[3];
   hlpp=&((char *)&hlp)[0];

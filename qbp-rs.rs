@@ -48,7 +48,7 @@ pub struct Packer {
   voclast: u16,
   vocroot: u16,
   offset: u16,
-  lenght: u16,
+  length: u16,
   symbol: u16,
   lowp: *mut u8,
   hlpp: *mut u8,
@@ -70,7 +70,7 @@ impl Packer {
       vocindx: [Vocpntr{v:1 as u32,}; 0x10000],
       frequency: [0 as u16; 256],
       icbuf: 0,wpos: 0,rpos: 0,low: 0,hlp: 0,range: 0,
-      buf_size: 0,voclast: 0,vocroot: 0,offset: 0,lenght: 0,symbol: 0,
+      buf_size: 0,voclast: 0,vocroot: 0,offset: 0,length: 0,symbol: 0,
       lowp: ptr::null_mut(),
       hlpp: ptr::null_mut(),
       fc: 0,
@@ -125,8 +125,7 @@ impl Packer {
   }
 
   fn rbuf(&mut self,c: *mut u8)->bool {
-    if self.icbuf>0 {
-      self.icbuf-=1;
+    if self.rpos<self.icbuf {
       unsafe{*c=self.ibuf[self.rpos as usize]};
       self.rpos+=1;
     }
@@ -138,7 +137,6 @@ impl Packer {
       if self.icbuf>0 {
         unsafe { *c=self.ibuf[0] };
         self.rpos=1;
-        self.icbuf-=1;
       }
       else {
         self.rpos=0;
@@ -164,14 +162,14 @@ impl Packer {
     return false;
   }
 
-  fn hash(&self,mut s: u16)->u16 {
+  fn hash(&mut self,mut s: u16) {
     let mut h: u16=0;
     for _i in 0..4{
       h^=self.vocbuf[s as usize] as u16;
       s+=1;
       h=(h<<4)^(h>>12);
     }
-    return h;
+    self.hashes[self.voclast as usize]=h;
   }
 
   fn rc32_rescale(&mut self,s: u32) {
@@ -274,7 +272,7 @@ impl Packer {
               self.vocindx[self.hashes[self.vocroot as usize] as usize].p.i=self.vocarea[self.vocroot as usize];
             }
             self.vocarea[self.vocroot as usize]=self.vocroot;
-            self.hashes[self.voclast as usize]=self.hash(self.voclast);
+            self.hash(self.voclast);
             let indx=self.hashes[self.voclast as usize] as usize;
             unsafe {
               if self.vocindx[indx].v==1 {
@@ -306,13 +304,13 @@ impl Packer {
             break;
           }
         }
-        self.lenght=LZ_MIN_MATCH;
+        self.length=LZ_MIN_MATCH;
         if self.buf_size>LZ_MIN_MATCH {
           unsafe { cnode=self.vocindx[self.hashes[self.symbol as usize] as usize].p.i };
           rle_shift=self.vocroot+LZ_BUF_SIZE-self.buf_size;
           while cnode!=self.symbol {
-            if self.vocbuf[((self.symbol+self.lenght) as u16) as usize]==
-              self.vocbuf[((cnode+self.lenght) as u16) as usize] {
+            if self.vocbuf[((self.symbol+self.length) as u16) as usize]==
+              self.vocbuf[((cnode+self.length) as u16) as usize] {
               i=0;
               let mut j: u16=self.symbol;
               let mut k: u16=cnode;
@@ -321,7 +319,7 @@ impl Packer {
                 k+=1;
                 i+=1;
               }
-              if i>=self.lenght {
+              if i>=self.length {
                 if self.buf_size<LZ_BUF_SIZE {
                   if (cnode-rle_shift) as u16>0xfeff {
                     cnode=self.vocarea[cnode as usize];
@@ -330,18 +328,18 @@ impl Packer {
                 }
                 self.offset=cnode;
                 if i>=self.buf_size {
-                  self.lenght=self.buf_size;
+                  self.length=self.buf_size;
                   break;
                 }
                 else {
-                  self.lenght=i;
+                  self.length=i;
                 }
               }
             }
             cnode=self.vocarea[cnode as usize];
           }
         }
-        if rle>self.lenght {
+        if rle>self.length {
           unsafe {
             *cpos=(rle-LZ_MIN_MATCH-1) as u8;
             cpos=cpos.add(1);
@@ -353,15 +351,15 @@ impl Packer {
           }
         }
         else {
-          if self.lenght>LZ_MIN_MATCH {
+          if self.length>LZ_MIN_MATCH {
             unsafe {
-              *cpos=(self.lenght-LZ_MIN_MATCH-1) as u8;
+              *cpos=(self.length-LZ_MIN_MATCH-1) as u8;
               cpos=cpos.add(1);
               cnv.u=0xffff-(self.offset-rle_shift);
               *cpos=cnv.c[0];
               cpos=cpos.add(1);
               *cpos=cnv.c[1];
-              self.buf_size-=self.lenght;
+              self.buf_size-=self.length;
             }
           }
           else {
@@ -434,18 +432,18 @@ impl Packer {
         }
         unsafe { cpos=cpos.add(1) };
         self.flags=8;
-        self.lenght=0;
+        self.length=0;
         c=self.cbuffer[0];
         for _i in 0..self.flags {
           if c&0x80!=0 {
-            self.lenght+=1;
+            self.length+=1;
           }
           else {
-            self.lenght+=3;
+            self.length+=3;
           }
           c<<=1;
         }
-        for _i in 0..self.lenght {
+        for _i in 0..self.length {
           if self.rc32_getc(cpos) {
             return;
           }
@@ -465,9 +463,9 @@ impl Packer {
         let mut cnv: U16U8;
         cnv.u=0;
         unsafe {
-          self.lenght=*cpos as u16;
+          self.length=*cpos as u16;
           cpos=cpos.add(1);
-          self.lenght+=LZ_MIN_MATCH+1;
+          self.length+=LZ_MIN_MATCH+1;
           cnv.c[0]=*cpos as u8;
           cpos=cpos.add(1);
           cnv.c[1]=*cpos as u8;
@@ -478,7 +476,7 @@ impl Packer {
         }
         if self.offset<0x0100 {
           c=self.offset as u8;
-          for _i in 0..self.lenght {
+          for _i in 0..self.length {
             if self.wbuf(c) {
               return;
             }
@@ -488,7 +486,7 @@ impl Packer {
         }
         else {
           self.offset=0xffff-self.offset+(self.vocroot+LZ_BUF_SIZE) as u16;
-          for _i in 0..self.lenght {
+          for _i in 0..self.length {
             c=self.vocbuf[self.offset as usize];
             self.offset+=1;
             if self.wbuf(c) {
