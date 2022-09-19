@@ -23,6 +23,7 @@ typedef union{
 
 uint8_t ibuf[0x10000];
 uint8_t obuf[0x10000];
+uint8_t *wpntr;
 uint32_t icbuf;
 uint32_t wpos;
 uint32_t rpos;
@@ -55,16 +56,23 @@ void pack_initialize(){
   vocarea[0xfffd]=0xfffd;
   vocarea[0xfffe]=0xfffe;
   vocarea[0xffff]=0xffff;
+  wpntr=obuf;
 }
 
-inline uint32_t wbuf(uint8_t c,FILE *ofile){
-  if(wpos<0x10000) obuf[wpos++]=c;
+inline void wbuf(uint8_t c,FILE *ofile){
+  if(wpos<0x10000){
+    *wpntr++=c;
+    wpos++;
+  }
   else{
-    if(fwrite(obuf,1,wpos,ofile)!=wpos) return 1;
-    *obuf=c;
-    wpos=1;
+    if(fwrite(obuf,1,wpos,ofile)==wpos){
+      *obuf=c;
+      wpos=1;
+      wpntr=obuf+1;
+      return;
+    };
+    wpos=0;
   };
-  return 0;
 }
 
 inline uint32_t rbuf(uint8_t *c,FILE *ifile){
@@ -181,7 +189,8 @@ void pack_file(FILE *ifile,FILE *ofile){
       *cbuffer<<=flags;
       w=cbuffer;
       for(i=cpos-cbuffer;i;i--)
-        if(wbuf(*w++,ofile)) return;
+        wbuf(*w++,ofile);
+        if(wpos==0) return;
       flags=8;
       cpos=&cbuffer[1];
       if(eofs) break;
@@ -211,7 +220,8 @@ void unpack_file(FILE *ifile, FILE *ofile){
     };
     if(*cbuffer&0x80){
       vocbuf[vocroot++]=*cpos;
-      if(wbuf(*cpos,ofile)) break;
+      wbuf(*cpos,ofile);
+      if(wpos==0) break;
     }
     else{
       length=LZ_MIN_MATCH+1+*cpos++;
@@ -219,7 +229,8 @@ void unpack_file(FILE *ifile, FILE *ofile){
         c=(uint8_t)(offset);
         while(length--){
           vocbuf[vocroot++]=c;
-          if(wbuf(c,ofile)) return;
+          wbuf(c,ofile);
+          if(wpos==0) return;
         };
       }
       else{
@@ -228,7 +239,8 @@ void unpack_file(FILE *ifile, FILE *ofile){
         while(length--){
           c=vocbuf[offset++];
           vocbuf[vocroot++]=c;
-          if(wbuf(c,ofile)) return;
+          wbuf(c,ofile);
+          if(wpos==0) return;
         };
       };
     };
