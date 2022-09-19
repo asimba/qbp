@@ -235,15 +235,15 @@ void packer::unpack(){
     if(!flags){
       cpos=cbuffer;
       if(rbuf(cpos++)) return;
-      offset=flags=8;
+      flags=8;
       length=0;
       c=*cbuffer;
-      while(offset--){
+      for(int i=8;i;i--){
         if(c&0x80) length++;
         else length+=3;
         c<<=1;
       };
-      while(length--)
+      for(int i=length;i;i--)
         if(rbuf(cpos++)) return;
       cpos=cbuffer+1;
     };
@@ -256,7 +256,7 @@ void packer::unpack(){
       length=LZ_MIN_MATCH+1+*cpos++;
       if((offset=*(uint16_t*)cpos++)<0x0100){
         c=(uint8_t)(offset);
-        while(length--){
+        for(int i=length;i;i--){
           vocbuf[vocroot++]=c;
           wbuf(c);
           if(wpos==0) return;
@@ -265,7 +265,7 @@ void packer::unpack(){
       else{
         if(offset==0x0100) break;
         offset=0xffff-offset+(uint16_t)(vocroot+LZ_BUF_SIZE);
-        while(length--){
+        for(int i=length;i;i--){
           c=vocbuf[offset++];
           vocbuf[vocroot++]=c;
           wbuf(c);

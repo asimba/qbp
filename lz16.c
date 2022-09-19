@@ -206,15 +206,15 @@ void unpack_file(FILE *ifile, FILE *ofile){
     if(flags==0){
       cpos=cbuffer;
       if(rbuf(cpos++,ifile)) return;
-      offset=flags=8;
+      flags=8;
       length=0;
       c=*cbuffer;
-      while(offset--){
+      for(int i=8;i;i--){
         if(c&0x80) length++;
         else length+=3;
         c<<=1;
       };
-      while(length--)
+      for(int i=length;i;i--)
         if(rbuf(cpos++,ifile)) return;
       cpos=cbuffer+1;
     };
@@ -227,7 +227,7 @@ void unpack_file(FILE *ifile, FILE *ofile){
       length=LZ_MIN_MATCH+1+*cpos++;
       if((offset=*(uint16_t*)cpos++)<0x0100){
         c=(uint8_t)(offset);
-        while(length--){
+        for(int i=length;i;i--){
           vocbuf[vocroot++]=c;
           wbuf(c,ofile);
           if(wpos==0) return;
@@ -236,7 +236,7 @@ void unpack_file(FILE *ifile, FILE *ofile){
       else{
         if(offset==0x0100) break;
         offset=0xffff-offset+(uint16_t)(vocroot+LZ_BUF_SIZE);
-        while(length--){
+        for(int i=length;i;i--){
           c=vocbuf[offset++];
           vocbuf[vocroot++]=c;
           wbuf(c,ofile);
