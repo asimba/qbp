@@ -54,9 +54,9 @@ arj32 | a -m1 | 328553984 | 138,06 | 24,28 |
 lzop | -9 -F | 366349786 | 109,70 | 4,56 |  
 lz4 | --best | 372443347 | 65,90 | 11,91 |  
 **qbp** `(built with "gcc -O3")` | **c** | **373955706** | **45,62** | **35,64** |  
-**unqbp** `(built with "gcc -O3")` | **-** | **373955706** | **-** | **27,63** |  
+**unqbp** `(built with "gcc -O3")` |  | **373955706** |  | **27,63** |  
 lzari <br/> [(reference realization by Haruhiko Okumura)](https://web.archive.org/web/19990209183635/http://oak.oakland.edu/pub/simtelnet/msdos/arcutils/lz_comp2.zip) | e | 388521578 | 182,69 | 77,72 |  
 **lz16** `(built with "gcc -O3")` | **c** | **407218528** | **32,68** | **4,52** |  
-**unlz16** `(built with "gcc -O3")` | **-** | **407218528** | **-** | **3,56** |  
+**unlz16** `(built with "gcc -O3")` |  | **407218528** |  | **3,56** |  
 lzss <br/> [(reference realization by Haruhiko Okumura)](https://oku.edu.mie-u.ac.jp/~okumura/compression/lzss.c) | e | 455245327 | 136,39 | 36,33 |  
 lz4 | -1 | 509454838 | 10,07 | 8,97 |  
