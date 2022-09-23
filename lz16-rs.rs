@@ -316,87 +316,101 @@ impl Packer {
 
   pub fn unpack(&mut self) {
     let mut cpos: *mut u8=ptr::addr_of_mut!(self.cbuffer).cast();
-    let mut c: u8;
+    let mut c: u8=0;
+    let mut rle_flag: bool=false;
     loop {
-      if self.flags==0 {
-        cpos=ptr::addr_of_mut!(self.cbuffer) as *mut u8;
-        if self.rbuf(cpos){
-          return;
+      if self.length!=0 {
+        if rle_flag==false {
+          c=self.vocbuf[self.offset as usize];
+          self.offset+=1;
         }
-        unsafe { cpos=cpos.add(1) };
-        self.flags=8;
-        self.length=0;
-        c=self.cbuffer[0];
-        for _i in 0..self.flags {
-          if c&0x80!=0 {
-            self.length+=1;
-          }
-          else {
-            self.length+=3;
-          }
-          c<<=1;
-        }
-        for _i in 0..self.length {
-          if self.rbuf(cpos) {
-            return;
-          }
-          unsafe { cpos=cpos.add(1) }
-        }
-        cpos=ptr::addr_of_mut!(self.cbuffer) as *mut u8;
-        unsafe { cpos=cpos.add(1) }
-      }
-      if self.cbuffer[0]&0x80!=0 {
-        if self.wbuf(unsafe { *cpos }) {
-          break;
-        }
-        self.vocbuf[self.vocroot as usize]=unsafe { *cpos };
+        self.vocbuf[self.vocroot as usize]=c;
         self.vocroot+=1;
+        self.length-=1;
       }
       else {
-        let mut cnv: U16U8;
-        cnv.u=0;
-        unsafe {
-          self.length=*cpos as u16;
-          cpos=cpos.add(1);
-          self.length+=LZ_MIN_MATCH+1;
-          cnv.c[0]=*cpos as u8;
-          cpos=cpos.add(1);
-          cnv.c[1]=*cpos as u8;
-          self.offset=cnv.u;
-        }
-        if self.offset==0x0100 {
-          break;
-        }
-        if self.offset<0x0100 {
-          c=self.offset as u8;
+        if self.flags==0 {
+          cpos=ptr::addr_of_mut!(self.cbuffer) as *mut u8;
+          if self.rbuf(cpos){
+            return;
+          }
+          unsafe { cpos=cpos.add(1) };
+          c=self.cbuffer[0];
+          self.flags=8;
+          self.length=8;
+          for _i in 0..self.flags {
+            if (c&0x01)==0 {
+              self.length+=2;
+            }
+            c>>=1;
+          }
           for _i in 0..self.length {
-            if self.wbuf(c) {
+            if self.rbuf(cpos) {
               return;
             }
-            self.vocbuf[self.vocroot as usize]=c;
-            self.vocroot+=1;
+            unsafe { cpos=cpos.add(1) }
           }
+          cpos=ptr::addr_of_mut!(self.cbuffer) as *mut u8;
+          unsafe { cpos=cpos.add(1) }
+        }
+        if self.cbuffer[0]&0x80!=0 {
+          self.length=0;
+          self.vocbuf[self.vocroot as usize]=unsafe { *cpos };
+          self.vocroot+=1;
         }
         else {
-          self.offset=0xffff-self.offset+(self.vocroot+LZ_BUF_SIZE) as u16;
-          for _i in 0..self.length {
+          let mut cnv: U16U8;
+          cnv.u=0;
+          unsafe {
+            self.length=*cpos as u16;
+            cpos=cpos.add(1);
+            self.length+=LZ_MIN_MATCH+1;
+            cnv.c[0]=*cpos as u8;
+            cpos=cpos.add(1);
+            cnv.c[1]=*cpos as u8;
+            self.offset=cnv.u;
+          }
+          if self.offset<0x0100 {
+            c=self.offset as u8;
+            rle_flag=true;
+          }
+          else {
+            if self.offset==0x0100 {
+              break;
+            }
+            self.offset=0xffff-self.offset+(self.vocroot+LZ_BUF_SIZE) as u16;
             c=self.vocbuf[self.offset as usize];
             self.offset+=1;
-            if self.wbuf(c) {
-              return;
-            }
-            self.vocbuf[self.vocroot as usize]=c;
-            self.vocroot+=1;
+            rle_flag=false;
           }
+          self.vocbuf[self.vocroot as usize]=c;
+          self.vocroot+=1;
+          self.length-=1;
+        }
+        self.cbuffer[0]<<=1;
+        unsafe { cpos=cpos.add(1) };
+        self.flags-=1;
+      }
+      if self.vocroot==0 {
+        match self.ofile.write(&self.vocbuf) {
+          Ok(_) => {},
+          Err(_) => return,
         }
       }
-      self.cbuffer[0]<<=1;
-      unsafe { cpos=cpos.add(1) };
-      self.flags-=1;
     }
-    match self.ofile.write(&self.obuf[..self.wpos as usize]) {
-      Ok(_) => return,
-      Err(_) => return,
+    if self.length!=0 {
+      if self.vocroot!=0 {
+        match self.ofile.write(&self.vocbuf[..self.vocroot as usize]) {
+          Ok(_) => return,
+          Err(_) => return,
+        }
+      }
+      else {
+        match self.ofile.write(&self.vocbuf) {
+          Ok(_) => return,
+          Err(_) => return,
+        }
+      }
     }
   }
 

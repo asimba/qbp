@@ -44,10 +44,10 @@ void unpack_file(FILE *ifile, FILE *ofile){
         rbuf(cpos++,ifile);
         if(rpos==0) break;
         c=*cbuffer;
+        length=8;
         for(flags=0;flags<8;flags++){
-          if(c&0x80) length++;
-          else length+=3;
-          c<<=1;
+          if((c&0x1)==0) length+=2;
+          c>>=1;
         };
         for(c=length;c;c--){
           rbuf(cpos++,ifile);

@@ -67,13 +67,11 @@ uint8_t unpack_file(FILE *ifile){
     if(flags==0){
       cpos=cbuffer;
       if(rc32_getc(cpos++,ifile)) return 1;
-      offset=flags=8;
-      length=0;
+      length=offset=flags=8;
       symbol=*cbuffer;
       while(offset--){
-        if(symbol&0x80) length++;
-        else length+=3;
-        symbol<<=1;
+        if((symbol&0x1)==0) length+=2;
+        symbol>>=1;
       };
       while(length--)
         if(rc32_getc(cpos++,ifile)) return 1;

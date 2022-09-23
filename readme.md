@@ -3,11 +3,16 @@
 Simple LZSS+RLE+RC32 compression algorithm realization.  
   
 --- 
-Usage : ./bin/qbp \<OPTIONS\> \<SOURCE\> \<DESTINATION\>  
+Usage : ./qbp \<OPTIONS\> \<SOURCE\> \<DESTINATION\>  
+Usage : ./lz16 \<OPTIONS\> \<SOURCE\> \<DESTINATION\>  
 **Examples:**  
 ```  
 qbp c source_file packed_file  
 qbp d packed_file unpacked_file  
+lz16 c source_file packed_file  
+lz16 d packed_file unpacked_file  
+unqbp packed_file unpacked_file  
+unlz16 packed_file unpacked_file  
 ```  
 
 ---  
