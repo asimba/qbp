@@ -47,7 +47,7 @@ uint8_t rc32_getc(uint8_t *c,FILE *ifile){
   range*=frequency[symbol]++;
   if(++fc==0){
     for(uint16_t i=0;i<256;i++){
-      if((frequency[i]>>=1)==0) frequency[i]=1;
+      if((frequency[i]>>=4)==0) frequency[i]=1;
       fc+=frequency[i];
     };
   };

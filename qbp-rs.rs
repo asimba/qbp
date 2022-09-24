@@ -179,7 +179,7 @@ impl Packer {
     self.fc+=1;
     if self.fc==0 {
       for i in 0..256 {
-        self.frequency[i]>>=1;
+        self.frequency[i]>>=4;
         if self.frequency[i]==0 {
           self.frequency[i]=1;
         }

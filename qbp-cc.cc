@@ -124,14 +124,14 @@ inline bool packer::rbuf(uint8_t *c){
   else{
     rpos=0;
     if(ifile.read((char *)ibuf,0x10000).bad()) return true;
-    if(icbuf=ifile.gcount()) *c=ibuf[rpos++];
+    if((icbuf=ifile.gcount())) *c=ibuf[rpos++];
   };
   return false;
 }
 
 inline void packer::hash(uint16_t s){
   uint16_t h=0;
-  for(int i=0;i<sizeof(uint32_t);i++){
+  for(int i=0;i<4;i++){
     h^=vocbuf[s++];
     h=(h<<4)^(h>>12);
   };
@@ -143,7 +143,7 @@ inline void packer::rc32_rescale(uint32_t s){
   range*=frequency[symbol]++;
   if(++fc==0){
     for(int i=0;i<256;i++){
-      if((frequency[i]>>=1)==0) frequency[i]=1;
+      if((frequency[i]>>=4)==0) frequency[i]=1;
       fc+=frequency[i];
     };
   };
@@ -303,7 +303,7 @@ void packer::pack(){
 }
 
 void packer::unpack(){
-  uint8_t *cpos,c,rle_flag=0;
+  uint8_t *cpos=NULL,c,rle_flag=0;
   for(c=0;c<sizeof(uint32_t);c++){
     hlp<<=8;
     if(rbuf(hlpp)||rpos==0) return;

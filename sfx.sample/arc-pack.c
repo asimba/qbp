@@ -41,8 +41,8 @@ void pack_initialize(){
   buf_size=flags=vocroot=*cbuffer=low=hlp=0;
   voclast=0xfffd;
   range=0xffffffff;
-  lowp=&((uint8_t *)&low)[3];
-  hlpp=&((uint8_t *)&hlp)[0];
+  lowp=&((char *)&low)[3];
+  hlpp=&((char *)&hlp)[0];
   uint32_t i;
   for(i=0;i<256;i++) frequency[i]=1;
   fc=256;
@@ -66,7 +66,7 @@ void rc32_rescale(uint32_t s){
   range*=frequency[symbol]++;
   if(++fc==0){
     for(uint16_t i=0;i<256;i++){
-      if((frequency[i]>>=1)==0) frequency[i]=1;
+      if((frequency[i]>>=4)==0) frequency[i]=1;
       fc+=frequency[i];
     };
   };
@@ -101,7 +101,7 @@ uint16_t hash(uint16_t s){
 }
 
 void pack_file(FILE *ifile,FILE *ofile){
-  uint16_t i,rle,rle_shift,cnode,h;
+  uint16_t i,rle,rle_shift,cnode;
   char eoff=0,eofs=0;
   vocpntr *indx;
   uint8_t *cpos=&cbuffer[1];

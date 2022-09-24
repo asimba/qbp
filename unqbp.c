@@ -28,7 +28,7 @@ inline void rbuf(uint8_t *c,FILE *ifile){
   if(rpos<icbuf) *c=ibuf[rpos++];
   else{
     rpos=0;
-    if(icbuf=fread(ibuf,1,0x10000,ifile)) *c=ibuf[rpos++];
+    if((icbuf=fread(ibuf,1,0x10000,ifile))) *c=ibuf[rpos++];
   };
 }
 
@@ -55,7 +55,7 @@ uint32_t rc32_getc(uint8_t *c,FILE *ifile){
   range*=frequency[*c]++;
   if(++fc==0){
     for(int i=0;i<256;i++){
-      if((frequency[i]>>=1)==0) frequency[i]=1;
+      if((frequency[i]>>=4)==0) frequency[i]=1;
       fc+=frequency[i];
     };
   };
@@ -63,7 +63,7 @@ uint32_t rc32_getc(uint8_t *c,FILE *ifile){
 }
 
 void unpack_file(FILE *ifile, FILE *ofile){
-  uint8_t *cpos,flags=0,c,rle_flag=0;
+  uint8_t *cpos=NULL,flags=0,c,rle_flag=0;
   uint8_t cbuffer[LZ_CAPACITY+1];
   uint16_t vocroot=0,offset=0,length=0;
   low=hlp=icbuf=rpos=0;

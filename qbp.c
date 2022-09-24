@@ -87,21 +87,18 @@ inline void wbuf(uint8_t c,FILE *ofile){
   };
 }
 
-inline uint32_t rbuf(uint8_t *c,FILE *ifile){
+inline void rbuf(uint8_t *c,FILE *ifile){
   if(rpos<icbuf) *c=ibuf[rpos++];
   else{
     rpos=0;
-    icbuf=fread(ibuf,1,0x10000,ifile);
-    if(ferror(ifile)) return 1;
-    if(icbuf) *c=ibuf[rpos++];
+    if((icbuf=fread(ibuf,1,0x10000,ifile))) *c=ibuf[rpos++];
   };
-  return 0;
 }
 
 uint32_t rc32_getc(uint8_t *c,FILE *ifile){
   while((range<0x10000)||(hlp<low)){
     hlp<<=8;
-    if(rbuf(hlpp,ifile)) return 1;
+    rbuf(hlpp,ifile);
     if(rpos==0) return 0;
     low<<=8;
     range<<=8;
@@ -121,7 +118,7 @@ uint32_t rc32_getc(uint8_t *c,FILE *ifile){
   range*=frequency[*c]++;
   if(++fc==0){
     for(int i=0;i<256;i++){
-      if((frequency[i]>>=1)==0) frequency[i]=1;
+      if((frequency[i]>>=4)==0) frequency[i]=1;
       fc+=frequency[i];
     };
   };
@@ -144,7 +141,7 @@ uint32_t rc32_putc(uint8_t c,FILE *ofile){
   range*=frequency[symbol]++;
   if(++fc==0){
     for(int i=0;i<256;i++){
-      if((frequency[i]>>=1)==0) frequency[i]=1;
+      if((frequency[i]>>=4)==0) frequency[i]=1;
       fc+=frequency[i];
     };
   };
@@ -169,7 +166,7 @@ void pack_file(FILE *ifile,FILE *ofile){
   for(;;){
     if(!eoff){
       if(LZ_BUF_SIZE-buf_size){
-        if(rbuf(&vocbuf[vocroot],ifile)) break;
+        rbuf(&vocbuf[vocroot],ifile);
         if(rpos==0){
           eoff=1;
           continue;
@@ -273,10 +270,11 @@ void pack_file(FILE *ifile,FILE *ofile){
 }
 
 void unpack_file(FILE *ifile, FILE *ofile){
-  uint8_t *cpos,c,rle_flag=0;
+  uint8_t *cpos=NULL,c,rle_flag=0;
   for(c=0;c<sizeof(uint32_t);c++){
     hlp<<=8;
-    if(rbuf(hlpp,ifile)||rpos==0) return;
+    rbuf(hlpp,ifile);
+    if(rpos==0) return;
   }
   for(;;){
     if(length){
