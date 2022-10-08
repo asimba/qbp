@@ -22,12 +22,12 @@ inline void rbuf(uint8_t *c,FILE *ifile){
   if(rpos<icbuf) *c=ibuf[rpos++];
   else{
     rpos=0;
-    if(icbuf=fread(ibuf,1,0x10000,ifile)) *c=ibuf[rpos++];
+    if((icbuf=fread(ibuf,1,0x10000,ifile))) *c=ibuf[rpos++];
   };
 }
 
 void unpack_file(FILE *ifile, FILE *ofile){
-  uint8_t *cpos,flags=0,c,rle_flag=0;
+  uint8_t *cpos=NULL,flags=0,c,rle_flag=0;
   uint8_t cbuffer[LZ_CAPACITY+1];
   uint16_t vocroot=0,offset=0,length=0;
   icbuf=rpos=0;
@@ -67,7 +67,7 @@ void unpack_file(FILE *ifile, FILE *ofile){
         }
         else{
           if(offset==0x0100) break;
-          offset=0xffff-offset+(uint16_t)(vocroot+LZ_BUF_SIZE);
+          offset=~offset+(uint16_t)(vocroot+LZ_BUF_SIZE);
           c=vocbuf[offset++];
           rle_flag=0;
         };

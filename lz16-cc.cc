@@ -109,7 +109,7 @@ inline bool packer::rbuf(uint8_t *c){
   else{
     rpos=0;
     if(ifile.read((char *)ibuf,0x10000).bad()) return true;
-    if(icbuf=ifile.gcount()) *c=ibuf[rpos++];
+    if((icbuf=ifile.gcount())) *c=ibuf[rpos++];
   };
   return false;
 }
@@ -197,7 +197,7 @@ void packer::pack(){
       else{
         if(length>LZ_MIN_MATCH){
           *cpos++=length-LZ_MIN_MATCH-1;
-          *(uint16_t*)cpos++=0xffff-(uint16_t)(offset-rle_shift);
+          *(uint16_t*)cpos++=~(uint16_t)(offset-rle_shift);
           buf_size-=length;
         }
         else{
@@ -217,9 +217,10 @@ void packer::pack(){
     if(flags==0||eofs){
       *cbuffer<<=flags;
       w=cbuffer;
-      for(i=cpos-cbuffer;i;i--)
+      for(i=cpos-cbuffer;i;i--){
         wbuf(*w++);
         if(wpos==0) return;
+      };
       flags=8;
       cpos=&cbuffer[1];
       if(eofs) break;
@@ -230,7 +231,7 @@ void packer::pack(){
 }
 
 void packer::unpack(){
-  uint8_t *cpos,c,rle_flag=0;
+  uint8_t *cpos=NULL,c,rle_flag=0;
   for(;;){
     if(length){
       if(rle_flag==0) c=vocbuf[offset++];
@@ -263,7 +264,7 @@ void packer::unpack(){
         }
         else{
           if(offset==0x0100) break;
-          offset=0xffff-offset+(uint16_t)(vocroot+LZ_BUF_SIZE);
+          offset=~offset+(uint16_t)(vocroot+LZ_BUF_SIZE);
           c=vocbuf[offset++];
           rle_flag=0;
         };

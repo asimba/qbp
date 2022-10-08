@@ -79,7 +79,7 @@ int rc32_write(uint8_t *buf,int l,FILE *ofile){
       if(ferror(ofile)) return -1;
       low<<=8;
       range<<=8;
-      if((uint32_t)(range+low)<low) range=0xffffffff-low;
+      if((uint32_t)(range+low)<low) range=~low;
     };
     symbol=*buf;
     range/=fc;
@@ -175,7 +175,7 @@ void pack_file(FILE *ifile,FILE *ofile){
       else{
         if(length>LZ_MIN_MATCH){
           *cpos++=length-LZ_MIN_MATCH-1;
-          *(uint16_t*)cpos++=0xffff-(uint16_t)(offset-rle_shift);
+          *(uint16_t*)cpos++=~(uint16_t)(offset-rle_shift);
           buf_size-=length;
         }
         else{

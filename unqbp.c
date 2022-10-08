@@ -39,7 +39,7 @@ uint32_t rc32_getc(uint8_t *c,FILE *ifile){
     if(rpos==0) return 0;
     low<<=8;
     range<<=8;
-    if((uint32_t)(range+low)<low) range=0xffffffff-low;
+    if((uint32_t)(range+low)<low) range=~low;
   };
   range/=fc;
   uint32_t count=(hlp-low)/range,s=0;
@@ -109,7 +109,7 @@ void unpack_file(FILE *ifile, FILE *ofile){
         }
         else{
           if(offset==0x0100) break;
-          offset=0xffff-offset+(uint16_t)(vocroot+LZ_BUF_SIZE);
+          offset=~offset+(uint16_t)(vocroot+LZ_BUF_SIZE);
           c=vocbuf[offset++];
           rle_flag=0;
         };

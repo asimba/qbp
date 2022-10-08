@@ -32,7 +32,7 @@ uint8_t rc32_getc(uint8_t *c,FILE *ifile){
     if(feof(ifile)) return 0;
     low<<=8;
     range<<=8;
-    if((uint32_t)(range+low)<low) range=0xffffffff-low;
+    if((uint32_t)(range+low)<low) range=~low;
   };
   range/=fc;
   uint32_t count=(hlp-low)/range,s=0;
@@ -93,7 +93,7 @@ uint8_t unpack_file(FILE *ifile){
       }
       else{
         rle_flag=0;
-        offset=0xffff+(uint16_t)(vocroot+LZ_BUF_SIZE)-offset;
+        offset=~offset+(uint16_t)(vocroot+LZ_BUF_SIZE);
         symbol=vocbuf[offset++];
         vocbuf[vocroot++]=symbol;
       };

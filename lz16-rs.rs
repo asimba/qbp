@@ -262,7 +262,7 @@ impl Packer {
             unsafe {
               *cpos=(self.length-LZ_MIN_MATCH-1) as u8;
               cpos=cpos.add(1);
-              cnv.u=0xffff-(self.offset-rle_shift);
+              cnv.u=!(self.offset-rle_shift);
               *cpos=cnv.c[0];
               cpos=cpos.add(1);
               *cpos=cnv.c[1];
@@ -378,7 +378,7 @@ impl Packer {
             if self.offset==0x0100 {
               break;
             }
-            self.offset=0xffff-self.offset+(self.vocroot+LZ_BUF_SIZE) as u16;
+            self.offset=!self.offset+(self.vocroot+LZ_BUF_SIZE) as u16;
             c=self.vocbuf[self.offset as usize];
             self.offset+=1;
             rle_flag=false;

@@ -102,7 +102,7 @@ uint32_t rc32_getc(uint8_t *c,FILE *ifile){
     if(rpos==0) return 0;
     low<<=8;
     range<<=8;
-    if((uint32_t)(range+low)<low) range=0xffffffff-low;
+    if((uint32_t)(range+low)<low) range=~low;
   };
   range/=fc;
   uint32_t count=(hlp-low)/range,s=0;
@@ -131,7 +131,7 @@ uint32_t rc32_putc(uint8_t c,FILE *ofile){
     if(wpos==0) return 1;
     low<<=8;
     range<<=8;
-    if((uint32_t)(range+low)<low) range=0xffffffff-low;
+    if((uint32_t)(range+low)<low) range=~low;
   };
   symbol=c;
   range/=fc;
@@ -231,7 +231,7 @@ void pack_file(FILE *ifile,FILE *ofile){
       else{
         if(length>LZ_MIN_MATCH){
           *cpos++=length-LZ_MIN_MATCH-1;
-          *(uint16_t*)cpos++=0xffff-(uint16_t)(offset-rle_shift);
+          *(uint16_t*)cpos++=~(uint16_t)(offset-rle_shift);
           buf_size-=length;
         }
         else{
@@ -260,7 +260,7 @@ void pack_file(FILE *ifile,FILE *ofile){
           wbuf(*lowp,ofile);
           if(wpos==0) return;
           low<<=8;
-        }
+        };
         fwrite(obuf,1,wpos,ofile);
         break;
       };
@@ -308,7 +308,7 @@ void unpack_file(FILE *ifile, FILE *ofile){
         }
         else{
           if(offset==0x0100) break;
-          offset=0xffff-offset+(uint16_t)(vocroot+LZ_BUF_SIZE);
+          offset=~offset+(uint16_t)(vocroot+LZ_BUF_SIZE);
           c=vocbuf[offset++];
           rle_flag=0;
         };
