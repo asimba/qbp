@@ -135,12 +135,13 @@ void pack_file(FILE *ifile,FILE *ofile){
     symbol=vocroot-buf_size;
     if(buf_size){
       rle=1;
+      cnode=symbol+1;
       while(rle<buf_size){
-        if(vocbuf[symbol]==vocbuf[(uint16_t)(symbol+rle)]) rle++;
+        if(vocbuf[symbol]==vocbuf[cnode++]) rle++;
         else break;
       };
       length=LZ_MIN_MATCH;
-      if(buf_size>LZ_MIN_MATCH){
+      if(buf_size>LZ_MIN_MATCH&&rle<buf_size){
         cnode=vocindx[hashes[symbol]].in;
         rle_shift=(uint16_t)(vocroot+LZ_BUF_SIZE-buf_size);
         while(cnode!=symbol){

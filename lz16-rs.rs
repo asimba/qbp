@@ -212,7 +212,7 @@ impl Packer {
           }
         }
         self.length=LZ_MIN_MATCH;
-        if self.buf_size>LZ_MIN_MATCH {
+        if self.buf_size>LZ_MIN_MATCH && rle<self.buf_size {
           unsafe { cnode=self.vocindx[self.hashes[self.symbol as usize] as usize].p.i };
           rle_shift=self.vocroot+LZ_BUF_SIZE-self.buf_size;
           while cnode!=self.symbol {
@@ -318,6 +318,7 @@ impl Packer {
     let mut cpos: *mut u8=ptr::addr_of_mut!(self.cbuffer).cast();
     let mut c: u8=0;
     let mut rle_flag: bool=false;
+    let mut bytes: bool=false;
     loop {
       if self.length!=0 {
         if rle_flag==false {
@@ -327,6 +328,7 @@ impl Packer {
         self.vocbuf[self.vocroot as usize]=c;
         self.vocroot+=1;
         self.length-=1;
+        bytes=true;
       }
       else {
         if self.flags==0 {
@@ -357,6 +359,7 @@ impl Packer {
           self.length=0;
           self.vocbuf[self.vocroot as usize]=unsafe { *cpos };
           self.vocroot+=1;
+          bytes=true;
         }
         else {
           let mut cnv: U16U8;
@@ -386,19 +389,21 @@ impl Packer {
           self.vocbuf[self.vocroot as usize]=c;
           self.vocroot+=1;
           self.length-=1;
+          bytes=true;
         }
         self.cbuffer[0]<<=1;
         unsafe { cpos=cpos.add(1) };
         self.flags-=1;
       }
       if self.vocroot==0 {
+        bytes=false;
         match self.ofile.write(&self.vocbuf) {
           Ok(_) => {},
           Err(_) => return,
         }
       }
     }
-    if self.length!=0 {
+    if bytes {
       if self.vocroot!=0 {
         match self.ofile.write(&self.vocbuf[..self.vocroot as usize]) {
           Ok(_) => return,
