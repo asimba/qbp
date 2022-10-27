@@ -233,12 +233,17 @@ void packer::pack(){
 
 void packer::unpack(){
   uint8_t *cpos=NULL,c,rle_flag=0,bytes=0;
+  length=0;
   for(;;){
     if(length){
       if(rle_flag==0) c=vocbuf[offset++];
       vocbuf[vocroot++]=c;
       length--;
       bytes=1;
+      if(vocroot==0){
+        bytes=0;
+        if(ofile.write((char *)vocbuf,0x10000).bad()) break;
+      };
     }
     else{
       if(flags==0){
@@ -254,34 +259,23 @@ void packer::unpack(){
           if(rbuf(cpos++)) return;
         cpos=cbuffer+1;
       };
+      rle_flag=1;
       if(*cbuffer&0x80){
-        length=0;
-        vocbuf[vocroot++]=*cpos;
-        bytes=1;
+        length=1;
+        c=*cpos;
       }
       else{
         length=LZ_MIN_MATCH+1+*cpos++;
-        if((offset=*(uint16_t*)cpos++)<0x0100){
-          c=(uint8_t)(offset);
-          rle_flag=1;
-        }
+        if((offset=*(uint16_t*)cpos++)<0x0100) c=(uint8_t)(offset);
         else{
           if(offset==0x0100) break;
           offset=~offset+(uint16_t)(vocroot+LZ_BUF_SIZE);
-          c=vocbuf[offset++];
           rle_flag=0;
         };
-        vocbuf[vocroot++]=c;
-        length--;
-        bytes=1;
       };
       *cbuffer<<=1;
       cpos++;
       flags--;
-    };
-    if(vocroot==0){
-      bytes=0;
-      if(ofile.write((char *)vocbuf,0x10000).bad()) break;
     };
   };
   if(bytes){

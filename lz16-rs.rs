@@ -329,6 +329,13 @@ impl Packer {
         self.vocroot+=1;
         self.length-=1;
         bytes=true;
+        if self.vocroot==0 {
+          bytes=false;
+          match self.ofile.write(&self.vocbuf) {
+            Ok(_) => {},
+            Err(_) => return,
+          }
+        }
       }
       else {
         if self.flags==0 {
@@ -355,11 +362,10 @@ impl Packer {
           cpos=ptr::addr_of_mut!(self.cbuffer) as *mut u8;
           unsafe { cpos=cpos.add(1) }
         }
+        rle_flag=true;
         if self.cbuffer[0]&0x80!=0 {
-          self.length=0;
-          self.vocbuf[self.vocroot as usize]=unsafe { *cpos };
-          self.vocroot+=1;
-          bytes=true;
+          self.length=1;
+          c=unsafe { *cpos };
         }
         else {
           let mut cnv: U16U8;
@@ -375,32 +381,18 @@ impl Packer {
           }
           if self.offset<0x0100 {
             c=self.offset as u8;
-            rle_flag=true;
           }
           else {
             if self.offset==0x0100 {
               break;
             }
             self.offset=!self.offset+(self.vocroot+LZ_BUF_SIZE) as u16;
-            c=self.vocbuf[self.offset as usize];
-            self.offset+=1;
             rle_flag=false;
           }
-          self.vocbuf[self.vocroot as usize]=c;
-          self.vocroot+=1;
-          self.length-=1;
-          bytes=true;
         }
         self.cbuffer[0]<<=1;
         unsafe { cpos=cpos.add(1) };
         self.flags-=1;
-      }
-      if self.vocroot==0 {
-        bytes=false;
-        match self.ofile.write(&self.vocbuf) {
-          Ok(_) => {},
-          Err(_) => return,
-        }
       }
     }
     if bytes {
