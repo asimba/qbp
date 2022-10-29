@@ -116,7 +116,7 @@ inline bool packer::rbuf(uint8_t *c){
 
 inline void packer::hash(uint16_t s){
   uint16_t h=0;
-  for(uint8_t i=0;i<sizeof(uint32_t);i++){
+  for(uint8_t i=0;i<4;i++){
     h^=vocbuf[s++];
     h=(h<<4)^(h>>12);
   };
@@ -249,21 +249,14 @@ void packer::unpack(){
       if(flags==0){
         cpos=cbuffer;
         if(rbuf(cpos++)) break;
-        c=*cbuffer;
-        length=8;
-        for(flags=0;flags<8;flags++){
-          if((c&0x1)==0) length+=2;
-          c>>=1;
-        };
-        for(c=length;c;c--)
-          if(rbuf(cpos++)) return;
+        for(c=~*cbuffer;c;flags++) c&=c-1;
+        for(c=8+(flags<<1);c;c--)
+          if(rbuf(cpos++)) break;
+        flags=8;
         cpos=cbuffer+1;
       };
-      rle_flag=1;
-      if(*cbuffer&0x80){
-        length=1;
-        c=*cpos;
-      }
+      length=rle_flag=1;
+      if(*cbuffer&0x80) c=*cpos;
       else{
         length=LZ_MIN_MATCH+1+*cpos++;
         if((offset=*(uint16_t*)cpos++)<0x0100) c=(uint8_t)(offset);

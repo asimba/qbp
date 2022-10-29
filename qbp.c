@@ -149,7 +149,7 @@ uint32_t rc32_putc(uint8_t c,FILE *ofile){
 
 inline void hash(uint16_t s){
   uint16_t h=0;
-  for(uint8_t i=0;i<sizeof(uint32_t);i++){
+  for(uint8_t i=0;i<4;i++){
     h^=vocbuf[s++];
     h=(h<<4)^(h>>12);
   };
@@ -256,7 +256,7 @@ void pack_file(FILE *ifile,FILE *ofile){
       flags=8;
       cpos=&cbuffer[1];
       if(eofs){
-        for(i=sizeof(uint32_t);i;i--){
+        for(i=4;i;i--){
           wbuf(*lowp,ofile);
           if(wpos==0) return;
           low<<=8;
@@ -271,7 +271,7 @@ void pack_file(FILE *ifile,FILE *ofile){
 
 void unpack_file(FILE *ifile, FILE *ofile){
   uint8_t *cpos=NULL,c,rle_flag=0,bytes=0;
-  for(c=0;c<sizeof(uint32_t);c++){
+  for(c=0;c<4;c++){
     hlp<<=8;
     rbuf(hlpp,ifile);
     if(rpos==0) return;
@@ -291,21 +291,14 @@ void unpack_file(FILE *ifile, FILE *ofile){
       if(flags==0){
         cpos=cbuffer;
         if(rc32_getc(cpos++,ifile)) break;
-        c=*cbuffer;
-        length=8;
-        for(flags=0;flags<8;flags++){
-          if((c&0x1)==0) length+=2;
-          c>>=1;
-        };
-        for(c=length;c;c--)
+        for(c=~*cbuffer;c;flags++) c&=c-1;
+        for(c=8+(flags<<1);c;c--)
           if(rc32_getc(cpos++,ifile)) return;
+        flags=8;
         cpos=cbuffer+1;
       };
-      rle_flag=1;
-      if(*cbuffer&0x80){
-        length=1;
-        c=*cpos;
-      }
+      length=rle_flag=1;
+      if(*cbuffer&0x80) c=*cpos;
       else{
         length=LZ_MIN_MATCH+1+*cpos++;
         if((offset=*(uint16_t*)cpos++)<0x0100) c=(uint8_t)(offset);

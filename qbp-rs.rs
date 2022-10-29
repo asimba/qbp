@@ -451,21 +451,18 @@ impl Packer {
             return;
           }
           unsafe { cpos=cpos.add(1) };
-          c=self.cbuffer[0];
-          self.flags=8;
-          self.length=8;
-          for _i in 0..self.flags {
-            if (c&0x01)==0 {
-              self.length+=2;
-            }
-            c>>=1;
+          c=!self.cbuffer[0];
+          while c!=0 {
+            c&=c-1;
+            self.flags+=1;
           }
-          for _i in 0..self.length {
+          for _i in 0..8+(self.flags<<1) {
             if self.rc32_getc(cpos) {
               return;
             }
             unsafe { cpos=cpos.add(1) }
           }
+          self.flags=8;
           cpos=ptr::addr_of_mut!(self.cbuffer) as *mut u8;
           unsafe { cpos=cpos.add(1) }
         }
