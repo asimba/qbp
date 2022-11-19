@@ -25,6 +25,8 @@ uint8_t *cpos;
 uint8_t rle_flag;
 
 uint8_t rc32_getc(uint8_t *c,FILE *ifile){
+  uint32_t count,s=0;
+  uint16_t *f=frequency;
   while((range<0x10000)||(hlp<low)){
     hlp<<=8;
     *hlpp=fgetc(ifile);
@@ -34,21 +36,16 @@ uint8_t rc32_getc(uint8_t *c,FILE *ifile){
     range<<=8;
     if((uint32_t)(range+low)<low) range=~low;
   };
-  range/=fc;
-  uint32_t count=(hlp-low)/range,s=0;
-  if(count>=fc) return 1;
-  for(symbol=0;symbol<256;symbol++){
-    s+=frequency[symbol];
-    if(s>count) break;
-  };
-  s-=frequency[symbol];
-  *c=(uint8_t)symbol;
-  low+=s*range;
-  range*=frequency[symbol]++;
+  if((count=(hlp-low)/(range/=fc))>=fc) return 1;
+  for(;;) if((s+=*f++)>count) break;
+  *c=(uint8_t)(--f-frequency);
+  low+=(s-*f)*range;
+  range*=(*f)++;
   if(++fc==0){
-    for(uint16_t i=0;i<256;i++){
-      if((frequency[i]>>=4)==0) frequency[i]=1;
-      fc+=frequency[i];
+    f=frequency;
+    for(s=0;s<256;s++){
+      if((*f>>=4)==0) *f=1;
+      fc+=*f++;
     };
   };
   return 0;

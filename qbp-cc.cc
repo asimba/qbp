@@ -138,18 +138,9 @@ inline void packer::hash(uint16_t s){
   hashes[voclast]=h;
 }
 
-inline void packer::rc32_rescale(uint32_t s){
-  low+=s*range;
-  range*=frequency[symbol]++;
-  if(++fc==0){
-    for(int i=0;i<256;i++){
-      if((frequency[i]>>=4)==0) frequency[i]=1;
-      fc+=frequency[i];
-    };
-  };
-}
-
-inline bool packer::rc32_getc(uint8_t *c){
+bool packer::rc32_getc(uint8_t *c){
+  uint32_t count,s=0;
+  uint16_t *f=frequency;
   while((range<0x10000)||(hlp<low)){
     hlp<<=8;
     if(rbuf(hlpp)) return true;
@@ -158,22 +149,22 @@ inline bool packer::rc32_getc(uint8_t *c){
     range<<=8;
     if((uint32_t)(range+low)<low) range=~low;
   };
-  range/=fc;
-  uint32_t count=(hlp-low)/range,s=0;
-  if(count>=fc) return true;
-  for(int i=0;i<256;i++){
-    if((s+=frequency[i])>count){
-      symbol=i;
-      break;
+  if((count=(hlp-low)/(range/=fc))>=fc) return true;
+  for(;;) if((s+=*f++)>count) break;
+  *c=(uint8_t)(--f-frequency);
+  low+=(s-*f)*range;
+  range*=(*f)++;
+  if(++fc==0){
+    f=frequency;
+    for(s=0;s<256;s++){
+      if((*f>>=4)==0) *f=1;
+      fc+=*f++;
     };
   };
-  s-=frequency[symbol];
-  *c=(uint8_t)symbol;
-  rc32_rescale(s);
   return false;
 }
 
-inline bool packer::rc32_putc(uint8_t c){
+bool packer::rc32_putc(uint8_t c){
   while(range<0x10000){
     wbuf(*lowp);
     if(wpos==0) return true;
@@ -181,11 +172,18 @@ inline bool packer::rc32_putc(uint8_t c){
     range<<=8;
     if((uint32_t)(range+low)<low) range=~low;
   };
-  symbol=c;
   range/=fc;
-  uint32_t s=0;
-  for(int i=0;i<symbol;i++) s+=frequency[i];
-  rc32_rescale(s);
+  uint32_t s=0,i;
+  for(i=0;i<c;i++) s+=frequency[i];
+  low+=s*range;
+  range*=frequency[i]++;
+  if(++fc==0){
+    uint16_t *f=frequency;
+    for(i=0;i<256;i++){
+      if((*f>>=4)==0) *f=1;
+      fc+=*f++;
+    };
+  };
   return false;
 }
 

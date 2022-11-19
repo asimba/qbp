@@ -57,8 +57,8 @@ pkzip | -add | 323644812 | 36,38 | 8,59 |
 makecab | | 324125809 | 58,86 | 5,81 |  
 arj32 | a -m1 | 328553984 | 138,06 | 24,28 |  
 lzop | -9 -F | 366349786 | 109,70 | 4,56 |  
-**qbp** `(built with "gcc -O3")` | **c** | **372419505** | **45,19** | **33,16** |  
-**unqbp** `(built with "gcc -O3")` |  | **372419505** |  | **27,63** |  
+**qbp** `(built with "gcc -O3")` | **c** | **372419505** | **44,34** | **31,41** |  
+**unqbp** `(built with "gcc -O3")` |  | **372419505** |  | **26,49** |  
 lz4 | --best | 372443347 | 65,90 | 11,91 |  
 lzari <br/> [(reference realization by Haruhiko Okumura)](https://web.archive.org/web/19990209183635/http://oak.oakland.edu/pub/simtelnet/msdos/arcutils/lz_comp2.zip) | e | 388521578 | 182,69 | 77,72 |  
 **lz16** `(built with "gcc -O3")` | **c** | **407218528** | **32,68** | **4,52** |  
