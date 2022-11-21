@@ -139,10 +139,10 @@ void pack_file(FILE *ifile,FILE *ofile){
         rle_shift=(uint16_t)(vocroot+LZ_BUF_SIZE-buf_size);
         while(cnode!=symbol){
           if(vocbuf[(uint16_t)(symbol+length)]==vocbuf[(uint16_t)(cnode+length)]){
-            i=0;
-            uint16_t j=symbol,k=cnode;
-            while(vocbuf[j++]==vocbuf[k]&&k++!=symbol) i++;
-            if(i>=length){
+            uint16_t k=cnode;
+            i=symbol;
+            while(vocbuf[i++]==vocbuf[k]&&k++!=symbol);
+            if((i=(uint16_t)(i-symbol)-1)>=length){
               //while buf_size==LZ_BUF_SIZE: minimal offset > 0x0104;
               if(buf_size<LZ_BUF_SIZE){
                 if((uint16_t)(cnode-rle_shift)>0xfeff){

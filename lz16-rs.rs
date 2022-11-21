@@ -218,14 +218,13 @@ impl Packer {
           while cnode!=self.symbol {
             if self.vocbuf[((self.symbol+self.length) as u16) as usize]==
               self.vocbuf[((cnode+self.length) as u16) as usize] {
-              i=0;
-              let mut j: u16=self.symbol;
+              i=self.symbol;
               let mut k: u16=cnode;
-              while self.vocbuf[j as usize]==self.vocbuf[k as usize] && k!=self.symbol {
-                j+=1;
+              while self.vocbuf[i as usize]==self.vocbuf[k as usize] && k!=self.symbol {
                 k+=1;
                 i+=1;
               }
+              i-=self.symbol;
               if i>=self.length {
                 if self.buf_size<LZ_BUF_SIZE {
                   if (cnode-rle_shift) as u16>0xfeff {
