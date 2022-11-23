@@ -293,17 +293,15 @@ impl Packer {
       }
       self.cbuffer[0]<<=1;
       self.symbol=self.vocroot-self.buf_size;
+      rle=self.symbol;
       let mut cnv: U16U8;
       if self.buf_size>0 {
-        rle=1;
-        while rle<self.buf_size {
-          if self.vocbuf[self.symbol as usize]==self.vocbuf[((self.symbol+rle) as u16) as usize] {
-            rle+=1;
-          }
-          else {
-            break;
-          }
+        cnode=self.vocbuf[self.symbol as usize] as u16;
+        rle+=1;
+        while rle!=self.vocroot && cnode==self.vocbuf[rle as usize] as u16 {
+          rle+=1;
         }
+        rle-=self.symbol;
         self.length=LZ_MIN_MATCH;
         if self.buf_size>LZ_MIN_MATCH && rle<self.buf_size {
           unsafe { cnode=self.vocindx[self.hashes[self.symbol as usize] as usize].p.i };
