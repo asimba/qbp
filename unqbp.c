@@ -35,7 +35,7 @@ inline void rbuf(uint8_t *c,FILE *ifile){
 uint32_t rc32_getc(uint8_t *c,FILE *ifile){
   uint32_t count,s=0;
   uint16_t *f=frequency;
-  while((range<0x10000)||(hlp<low)){
+  while((range<0x80000)||(hlp<low)){
     hlp<<=8;
     rbuf(hlpp,ifile);
     if(rpos==0) return 0;

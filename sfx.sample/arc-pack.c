@@ -74,7 +74,7 @@ void rc32_rescale(uint32_t s){
 
 int rc32_write(uint8_t *buf,int l,FILE *ofile){
   while(l--){
-    while(range<0x10000){
+    while(range<0x80000){
       fputc(*lowp,ofile);
       if(ferror(ofile)) return -1;
       low<<=8;

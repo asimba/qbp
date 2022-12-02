@@ -27,7 +27,7 @@ uint8_t rle_flag;
 uint8_t rc32_getc(uint8_t *c,FILE *ifile){
   uint32_t count,s=0;
   uint16_t *f=frequency;
-  while((range<0x10000)||(hlp<low)){
+  while((range<0x80000)||(hlp<low)){
     hlp<<=8;
     *hlpp=fgetc(ifile);
     if(ferror(ifile)) return 1;

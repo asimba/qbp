@@ -141,7 +141,7 @@ inline void packer::hash(uint16_t s){
 bool packer::rc32_getc(uint8_t *c){
   uint32_t count,s=0;
   uint16_t *f=frequency;
-  while((range<0x10000)||(hlp<low)){
+  while((range<0x80000)||(hlp<low)){
     hlp<<=8;
     if(rbuf(hlpp)) return true;
     if(rpos==0) return false;
@@ -165,7 +165,7 @@ bool packer::rc32_getc(uint8_t *c){
 }
 
 bool packer::rc32_putc(uint8_t c){
-  while(range<0x10000){
+  while(range<0x80000){
     wbuf(*lowp);
     if(wpos==0) return true;
     low<<=8;

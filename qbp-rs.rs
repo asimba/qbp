@@ -189,7 +189,7 @@ impl Packer {
   }
 
   fn rc32_getc(&mut self,c: *mut u8)->bool {
-    while self.range<0x10000 || self.hlp<self.low {
+    while self.range<0x80000 || self.hlp<self.low {
       self.hlp<<=8;
       if self.rbuf(self.hlpp) {
         return true;
@@ -223,7 +223,7 @@ impl Packer {
   }
   
   fn rc32_putc(&mut self,c: u8)->bool {
-    while self.range<0x10000 {
+    while self.range<0x80000 {
       if self.wbuf(unsafe { *self.lowp }) {
         return true;
       }
