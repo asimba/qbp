@@ -37,7 +37,8 @@ pub struct Packer {
   vocarea: [u16; 0x10000],
   hashes: [u16; 0x10000],
   vocindx: [Vocpntr; 0x10000],
-  frequency: [u16; 256],
+  frequency: Vec<Vec<u16>>,
+  fcs: [u16; 256],
   icbuf: u32,
   wpos: u32,
   rpos: u32,
@@ -52,7 +53,7 @@ pub struct Packer {
   symbol: u16,
   lowp: *mut u8,
   hlpp: *mut u8,
-  fc: u16,
+  cstate: u8,
   flags: u8,
   pub ifile: File,
   pub ofile: File,
@@ -68,12 +69,13 @@ impl Packer {
       vocarea: [0 as u16; 0x10000],
       hashes: [0 as u16; 0x10000],
       vocindx: [Vocpntr{v:1 as u32,}; 0x10000],
-      frequency: [0 as u16; 256],
+      frequency: vec![vec![0 as u16; 256]; 256],
+      fcs: [0 as u16; 256],
       icbuf: 0,wpos: 0,rpos: 0,low: 0,hlp: 0,range: 0,
       buf_size: 0,voclast: 0,vocroot: 0,offset: 0,length: 0,symbol: 0,
       lowp: ptr::null_mut(),
       hlpp: ptr::null_mut(),
-      fc: 0,
+      cstate: 0,
       flags: 0,
       ifile:match File::open(&Path::new(i)){
         Err(why)=>{
@@ -105,9 +107,12 @@ impl Packer {
     self.voclast=0xfffd;
     self.range=0xffffffff;
     for i in 0..256{
-      self.frequency[i]=1 as u16;
-    };
-    self.fc=256;
+      for j in 0..256{
+        self.frequency[i][j]=1 as u16;
+      }
+      self.fcs[i]=256;
+    }
+    self.cstate=0;
     for i in 0..0x10000{
       self.vocbuf[i]=0xff;
       self.hashes[i]=0;
@@ -174,22 +179,19 @@ impl Packer {
 
   fn rc32_rescale(&mut self,s: u32) {
     self.low+=s*self.range;
-    self.range*=self.frequency[self.symbol as usize] as u32;
-    self.frequency[self.symbol as usize]+=1;
-    self.fc+=1;
-    if self.fc==0 {
+    self.range*=self.frequency[self.cstate as usize][self.symbol as usize] as u32;
+    self.frequency[self.cstate as usize][self.symbol as usize]+=1;
+    self.fcs[self.cstate as usize]+=1;
+    if self.fcs[self.cstate as usize]==0 {
       for i in 0..256 {
-        self.frequency[i]>>=4;
-        if self.frequency[i]==0 {
-          self.frequency[i]=1;
-        }
-        self.fc+=self.frequency[i];
+        self.frequency[self.cstate as usize][i]=(self.frequency[self.cstate as usize][i]>>1)|1;
+        self.fcs[self.cstate as usize]+=self.frequency[self.cstate as usize][i];
       }
     }
   }
 
   fn rc32_getc(&mut self,c: *mut u8)->bool {
-    while self.range<0x80000 || self.hlp<self.low {
+    while (self.low^(self.low+self.range))<0x1000000 || self.range<0x10000 || self.hlp<self.low {
       self.hlp<<=8;
       if self.rbuf(self.hlpp) {
         return true;
@@ -203,27 +205,28 @@ impl Packer {
         self.range=!self.low;
       }
     }
-    self.range/=self.fc as u32;
+    self.range/=self.fcs[self.cstate as usize] as u32;
     let count: u32=(self.hlp-self.low)/self.range;
-    if count>=self.fc as u32 {
+    if count>=self.fcs[self.cstate as usize] as u32 {
       return true;
     }
     let mut s: u32=0;
     for i in 0..256 {
-      s+=self.frequency[i as usize] as u32;
+      s+=self.frequency[self.cstate as usize][i as usize] as u32;
       if s>count {
         self.symbol=i as u16;
         break;
       };
     };
-    s-=self.frequency[self.symbol as usize] as u32;
+    s-=self.frequency[self.cstate as usize][self.symbol as usize] as u32;
     unsafe { *c=self.symbol as u8};
     self.rc32_rescale(s);
+    self.cstate=self.symbol as u8;
     return false;
   }
   
   fn rc32_putc(&mut self,c: u8)->bool {
-    while self.range<0x80000 {
+    while (self.low^(self.low+self.range))<0x1000000 || self.range<0x10000 {
       if self.wbuf(unsafe { *self.lowp }) {
         return true;
       }
@@ -234,12 +237,13 @@ impl Packer {
       }
     }
     self.symbol=c as u16;
-    self.range/=self.fc as u32;
+    self.range/=self.fcs[self.cstate as usize] as u32;
     let mut s: u32=0;
     for i in 0..self.symbol {
-      s+=self.frequency[i as usize] as u32;
+      s+=self.frequency[self.cstate as usize][i as usize] as u32;
     }
     self.rc32_rescale(s);
+    self.cstate=c;
     return false;
   }
 

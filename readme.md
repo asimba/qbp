@@ -57,14 +57,15 @@ gzip | -9 | 322591995 | 54,33 | 7,85 |
 pkzip | -add | 323644812 | 36,38 | 8,59 |  
 makecab | | 324125809 | 58,86 | 5,81 |  
 arj32 | a -m1 | 328553984 | 138,06 | 24,28 |  
+**qbp** `(built with "gcc -O3")` | **c** | **358506492** | **48,23** | **28,57** |  
+**unqbp** `(built with "gcc -O3")` |  | **358506492** |  | **28,50** |  
 lzop | -9 -F | 366349786 | 109,70 | 4,56 |  
-**qbp** `(built with "gcc -O3")` | **c** | **369362988** | **44,04** | **31,41** |  
-**unqbp** `(built with "gcc -O3")` |  | **369362988** |  | **26,49** |  
 lz4 | --best | 372443347 | 65,90 | 11,91 |  
 lzari <br/> [(reference realization by Haruhiko Okumura)](https://web.archive.org/web/19990209183635/http://oak.oakland.edu/pub/simtelnet/msdos/arcutils/lz_comp2.zip) | e | 388521578 | 182,69 | 77,72 |  
 **lz16** `(built with "gcc -O3")` | **c** | **407218528** | **31,47** | **4,52** |  
 **unlz16** `(built with "gcc -O3")` |  | **407218528** |  | **3,56** |  
 lzss <br/> [(reference realization by Haruhiko Okumura)](https://oku.edu.mie-u.ac.jp/~okumura/compression/lzss.c) | e | 455245327 | 136,39 | 36,33 |  
+carryless rangecoder <br/> [(reference algorithm by Dmitry Subbotin with the same frequency model)](https://web.archive.org/web/20020420161153/http://www.softcomplete.com/algo/pack/rus-range.txt) |  | 480296513 | 28,12 |  |  
 rangecoder (1.3) <br/> [(reference realization by Michael Schindler)](http://www.compressconsult.com/rangecoder/) | comp1/decomp1 | 489741259 | 44,36 | 53,35 |  
 lz4 | -1 | 509454838 | 10,07 | 8,97 |  
 rangecoder (1.3) <br/> [(reference realization by Michael Schindler)](http://www.compressconsult.com/rangecoder/) | comp/decomp | 644426106 | 48,38 | 57,54 |  

@@ -33,7 +33,8 @@ uint8_t vocbuf[0x10000];
 uint16_t vocarea[0x10000];
 uint16_t hashes[0x10000];
 vocpntr vocindx[0x10000];
-uint16_t frequency[256];
+uint16_t frequency[256][256];
+uint16_t fcs[256];
 uint16_t buf_size;
 uint16_t voclast;
 uint16_t vocroot;
@@ -43,19 +44,21 @@ uint16_t symbol;
 uint32_t low;
 uint32_t hlp;
 uint32_t range;
-uint16_t fc;
 uint8_t *lowp;
 uint8_t *hlpp;
+uint8_t cstate;
 
 void pack_initialize(){
-  buf_size=flags=vocroot=*cbuffer=low=hlp=icbuf=wpos=rpos=0;
+  buf_size=flags=vocroot=*cbuffer=low=hlp=icbuf=wpos=rpos=cstate=0;
   voclast=0xfffd;
   range=0xffffffff;
   lowp=&((uint8_t *)&low)[3];
   hlpp=&((uint8_t *)&hlp)[0];
-  uint32_t i;
-  for(i=0;i<256;i++) frequency[i]=1;
-  fc=256;
+  uint32_t i,j;
+  for(i=0;i<256;i++){
+    for(j=0;j<256;j++) frequency[i][j]=1;
+    fcs[i]=256;
+  };
   for(i=0;i<0x10000;i++){
     vocbuf[i]=0xff;
     hashes[i]=0;
@@ -96,9 +99,9 @@ inline void rbuf(uint8_t *c,FILE *ifile){
 }
 
 uint32_t rc32_getc(uint8_t *c,FILE *ifile){
+  uint16_t *f=frequency[cstate],fc=fcs[cstate];
   uint32_t count,s=0;
-  uint16_t *f=frequency;
-  while((range<0x80000)||(hlp<low)){
+  while((low^(low+range))<0x1000000||range<0x10000||hlp<low){
     hlp<<=8;
     rbuf(hlpp,ifile);
     if(rpos==0) return 0;
@@ -107,22 +110,26 @@ uint32_t rc32_getc(uint8_t *c,FILE *ifile){
     if((uint32_t)(range+low)<low) range=~low;
   };
   if((count=(hlp-low)/(range/=fc))>=fc) return 1;
-  for(;;) if((s+=*f++)>count) break;
-  *c=(uint8_t)(--f-frequency);
+  while((s+=*f++)<=count);
+  *c=(uint8_t)(--f-frequency[cstate]);
   low+=(s-*f)*range;
   range*=(*f)++;
   if(++fc==0){
-    f=frequency;
+    f=frequency[cstate];
     for(s=0;s<256;s++){
-      if((*f>>=4)==0) *f=1;
+      *f=((*f)>>1)|1;
       fc+=*f++;
     };
   };
+  fcs[cstate]=fc;
+  cstate=*c;
   return 0;
 }
 
 uint32_t rc32_putc(uint8_t c,FILE *ofile){
-  while(range<0x80000){
+  uint16_t *f=frequency[cstate],fc=fcs[cstate];
+  uint32_t s=0,i;
+  while((low^(low+range))<0x1000000||range<0x10000){
     wbuf(*lowp,ofile);
     if(wpos==0) return 1;
     low<<=8;
@@ -130,17 +137,17 @@ uint32_t rc32_putc(uint8_t c,FILE *ofile){
     if((uint32_t)(range+low)<low) range=~low;
   };
   range/=fc;
-  uint32_t s=0,i;
-  for(i=0;i<c;i++) s+=frequency[i];
+  for(i=0;i<c;i++) s+=f[i];
   low+=s*range;
-  range*=frequency[i]++;
+  range*=f[i]++;
   if(++fc==0){
-    uint16_t *f=frequency;
     for(i=0;i<256;i++){
-      if((*f>>=4)==0) *f=1;
+      *f=((*f)>>1)|1;
       fc+=*f++;
     };
   };
+  fcs[cstate]=fc;
+  cstate=c;
   return 0;
 }
 

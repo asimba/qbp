@@ -17,12 +17,13 @@ uint8_t ibuf[0x10000];
 uint8_t vocbuf[0x10000];
 uint32_t icbuf;
 uint32_t rpos;
-uint16_t frequency[256];
+uint16_t frequency[256][256];
+uint16_t fcs[256];
 uint32_t low;
 uint32_t hlp;
 uint32_t range;
-uint16_t fc;
 uint8_t *hlpp;
+uint8_t cstate;
 
 inline void rbuf(uint8_t *c,FILE *ifile){
   if(rpos<icbuf) *c=ibuf[rpos++];
@@ -33,9 +34,9 @@ inline void rbuf(uint8_t *c,FILE *ifile){
 }
 
 uint32_t rc32_getc(uint8_t *c,FILE *ifile){
+  uint16_t *f=frequency[cstate],fc=fcs[cstate];
   uint32_t count,s=0;
-  uint16_t *f=frequency;
-  while((range<0x80000)||(hlp<low)){
+  while((low^(low+range))<0x1000000||range<0x10000||hlp<low){
     hlp<<=8;
     rbuf(hlpp,ifile);
     if(rpos==0) return 0;
@@ -44,17 +45,19 @@ uint32_t rc32_getc(uint8_t *c,FILE *ifile){
     if((uint32_t)(range+low)<low) range=~low;
   };
   if((count=(hlp-low)/(range/=fc))>=fc) return 1;
-  for(;;) if((s+=*f++)>count) break;
-  *c=(uint8_t)(--f-frequency);
+  while((s+=*f++)<=count);
+  *c=(uint8_t)(--f-frequency[cstate]);
   low+=(s-*f)*range;
   range*=(*f)++;
   if(++fc==0){
-    f=frequency;
+    f=frequency[cstate];
     for(s=0;s<256;s++){
-      if((*f>>=4)==0) *f=1;
+      *f=((*f)>>1)|1;
       fc+=*f++;
     };
   };
+  fcs[cstate]=fc;
+  cstate=*c;
   return 0;
 }
 
@@ -62,11 +65,13 @@ void unpack_file(FILE *ifile, FILE *ofile){
   uint8_t *cpos=NULL,flags=0,c,rle_flag=0,bytes=0;
   uint8_t cbuffer[LZ_CAPACITY+1];
   uint16_t vocroot=0,offset=0,length=0;
-  low=hlp=icbuf=rpos=0;
+  low=hlp=icbuf=rpos=cstate=0;
   range=0xffffffff;
   hlpp=&((uint8_t *)&hlp)[0];
-  for(int i=0;i<256;i++) frequency[i]=1;
-  fc=256;
+  for(int i=0;i<256;i++){
+    for(int j=0;j<256;j++) frequency[i][j]=1;
+    fcs[i]=256;
+  };
   for(int i=0;i<0x10000;i++) vocbuf[i]=0xff;
   for(c=0;c<4;c++){
     hlp<<=8;

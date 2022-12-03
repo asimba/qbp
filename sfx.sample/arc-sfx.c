@@ -9,7 +9,8 @@
 uint8_t flags;
 uint8_t cbuffer[LZ_CAPACITY+1];
 uint8_t vocbuf[0x10000];
-uint16_t frequency[256];
+uint16_t frequency[256][256];
+uint16_t fcs[256];
 uint16_t buf_size;
 uint16_t vocroot;
 uint16_t offset;
@@ -18,16 +19,16 @@ uint16_t symbol;
 uint32_t low;
 uint32_t hlp;
 uint32_t range;
-uint16_t fc;
 char *lowp;
 char *hlpp;
 uint8_t *cpos;
 uint8_t rle_flag;
+uint8_t cstate;
 
 uint8_t rc32_getc(uint8_t *c,FILE *ifile){
+  uint16_t *f=frequency[cstate],fc=fcs[cstate];
   uint32_t count,s=0;
-  uint16_t *f=frequency;
-  while((range<0x80000)||(hlp<low)){
+  while((low^(low+range))<0x1000000||range<0x10000||hlp<low){
     hlp<<=8;
     *hlpp=fgetc(ifile);
     if(ferror(ifile)) return 1;
@@ -37,17 +38,19 @@ uint8_t rc32_getc(uint8_t *c,FILE *ifile){
     if((uint32_t)(range+low)<low) range=~low;
   };
   if((count=(hlp-low)/(range/=fc))>=fc) return 1;
-  for(;;) if((s+=*f++)>count) break;
-  *c=(uint8_t)(--f-frequency);
+  while((s+=*f++)<=count);
+  *c=(uint8_t)(--f-frequency[cstate]);
   low+=(s-*f)*range;
   range*=(*f)++;
   if(++fc==0){
-    f=frequency;
+    f=frequency[cstate];
     for(s=0;s<256;s++){
-      if((*f>>=4)==0) *f=1;
+      *f=((*f)>>1)|1;
       fc+=*f++;
     };
   };
+  fcs[cstate]=fc;
+  cstate=*c;
   return 0;
 }
 
@@ -152,12 +155,14 @@ void unarc(char *out,char *fn){
   };
   fseek(f,range,SEEK_SET);
   if(feof(f)) return;
-  buf_size=flags=vocroot=low=hlp=length=rle_flag=0;
+  buf_size=flags=vocroot=low=hlp=length=rle_flag=cstate=0;
   offset=range=0xffffffff;
   lowp=&((char *)&low)[3];
   hlpp=&((char *)&hlp)[0];
-  for(i=0;i<256;i++) frequency[i]=1;
-  fc=256;
+  for(i=0;i<256;i++){
+    for(int j=0;j<256;j++) frequency[i][j]=1;
+    fcs[i]=256;
+  };
   for(i=0;i<0x10000;i++) vocbuf[i]=0xff;
   for(i=0;i<sizeof(uint32_t);i++){
     hlp<<=8;
