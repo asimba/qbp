@@ -45,6 +45,7 @@ _Source hash (SHA1)_ | 2996e86fb978f93cca8f566cc56998923e7fe581 |
 Packer | Options | Resulting size (bytes) | Packing time (sec) | Unpacking time (sec) |
 ----- | ----- | ----- | ----- | ----- |    
 zpaq (7.15) | a -m5 -t1 | 168590740 | 2472,30 | 2519,52 |  
+lrzip (0.651) | -z -p 1 -L 9 -U | 169357574 | 1967,30 | 1991,57 |  
 freearc (0.51) | a -mx | 185153701 | 219,45 | 187,81 |  
 lzip (1.23) | -k -9 -s29 | 199138993 | 1134,42 | 20,09 |  
 uharc (0.6b) | a -d0 -md32768 -mm+ -mx | 208026696 | 493,92 | 383,33 |  
@@ -55,6 +56,7 @@ zstd (1.5.2) | --ultra -22 --no-progress --single-thread | 214910502 | 794,37 | 
 brotli (1.0.9) | -Z -n | 223345718 | 2287,31 | 3,36 |  
 rar (6.11) | a -s -k -m5 -mt1 -md1g | 232248528 | 811,92 | 5,64 |  
 szip (1.11b) <br/> [(by Michael Schindler)](http://www.compressconsult.com/szip/) | -b41 -o6 | 232346611 | 79,50 | 88,43 |  
+rzip (2.1) | -9 -k | 253920811 | 113,04 | 56,55 |  
 bzip2 (1.0.8) | -9 | 253977891 | 81,44 | 40,03 |  
 imp (1.12) | a -g -2 -mm | 256861382 | 77,49 | 21,71 |  
 ha (0.999c) | a2 | 285739328 | 278,29 | 285,12 |  
@@ -72,6 +74,7 @@ lz4 (1.9.4) | --best | 372443347 | 65,90 | 11,91 |
 lzari <br/> [(reference realization by Haruhiko Okumura)](https://web.archive.org/web/19990209183635/http://oak.oakland.edu/pub/simtelnet/msdos/arcutils/lz_comp2.zip) | e | 388521578 | 182,69 | 77,72 |  
 **lz16** `(built with "gcc -O3")` | **c** | **407218528** | **31,32** | **3,87** |  
 **unlz16** `(built with "gcc -O3")` |  | **407218528** |  | **3,47** |  
+ncompress (5.1) |  | 448136005 | 31,98 | 12,85 |  
 lzss <br/> [(reference realization by Haruhiko Okumura)](https://oku.edu.mie-u.ac.jp/~okumura/compression/lzss.c) | e | 455245327 | 136,39 | 36,33 |  
 carryless rangecoder <br/> [(reference algorithm by Dmitry Subbotin with the same frequency model)](https://web.archive.org/web/20020420161153/http://www.softcomplete.com/algo/pack/rus-range.txt) |  | 480296513 | 28,12 |  |  
 rangecoder (1.3) <br/> [(reference realization by Michael Schindler)](http://www.compressconsult.com/rangecoder/) | comp1/decomp1 | 489741259 | 44,36 | 53,35 |  
