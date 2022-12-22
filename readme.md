@@ -56,6 +56,7 @@ zstd (1.5.2) | --ultra -22 --no-progress --single-thread | 214910502 | 794,37 | 
 brotli (1.0.9) | -Z -n | 223345718 | 2287,31 | 3,36 |  
 rar (6.11) | a -s -k -m5 -mt1 -md1g | 232248528 | 811,92 | 5,64 |  
 szip (1.11b) <br/> [(by Michael Schindler)](http://www.compressconsult.com/szip/) | -b41 -o6 | 232346611 | 79,50 | 88,43 |  
+squeez (6.0) | a /mx /fmt sqx | 246152882 | 597,93 | 8,89 |  
 rzip (2.1) | -9 -k | 253920811 | 113,04 | 56,55 |  
 bzip2 (1.0.8) | -9 | 253977891 | 81,44 | 40,03 |  
 imp (1.12) | a -g -2 -mm | 256861382 | 77,49 | 21,71 |  
