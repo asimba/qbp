@@ -412,7 +412,9 @@ fn main(){
   let argv: Vec<String>=args().collect();
   let argc=argv.len();
   if argc<4 {
-    println!("Wrong number of arguments!");
+    println!("lz16-rs file compressor");
+    println!("to   compress use: lz16-rs c input output");
+    println!("to decompress use: lz16-rs d input output");
     panic!();
   }
   if !Path::new(&argv[2]).exists() {
