@@ -523,7 +523,9 @@ fn main(){
   let argv: Vec<String>=args().collect();
   let argc=argv.len();
   if argc<4 {
-    println!("Wrong number of arguments!");
+    println!("qbp-rs file compressor");
+    println!("to   compress use: qbp-rs c input output");
+    println!("to decompress use: qbp-rs d input output");
     panic!();
   }
   if !Path::new(&argv[2]).exists() {

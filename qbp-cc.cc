@@ -188,7 +188,7 @@ bool packer::rbuf(void *file, uint8_t *c){
     rpos=0;
     return true;
   };
-  if(rpos<icbuf) *c=iobuf[rpos++];
+  if(rpos<(uint32_t)icbuf) *c=iobuf[rpos++];
   else{
     rpos=0;
     if((icbuf=(*read)(file,(char*)iobuf,0x10000))<0) return true;
@@ -361,7 +361,7 @@ bool packer::packer_putc(void *file, uint8_t c){
 }
 
 bool packer::load_header(void *file){
-  for(int i=0;i<sizeof(uint32_t);i++){
+  for(unsigned int i=0;i<sizeof(uint32_t);i++){
     hlp<<=8;
     if(rbuf(file,hlpp)||rpos==0) return true;
   };
@@ -462,9 +462,14 @@ void unpack(packer *p, void *ifile, void *ofile){
 }
 
 int main(int argc, char *argv[]){
-  if((argc<4)||(access(argv[3],0)==0)||\
-     ((argv[1][0]!='c')&&(argv[1][0]!='d')))
+  if((argc<4)||((argv[1][0]!='c')&&(argv[1][0]!='d'))){
+    printf("qbp-cc file compressor\n\nto   compress use: qbp-cc c input output\nto decompress use: qbp-cc d input output\n");
     goto rpoint00;
+  };
+  if(access(argv[3],0)==0){
+    printf("Error: output file already exists!\n");
+    goto rpoint00;
+  };
   FILE *ifile,*ofile;
   if(!(ifile=fopen(argv[2],"rb"))) goto rpoint00;
   if(!(ofile=fopen(argv[3],"wb"))) goto rpoint01;

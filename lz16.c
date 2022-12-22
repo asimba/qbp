@@ -252,9 +252,14 @@ void unpack_file(FILE *ifile, FILE *ofile){
 /***********************************************************************************************************/
 
 int main(int argc, char *argv[]){
-  if((argc<4)||(access(argv[3],F_OK)==0)||\
-     ((argv[1][0]!='c')&&(argv[1][0]!='d')))
+  if((argc<4)||((argv[1][0]!='c')&&(argv[1][0]!='d'))){
+    printf("lz16 file compressor\n\nto   compress use: lz16 c input output\nto decompress use: lz16 d input output\n");
     goto rpoint00;
+  };
+  if(access(argv[3],0)==0){
+    printf("Error: output file already exists!\n");
+    goto rpoint00;
+  };
   FILE *ifile,*ofile;
   if(!(ifile=fopen(argv[2],"rb"))) goto rpoint00;
   if(!(ofile=fopen(argv[3],"wb"))) goto rpoint01;

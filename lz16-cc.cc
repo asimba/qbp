@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <algorithm>
+#include <iostream>
 #include <fstream>
 
 using namespace std;
@@ -277,9 +278,14 @@ void packer::unpack(){
 
 int main(int argc, char *argv[]){
   packer *p;
-  if((argc<4)||(ifstream(argv[3]).good())||\
-     ((argv[1][0]!='c')&&(argv[1][0]!='d')))
+  if((argc<4)||((argv[1][0]!='c')&&(argv[1][0]!='d'))){
+    cout<<"lz16-cc file compressor\n\nto   compress use: lz16-cc c input output\nto decompress use: lz16-cc d input output\n";
     goto rpoint00;
+  };
+  if(ifstream(argv[3]).good()){
+    cout<<"Error: output file already exists!\n";
+    goto rpoint00;
+  };
   p=new packer();
   p->ifile.open(argv[2],fstream::in|fstream::binary);
   if(!p->ifile.is_open()) goto rpoint01;

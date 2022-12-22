@@ -82,7 +82,14 @@ void unpack_file(FILE *ifile, FILE *ofile){
 /***********************************************************************************************************/
 
 int main(int argc, char *argv[]){
-  if((argc<3)||(access(argv[2],0)==0)) goto rpoint00;
+  if(argc<3){
+    printf("unlz16 file decompressor\n\nto decompress use: unlz16 input output\n");
+    goto rpoint00;
+  };
+  if(access(argv[2],0)==0){
+    printf("Error: output file already exists!\n");
+    goto rpoint00;
+  };
   FILE *ifile,*ofile;
   if(!(ifile=fopen(argv[1],"rb"))) goto rpoint00;
   if(!(ofile=fopen(argv[2],"wb"))) goto rpoint01;
