@@ -41,6 +41,7 @@ uint16_t vocroot;
 uint16_t offset;
 uint16_t length;
 uint16_t symbol;
+uint16_t hs;
 uint32_t low;
 uint32_t hlp;
 uint32_t range;
@@ -71,6 +72,7 @@ void pack_initialize(){
   vocarea[0xfffd]=0xfffd;
   vocarea[0xfffe]=0xfffe;
   vocarea[0xffff]=0xffff;
+  hs=0x00ff;
   wpntr=obuf;
 }
 
@@ -151,15 +153,6 @@ uint32_t rc32_putc(uint8_t c,FILE *ofile){
   return 0;
 }
 
-inline void hash(uint16_t s){
-  uint16_t h=0;
-  for(uint8_t i=0;i<4;i++){
-    h^=vocbuf[s++];
-    h=(h<<4)^(h>>12);
-  };
-  hashes[voclast]=h;
-}
-
 void pack_file(FILE *ifile,FILE *ofile){
   uint16_t i,rle,rle_shift=0,cnode;
   uint8_t *cpos=&cbuffer[1],*w;
@@ -178,7 +171,10 @@ void pack_file(FILE *ifile,FILE *ofile){
           if(vocarea[vocroot]==vocroot) vocindx[hashes[vocroot]].val=1;
           else vocindx[hashes[vocroot]].in=vocarea[vocroot];
           vocarea[vocroot]=vocroot;
-          hash(voclast);
+          hs^=vocbuf[vocroot];
+          hs=(hs<<4)|(hs>>12);
+          hashes[voclast]=hs;
+          hs^=vocbuf[voclast];
           indx=&vocindx[hashes[voclast]];
           if(indx->val==1) indx->in=voclast;
           else vocarea[indx->out]=voclast;

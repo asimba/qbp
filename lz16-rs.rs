@@ -46,6 +46,7 @@ pub struct Packer {
   offset: u16,
   length: u16,
   symbol: u16,
+  hs: u16,
   flags: u8,
   pub ifile: File,
   pub ofile: File,
@@ -62,7 +63,7 @@ impl Packer {
       hashes: [0 as u16; 0x10000],
       vocindx: [Vocpntr{v:1 as u32,}; 0x10000],
       icbuf: 0,wpos: 0,rpos: 0,
-      buf_size: 0,voclast: 0,vocroot: 0,offset: 0,length: 0,symbol: 0,flags: 0,
+      buf_size: 0,voclast: 0,vocroot: 0,offset: 0,length: 0,symbol: 0,hs: 0,flags: 0,
       ifile:match File::open(&Path::new(i)){
         Err(why)=>{
           println!("Couldn't open input file: {}",why);
@@ -100,6 +101,7 @@ impl Packer {
     self.vocarea[0xfffd]=0xfffd;
     self.vocarea[0xfffe]=0xfffe;
     self.vocarea[0xffff]=0xffff;
+    self.hs=0x00ff;
   }
 
   fn rbuf(&mut self,c: *mut u8)->bool {
@@ -140,16 +142,6 @@ impl Packer {
     return false;
   }
 
-  fn hash(&mut self,mut s: u16) {
-    let mut h: u16=0;
-    for _i in 0..4{
-      h^=self.vocbuf[s as usize] as u16;
-      s+=1;
-      h=(h<<4)^(h>>12);
-    }
-    self.hashes[self.voclast as usize]=h;
-  }
-
   pub fn pack(&mut self) {
     let mut i: u16;
     let mut rle: u16;
@@ -179,7 +171,10 @@ impl Packer {
               self.vocindx[self.hashes[self.vocroot as usize] as usize].p.i=self.vocarea[self.vocroot as usize];
             }
             self.vocarea[self.vocroot as usize]=self.vocroot;
-            self.hash(self.voclast);
+            self.hs^=self.vocbuf[self.vocroot as usize] as u16;
+            self.hs=(self.hs<<4)|(self.hs>>12);
+            self.hashes[self.voclast as usize]=self.hs;
+            self.hs^=self.vocbuf[self.voclast as usize] as u16;
             let indx=self.hashes[self.voclast as usize] as usize;
             unsafe {
               if self.vocindx[indx].v==1 {

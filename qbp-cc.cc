@@ -57,6 +57,7 @@ class packer{
     uint16_t offset;
     uint16_t length;
     uint16_t symbol;
+    uint16_t hs;
     uint16_t *fcs;
     uint16_t **frequency;
     int32_t icbuf;
@@ -70,7 +71,6 @@ class packer{
     template <class T,class V> void del(T& p,uint32_t s,V v);
     io_operator read;
     io_operator write;
-    inline void hash(uint16_t s);
     void wbuf(void* file, uint8_t c);
     bool rbuf(void* file, uint8_t *c);
     bool rc32_getc(void* file, uint8_t *c);
@@ -129,7 +129,7 @@ packer::~packer(){
   wpntr=NULL;
   read=NULL;
   write=NULL;
-  buf_size=flags=vocroot=voclast=range=low=hlp=icbuf=wpos=rpos=cstate=0;
+  buf_size=flags=vocroot=voclast=range=low=hlp=icbuf=wpos=rpos=cstate=hs=0;
 }
 
 void packer::set_operators(io_operator r, io_operator w){
@@ -158,6 +158,7 @@ void packer::init(){
   vocarea[0xfffd]=0xfffd;
   vocarea[0xfffe]=0xfffe;
   vocarea[0xffff]=0xffff;
+  hs=0x00ff;
   cpos=&cbuffer[1];
   finalize=false;
   eofs=false;
@@ -195,15 +196,6 @@ bool packer::rbuf(void *file, uint8_t *c){
     if(icbuf>0) *c=iobuf[rpos++];
   };
   return false;
-}
-
-inline void packer::hash(uint16_t s){
-  uint16_t h=0;
-  for(int i=0;i<4;i++){
-    h^=vocbuf[s++];
-    h=(h<<4)^(h>>12);
-  };
-  hashes[voclast]=h;
 }
 
 bool packer::rc32_getc(void *file, uint8_t *c){
@@ -266,7 +258,10 @@ bool packer::packer_putc(void *file, uint8_t c){
       if(vocarea[vocroot]==vocroot) vocindx[hashes[vocroot]].val=1;
       else vocindx[hashes[vocroot]].in=vocarea[vocroot];
       vocarea[vocroot]=vocroot;
-      hash(voclast);
+      hs^=vocbuf[vocroot];
+      hs=(hs<<4)|(hs>>12);
+      hashes[voclast]=hs;
+      hs^=vocbuf[voclast];
       vocpntr *indx=&vocindx[hashes[voclast]];
       if(indx->val==1) indx->in=voclast;
       else vocarea[indx->out]=voclast;

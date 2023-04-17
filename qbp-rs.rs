@@ -51,6 +51,7 @@ pub struct Packer {
   offset: u16,
   length: u16,
   symbol: u16,
+  hs: u16,
   lowp: *mut u8,
   hlpp: *mut u8,
   cstate: u8,
@@ -72,7 +73,7 @@ impl Packer {
       frequency: vec![vec![0 as u16; 256]; 256],
       fcs: [0 as u16; 256],
       icbuf: 0,wpos: 0,rpos: 0,low: 0,hlp: 0,range: 0,
-      buf_size: 0,voclast: 0,vocroot: 0,offset: 0,length: 0,symbol: 0,
+      buf_size: 0,voclast: 0,vocroot: 0,offset: 0,length: 0,symbol: 0,hs: 0,
       lowp: ptr::null_mut(),
       hlpp: ptr::null_mut(),
       cstate: 0,
@@ -124,6 +125,7 @@ impl Packer {
     self.vocarea[0xfffd]=0xfffd;
     self.vocarea[0xfffe]=0xfffe;
     self.vocarea[0xffff]=0xffff;
+    self.hs=0x00ff;
     self.lowp=ptr::addr_of_mut!(self.low) as *mut u8;
     unsafe { self.lowp=self.lowp.add(3) };
     self.hlpp=ptr::addr_of_mut!(self.hlp) as *mut u8;
@@ -165,16 +167,6 @@ impl Packer {
       }
     };
     return false;
-  }
-
-  fn hash(&mut self,mut s: u16) {
-    let mut h: u16=0;
-    for _i in 0..4{
-      h^=self.vocbuf[s as usize] as u16;
-      s+=1;
-      h=(h<<4)^(h>>12);
-    }
-    self.hashes[self.voclast as usize]=h;
   }
 
   fn rc32_rescale(&mut self,s: u32) {
@@ -276,7 +268,10 @@ impl Packer {
               self.vocindx[self.hashes[self.vocroot as usize] as usize].p.i=self.vocarea[self.vocroot as usize];
             }
             self.vocarea[self.vocroot as usize]=self.vocroot;
-            self.hash(self.voclast);
+            self.hs^=self.vocbuf[self.vocroot as usize] as u16;
+            self.hs=(self.hs<<4)|(self.hs>>12);
+            self.hashes[self.voclast as usize]=self.hs;
+            self.hs^=self.vocbuf[self.voclast as usize] as u16;
             let indx=self.hashes[self.voclast as usize] as usize;
             unsafe {
               if self.vocindx[indx].v==1 {
