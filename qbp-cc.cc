@@ -41,7 +41,6 @@ typedef union{
 class packer{
   private:
     uint8_t *iobuf;
-    uint8_t *wpntr;
     uint8_t *cbuffer;
     uint8_t *vocbuf;
     uint8_t *lowp;
@@ -109,7 +108,6 @@ packer::packer(){
   fcs=new uint16_t[256];
   lowp=&((uint8_t *)&low)[3];
   hlpp=&((uint8_t *)&hlp)[0];
-  wpntr=iobuf;
   read=NULL;
   write=NULL;
 }
@@ -126,7 +124,6 @@ packer::~packer(){
   del(vocindx,0x10000,(vocpntr){0,0});
   lowp=NULL;
   hlpp=NULL;
-  wpntr=NULL;
   read=NULL;
   write=NULL;
   buf_size=flags=vocroot=voclast=range=low=hlp=icbuf=wpos=rpos=cstate=hs=0;
@@ -165,43 +162,26 @@ void packer::init(){
 }
 
 void packer::wbuf(void *file, uint8_t c){
-  if(write==NULL){
+  if(wpos==0x10000){
     wpos=0;
-    return;
+    if((*write)(file,(char*)iobuf,0x10000)<0) return;
   };
-  if(wpos<0x10000){
-    *wpntr++=c;
-    wpos++;
-  }
-  else{
-    if((*write)(file,(char*)iobuf,wpos)>0){
-      *iobuf=c;
-      wpos=1;
-      wpntr=iobuf+1;
-      return;
-    };
-    wpos=0;
-  };
+  iobuf[wpos++]=c;
 }
 
 bool packer::rbuf(void *file, uint8_t *c){
-  if(read==NULL){
-    rpos=0;
-    return true;
-  };
-  if(rpos<(uint32_t)icbuf) *c=iobuf[rpos++];
-  else{
+  if((int32_t)rpos==icbuf){
     rpos=0;
     if((icbuf=(*read)(file,(char*)iobuf,0x10000))<0) return true;
-    if(icbuf>0) *c=iobuf[rpos++];
-  };
+  }
+  if(icbuf) *c=iobuf[rpos++];
   return false;
 }
 
 bool packer::rc32_getc(void *file, uint8_t *c){
   uint16_t *f=frequency[cstate],fc=fcs[cstate];
-  uint32_t count,s=0;
-  while((low^(low+range))<0x1000000||range<0x10000||hlp<low){
+  uint32_t s=0,i;
+  while(hlp<low||(low^(low+range))<0x1000000||range<0x10000){
     hlp<<=8;
     if(rbuf(file,hlpp)) return true;
     if(rpos==0) return false;
@@ -209,26 +189,28 @@ bool packer::rc32_getc(void *file, uint8_t *c){
     range<<=8;
     if((uint32_t)(range+low)<low) range=~low;
   };
-  if((count=(hlp-low)/(range/=fc))>=fc) return true;
-  while((s+=*f++)<=count);
-  *c=(uint8_t)(--f-frequency[cstate]);
-  low+=(s-*f)*range;
-  range*=(*f)++;
-  if(++fc==0){
-    f=frequency[cstate];
-    for(s=0;s<256;s++){
-      *f=((*f)>>1)|1;
-      fc+=*f++;
+  if((i=(hlp-low)/(range/=fc))<fc){
+    while((s+=*f)<=i) f++;
+    low+=(s-*f)*range;
+    *c=(uint8_t)(f-frequency[cstate]);
+    range*=(*f)++;
+    if(++fc==0){
+      f=frequency[cstate];
+      for(s=0;s<256;s++){
+        *f=((*f)>>1)|1;
+        fc+=*f++;
+      };
     };
-  };
-  fcs[cstate]=fc;
-  cstate=*c;
-  return false;
+    fcs[cstate]=fc;
+    cstate=*c;
+    return false;
+  }
+  else return true;
 }
 
 bool packer::rc32_putc(void *file, uint8_t c){
   uint16_t *f=frequency[cstate],fc=fcs[cstate];
-  uint32_t s=0,i;
+  uint32_t s=0,i=c;
   while((low^(low+range))<0x1000000||range<0x10000){
     wbuf(file,*lowp);
     if(wpos==0) return true;
@@ -236,12 +218,12 @@ bool packer::rc32_putc(void *file, uint8_t c){
     range<<=8;
     if((uint32_t)(range+low)<low) range=~low;
   };
-  range/=fc;
-  for(i=0;i<c;i++) s+=f[i];
-  low+=s*range;
-  range*=f[i]++;
+  while(i--) s+=*f++;
+  low+=s*(range/=fc);
+  range*=(*f)++;
   if(++fc==0){
-    for(i=0;i<256;i++){
+    f=frequency[cstate];
+    for(s=0;s<256;s++){
       *f=((*f)>>1)|1;
       fc+=*f++;
     };
@@ -272,7 +254,7 @@ bool packer::packer_putc(void *file, uint8_t c){
       return false;
     }
     else{
-      uint16_t i,rle,cnode,rle_shift=0;;
+      uint16_t i,rle,cnode,rle_shift=0;
       uint8_t *w;
       *cbuffer<<=1;
       rle=symbol=vocroot-buf_size;
@@ -406,6 +388,7 @@ bool packer::packer_getc(void *file, uint8_t *c){
 }
 
 int32_t packer::packer_read(void* file, char *buf, int32_t l){
+  if(read==NULL||write==NULL) return -1;
   int32_t ret=0;
   while(l--){
     if(packer_getc(file,(uint8_t *)buf++)) return -1;
@@ -416,6 +399,7 @@ int32_t packer::packer_read(void* file, char *buf, int32_t l){
 }
 
 int32_t packer::packer_write(void* file, char *buf, int32_t l){
+  if(read==NULL||write==NULL) return -1;
   if(buf==NULL||l==0){
     finalize=true;
     packer_putc(file,0);

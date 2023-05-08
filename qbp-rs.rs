@@ -131,54 +131,49 @@ impl Packer {
     self.hlpp=ptr::addr_of_mut!(self.hlp) as *mut u8;
   }
 
+  #[inline(always)]
   fn rbuf(&mut self,c: *mut u8)->bool {
-    if self.rpos<self.icbuf {
-      unsafe{*c=self.ibuf[self.rpos as usize]};
-      self.rpos+=1;
-    }
-    else {
+    if self.rpos==self.icbuf {
+      self.rpos=0;
       match self.ifile.read(&mut self.ibuf) {
         Ok(r) => self.icbuf=r as u32,
         Err(_) => return true,
       }
-      if self.icbuf>0 {
-        unsafe { *c=self.ibuf[0] };
-        self.rpos=1;
-      }
-      else {
-        self.rpos=0;
-      }
+    }
+    if self.icbuf>0 {
+      unsafe { *c=self.ibuf[self.rpos as usize] };
+      self.rpos+=1;
     }
     return false;
   }
 
+  #[inline(always)]
   fn wbuf(&mut self,c: u8)->bool {
-    if self.wpos<0x10000{
-      self.obuf[self.wpos as usize]=c;
-      self.wpos+=1;
-    }
-    else{
-      match self.ofile.write(&self.obuf[..self.wpos as usize]) {
-        Ok(_) => {
-          self.obuf[0]=c;
-          self.wpos=1;
-        },
+    if self.wpos==0x10000{
+      self.wpos=0;
+      match self.ofile.write(&self.obuf) {
+        Ok(_) => {},
         Err(_) => return true,
       }
-    };
+    }
+    self.obuf[self.wpos as usize]=c;
+    self.wpos+=1;
     return false;
   }
 
+  #[inline(always)]
   fn rc32_rescale(&mut self,s: u32) {
     self.low+=s*self.range;
     self.range*=self.frequency[self.cstate as usize][self.symbol as usize] as u32;
     self.frequency[self.cstate as usize][self.symbol as usize]+=1;
     self.fcs[self.cstate as usize]+=1;
     if self.fcs[self.cstate as usize]==0 {
+      let mut fc: u16=0;
       for i in 0..256 {
         self.frequency[self.cstate as usize][i]=(self.frequency[self.cstate as usize][i]>>1)|1;
-        self.fcs[self.cstate as usize]+=self.frequency[self.cstate as usize][i];
+        fc+=self.frequency[self.cstate as usize][i];
       }
+      self.fcs[self.cstate as usize]=fc;
     }
   }
 

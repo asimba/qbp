@@ -19,11 +19,11 @@ uint32_t icbuf;
 uint32_t rpos;
 
 inline void rbuf(uint8_t *c,FILE *ifile){
-  if(rpos<icbuf) *c=ibuf[rpos++];
-  else{
+  if(rpos==icbuf){
     rpos=0;
-    if((icbuf=fread(ibuf,1,0x10000,ifile))) *c=ibuf[rpos++];
-  };
+    if((icbuf=fread(ibuf,1,0x10000,ifile))==0) return;
+  }
+  *c=ibuf[rpos++];
 }
 
 void unpack_file(FILE *ifile, FILE *ofile){

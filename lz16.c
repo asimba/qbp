@@ -23,7 +23,6 @@ typedef union{
 
 uint8_t ibuf[0x10000];
 uint8_t obuf[0x10000];
-uint8_t *wpntr;
 uint32_t icbuf;
 uint32_t wpos;
 uint32_t rpos;
@@ -58,34 +57,22 @@ void pack_initialize(){
   vocarea[0xfffe]=0xfffe;
   vocarea[0xffff]=0xffff;
   hs=0x00ff;
-  wpntr=obuf;
 }
 
-inline void wbuf(uint8_t c,FILE *ofile){
-  if(wpos<0x10000){
-    *wpntr++=c;
-    wpos++;
-  }
-  else{
-    if(fwrite(obuf,1,wpos,ofile)==wpos){
-      *obuf=c;
-      wpos=1;
-      wpntr=obuf+1;
-      return;
-    };
+void wbuf(uint8_t c,FILE *ofile){
+  if(wpos==0x10000){
     wpos=0;
+    if(fwrite(obuf,1,0x10000,ofile)!=0x10000) return;
   };
+  obuf[wpos++]=c;
 }
 
-inline uint32_t rbuf(uint8_t *c,FILE *ifile){
-  if(rpos<icbuf) *c=ibuf[rpos++];
-  else{
+void rbuf(uint8_t *c,FILE *ifile){
+  if(rpos==icbuf){
     rpos=0;
-    icbuf=fread(ibuf,1,0x10000,ifile);
-    if(ferror(ifile)) return 1;
-    if(icbuf) *c=ibuf[rpos++];
-  };
-  return 0;
+    if((icbuf=fread(ibuf,1,0x10000,ifile))==0) return;
+  }
+  *c=ibuf[rpos++];
 }
 
 void pack_file(FILE *ifile,FILE *ofile){
@@ -96,7 +83,7 @@ void pack_file(FILE *ifile,FILE *ofile){
   for(;;){
     if(!eoff){
       if(LZ_BUF_SIZE-buf_size){
-        if(rbuf(&vocbuf[vocroot],ifile)) break;
+        rbuf(&vocbuf[vocroot],ifile);
         if(rpos==0){
           eoff=1;
           continue;

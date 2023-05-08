@@ -23,7 +23,7 @@ typedef union{
 
 class packer{
   private:
-    uint8_t *ibuf,*obuf,*wpntr,*cbuffer,*vocbuf,flags;
+    uint8_t *ibuf,*obuf,*cbuffer,*vocbuf,flags;
     uint16_t *vocarea,*hashes,hs,buf_size,voclast,vocroot,offset,length,symbol;
     uint32_t icbuf,wpos,rpos;
     vocpntr *vocindx;
@@ -56,7 +56,6 @@ packer::packer(){
   vocarea=new uint16_t[0x10000];
   hashes=new uint16_t[0x10000];
   vocindx=new vocpntr[0x10000];
-  wpntr=obuf;
 }
 
 packer::~packer(){
@@ -67,7 +66,6 @@ packer::~packer(){
   del(vocarea,0x10000,(uint16_t)0);
   del(hashes,0x10000,(uint16_t)0);
   del(vocindx,0x10000,(vocpntr){0,0});
-  wpntr=NULL;
   buf_size=flags=vocroot=voclast=icbuf=wpos=rpos=0;
 }
 
@@ -90,28 +88,20 @@ void packer::init(){
 }
 
 inline void packer::wbuf(uint8_t c){
-  if(wpos<0x10000){
-    *wpntr++=c;
-    wpos++;
-  }
-  else{
-    if(ofile.write((char *)obuf,wpos).good()){
-      *obuf=c;
-      wpos=1;
-      wpntr=obuf+1;
-      return;
-    };
+  if(wpos==0x10000){
     wpos=0;
+    if(ofile.write((char *)obuf,0x10000).bad()) return;
   };
+  obuf[wpos++]=c;
 }
 
 inline bool packer::rbuf(uint8_t *c){
-  if(rpos<icbuf) *c=ibuf[rpos++];
-  else{
+  if(rpos==icbuf){
     rpos=0;
     if(ifile.read((char *)ibuf,0x10000).bad()) return true;
-    if((icbuf=ifile.gcount())) *c=ibuf[rpos++];
-  };
+    if((icbuf=ifile.gcount())==0) return false;
+  }
+  *c=ibuf[rpos++];
   return false;
 }
 

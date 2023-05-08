@@ -77,19 +77,19 @@ int rc32_write(uint8_t *buf,int l,FILE *ofile){
       range<<=8;
       if((uint32_t)(range+low)<low) range=~low;
     };
-    symbol=*buf;
-    range/=fc;
-    for(i=0;i<symbol;i++) s+=f[i];
-    low+=s*range;
-    range*=f[i]++;
+    i=*buf;
+    while(i--) s+=*f++;
+    low+=s*(range/=fc);
+    range*=(*f)++;
     if(++fc==0){
-      for(i=0;i<256;i++){
+      f=frequency[cstate];
+      for(s=0;s<256;s++){
         *f=((*f)>>1)|1;
         fc+=*f++;
       };
     };
     fcs[cstate]=fc;
-    cstate=(uint8_t)symbol;
+    cstate=*buf;
     buf++;
   };
   return 1;
