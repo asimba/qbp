@@ -48,7 +48,7 @@ uint8_t *hlpp;
 uint8_t cstate;
 
 void pack_initialize(){
-  buf_size=flags=vocroot=*cbuffer=low=hlp=icbuf=wpos=rpos=cstate=length=offset=0;
+  buf_size=flags=vocroot=*cbuffer=low=hlp=icbuf=wpos=rpos=cstate=0;
   voclast=0xfffd;
   range=0xffffffff;
   lowp=&((uint8_t *)&low)[3];
@@ -145,9 +145,7 @@ uint32_t rc32_putc(uint8_t c,FILE *ofile){
 }
 
 void pack_file(FILE *ifile,FILE *ofile){
-  uint16_t i,rle,rle_shift=0,cnode,symbol;
-  uint8_t *cpos=&cbuffer[1],*w;
-  char eoff=0,eofs=0;
+  uint8_t *cpos=&cbuffer[1],*w,eoff=0,eofs=0;
   vocpntr *indx;
   flags=8;
   for(;;){
@@ -178,21 +176,20 @@ void pack_file(FILE *ifile,FILE *ofile){
       };
     }
     *cbuffer<<=1;
-    rle=symbol=vocroot-buf_size;
     if(buf_size){
-      cnode=vocbuf[symbol];
-      while(rle!=vocroot&&vocbuf[++rle]==cnode);
+      uint16_t symbol,rle,rle_shift;
+      rle=symbol=vocroot-buf_size;
+      while(rle!=vocroot&&vocbuf[++rle]==vocbuf[symbol]);
       rle-=symbol;
       length=LZ_MIN_MATCH;
       if(buf_size>LZ_MIN_MATCH&&rle<buf_size){
-        cnode=vocindx[hashes[symbol]].in;
+        uint16_t cnode=vocindx[hashes[symbol]].in;
         rle_shift=(uint16_t)(vocroot+LZ_BUF_SIZE-buf_size);
         while(cnode!=symbol){
           if(vocbuf[(uint16_t)(symbol+length)]==vocbuf[(uint16_t)(cnode+length)]){
-            uint16_t k=cnode;
-            i=symbol;
-            while(vocbuf[i++]==vocbuf[k]&&k++!=symbol);
-            if((i=(uint16_t)(i-symbol)-1)>=length){
+            uint16_t i=symbol,j=cnode;
+            while(i!=vocroot&&vocbuf[i]==vocbuf[j++]) i++;
+            if((i-=symbol)>=length){
               //while buf_size==LZ_BUF_SIZE: minimal offset > 0x0104;
               if(buf_size<LZ_BUF_SIZE){
                 if((uint16_t)(cnode-rle_shift)>0xfeff){
@@ -201,11 +198,7 @@ void pack_file(FILE *ifile,FILE *ofile){
                 };
               };
               offset=cnode;
-              if(i>=buf_size){
-                length=buf_size;
-                break;
-              }
-              else length=i;
+              if((length=i)==buf_size) break;
             };
           };
           cnode=vocarea[cnode];
@@ -239,12 +232,12 @@ void pack_file(FILE *ifile,FILE *ofile){
     if(!flags||eofs){
       *cbuffer<<=flags;
       w=cbuffer;
-      for(i=cpos-cbuffer;i;i--)
+      for(int i=cpos-cbuffer;i;i--)
         if(rc32_putc(*w++,ofile)) return;
       flags=8;
       cpos=&cbuffer[1];
       if(eofs){
-        for(i=4;i;i--){
+        for(int i=4;i;i--){
           wbuf(*lowp,ofile);
           if(wpos==0) return;
           low<<=8;

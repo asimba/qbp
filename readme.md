@@ -74,13 +74,13 @@ makecab/expand (5.0.1.1) |  | 324125809 | 57,91 | 5,81 |
 ain (2.32) | a /m1 | 324538744 | 90,10 | 28,51 |  
 arj32 (3.10) | a -m1 | 328553984 | 129,71 | 23,21 |  
 zoo (2.10) | ah | 353022373 | 104,18 | 30,69 |  
-**qbp** `(built with "gcc -O3")` | **c** | **358506492** | **47,14** | **27,87** |  
-**unqbp** `(built with "gcc -O3")` |  | **358506492** |  | **27,75** |  
+**qbp** `(built with "gcc -O3")` | **c** | **358471053** | **47,71** | **28,09** |  
+**unqbp** `(built with "gcc -O3")` |  | **358471053** |  | **27,60** |  
 lzop (1.04) | -9 -F | 366349786 | 105,33 | 3,31 |  
 lz4 (1.9.4) | --best | 372443347 | 65,90 | 11,91 |  
 lzari <br/> [(reference realization by Haruhiko Okumura)](https://web.archive.org/web/19990209183635/http://oak.oakland.edu/pub/simtelnet/msdos/arcutils/lz_comp2.zip) | e | 388521578 | 182,69 | 77,72 |  
-**lz16** `(built with "gcc -O3")` | **c** | **407218528** | **31,32** | **3,87** |  
-**unlz16** `(built with "gcc -O3")` |  | **407218528** |  | **3,47** |  
+**lz16** `(built with "gcc -O3")` | **c** | **407180647** | **31,16** | **4,00** |  
+**unlz16** `(built with "gcc -O3")` |  | **407180647** |  | **3,33** |  
 ncompress (5.1) |  | 448136005 | 31,98 | 12,85 |  
 lzss <br/> [(reference realization by Haruhiko Okumura)](https://oku.edu.mie-u.ac.jp/~okumura/compression/lzss.c) | e | 455245327 | 136,39 | 36,33 |  
 carryless rangecoder <br/> [(reference algorithm by Dmitry Subbotin with the same frequency model)](https://web.archive.org/web/20020420161153/http://www.softcomplete.com/algo/pack/rus-range.txt) |  | 480296513 | 28,12 |  |  

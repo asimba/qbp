@@ -240,8 +240,8 @@ impl Packer {
     let mut rle_shift: u16=0;
     let mut cnode: u16;
     let mut cpos: *mut u8=ptr::addr_of_mut!(self.cbuffer).cast();
+    let w: *mut u8=cpos;
     unsafe { cpos=cpos.add(1) };
-    let mut w: *mut u8;
     let mut eoff: bool=false;
     let mut eofs: bool=false;
     self.flags=8;
@@ -290,9 +290,8 @@ impl Packer {
       rle=self.symbol;
       let mut cnv: U16U8;
       if self.buf_size>0 {
-        cnode=self.vocbuf[self.symbol as usize] as u16;
         rle+=1;
-        while rle!=self.vocroot && cnode==self.vocbuf[rle as usize] as u16 {
+        while rle!=self.vocroot && self.vocbuf[self.symbol as usize]==self.vocbuf[rle as usize] {
           rle+=1;
         }
         rle-=self.symbol;
@@ -305,7 +304,7 @@ impl Packer {
               self.vocbuf[((cnode+self.length) as u16) as usize] {
               i=self.symbol;
               let mut k: u16=cnode;
-              while self.vocbuf[i as usize]==self.vocbuf[k as usize] && k!=self.symbol {
+              while i!=self.vocroot && self.vocbuf[i as usize]==self.vocbuf[k as usize] {
                 k+=1;
                 i+=1;
               }
@@ -318,12 +317,9 @@ impl Packer {
                   }
                 }
                 self.offset=cnode;
-                if i>=self.buf_size {
-                  self.length=self.buf_size;
+                self.length=i;
+                if i==self.buf_size {
                   break;
-                }
-                else {
-                  self.length=i;
                 }
               }
             }
@@ -376,17 +372,13 @@ impl Packer {
       self.flags-=1;
       if self.flags==0 || eofs {
         self.cbuffer[0]<<=self.flags;
-        w=ptr::addr_of_mut!(self.cbuffer) as *mut u8;
-        i=(cpos as u32 - w as u32) as u16;
-        while i>0 {
-          if self.rc32_putc(unsafe { *w }){
+        for  i in 0..(cpos as u32 - w as u32) as u16 {
+          if self.rc32_putc(self.cbuffer[i as usize]){
             return;
           }
-          unsafe { w=w.add(1) };
-          i-=1;
         }
         self.flags=8;
-        cpos=ptr::addr_of_mut!(self.cbuffer) as *mut u8;
+        cpos=w;
         unsafe { cpos=cpos.add(1) };
         if eofs {
           i=4;
