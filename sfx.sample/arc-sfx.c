@@ -42,7 +42,7 @@ uint8_t rc32_getc(uint8_t *c,FILE *ifile){
     low+=(s-*f)*range;
     *c=(uint8_t)(f-frequency[cstate]);
     range*=(*f)++;
-    if(++fc==0){
+    if(!++fc){
       f=frequency[cstate];
       for(s=0;s<256;s++){
         *f=((*f)>>1)|1;

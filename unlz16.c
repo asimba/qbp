@@ -19,64 +19,50 @@ uint32_t icbuf;
 uint32_t rpos;
 
 inline void rbuf(uint8_t *c,FILE *ifile){
-  if(rpos==icbuf){
-    rpos=0;
-    if((icbuf=fread(ibuf,1,0x10000,ifile))==0) return;
-  }
+  if(rpos==icbuf&&!(rpos=0,icbuf=fread(ibuf,1,0x10000,ifile))) return;
   *c=ibuf[rpos++];
 }
 
 void unpack_file(FILE *ifile, FILE *ofile){
-  uint8_t *cpos=NULL,flags=0,c,rle_flag=0,bytes=0;
-  uint8_t cbuffer[LZ_CAPACITY+1];
   uint16_t vocroot=0,offset=0,length=0;
-  icbuf=rpos=0;
+  uint8_t flags=0,rle_flag=0,bytes=0,c,cbuffer[LZ_CAPACITY+1],*cpos=cbuffer;
   for(int i=0;i<0x10000;i++) vocbuf[i]=0xff;
+  icbuf=rpos=0;
   for(;;){
     if(length){
-      if(rle_flag==0) c=vocbuf[offset++];
+      if(!rle_flag) c=vocbuf[offset++];
       vocbuf[vocroot++]=c;
       length--;
       bytes=1;
-      if(vocroot==0){
-        bytes=0;
-        if(fwrite(vocbuf,1,0x10000,ofile)<0x10000) break;
-      };
-    }
-    else{
-      if(flags==0){
-        cpos=cbuffer;
-        rbuf(cpos++,ifile);
-        if(rpos==0) break;
-        for(c=~*cbuffer;c;flags++) c&=c-1;
-        for(c=8+(flags<<1);c;c--){
-          rbuf(cpos++,ifile);
-          if(rpos==0) break;
-        };
-        flags=8;
-        cpos=cbuffer+1;
-      };
+      if(!vocroot&&(bytes=0,fwrite(vocbuf,1,0x10000,ofile)<0x10000)) break;
+      continue;
+    };
+    if(flags){
       length=rle_flag=1;
       if(*cbuffer&0x80) c=*cpos;
       else{
-        length=LZ_MIN_MATCH+1+*cpos++;
-        if((offset=*(uint16_t*)cpos++)<0x0100) c=(uint8_t)(offset);
+        length+=LZ_MIN_MATCH+*cpos++;
+        if((offset=*(uint16_t*)cpos++)<0x0100) c=offset;
         else{
           if(offset==0x0100) break;
-          offset=~offset+(uint16_t)(vocroot+LZ_BUF_SIZE);
+          offset=~offset+vocroot+LZ_BUF_SIZE;
           rle_flag=0;
         };
       };
       *cbuffer<<=1;
       cpos++;
       flags--;
+      continue;
     };
+    cpos=cbuffer;
+    if(!(rbuf(cpos++,ifile),rpos)) break;
+    for(c=~*cbuffer;c;flags++) c&=c-1;
+    for(c=8+(flags<<1);c;c--)
+      if(!(rbuf(cpos++,ifile),rpos)) break;
+    cpos=&cbuffer[1];
+    flags=8;
   };
-  if(bytes){
-    if(vocroot) fwrite(vocbuf,1,vocroot,ofile);
-    else fwrite(vocbuf,1,0x10000,ofile);
-  };
-  return;
+  if(bytes) fwrite(vocbuf,1,vocroot?vocroot:0x10000,ofile);
 }
 
 /***********************************************************************************************************/

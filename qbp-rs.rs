@@ -311,7 +311,7 @@ impl Packer {
               i-=self.symbol;
               if i>=self.length {
                 if self.buf_size<LZ_BUF_SIZE {
-                  if (cnode-rle_shift) as u16>0xfeff {
+                  if (cnode-rle_shift) as u16>0xfefe {
                     cnode=self.vocarea[cnode as usize];
                     continue;
                   }
