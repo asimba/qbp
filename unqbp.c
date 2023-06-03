@@ -17,21 +17,20 @@ uint8_t ibuf[0x10000];
 uint8_t vocbuf[0x10000];
 uint32_t icbuf;
 uint32_t rpos;
-uint16_t frequency[256][256];
-uint16_t fcs[256];
+uint16_t frequency[5][256];
+uint16_t fcs[5];
 uint32_t low;
 uint32_t hlp;
 uint32_t range;
 uint8_t *hlpp;
-uint8_t cstate;
 
-inline void rbuf(uint8_t *c,FILE *ifile){
+void rbuf(uint8_t *c,FILE *ifile){
   if(rpos==icbuf&&!(rpos=0,icbuf=fread(ibuf,1,0x10000,ifile))) return;
   *c=ibuf[rpos++];
 }
 
-int rc32_getc(uint8_t *c,FILE *ifile){
-  uint16_t *f=frequency[cstate],fc=fcs[cstate];
+int rc32_getc(uint8_t *c,FILE *ifile,uint8_t cntx){
+  uint16_t *f=frequency[cntx],fc=fcs[cntx];
   uint32_t s=0,i;
   while(hlp<low||(low^(low+range))<0x1000000||range<0x10000){
     hlp<<=8;
@@ -42,31 +41,31 @@ int rc32_getc(uint8_t *c,FILE *ifile){
   };
   if((i=(hlp-low)/(range/=fc))<fc){
     while((s+=*f)<=i) f++;
-    *c=f-frequency[cstate];
+    *c=f-frequency[cntx];
     low+=(s-*f)*range;
     range*=(*f)++;
-    if(++fc==0){
-      f=frequency[cstate];
+    if(!++fc){
+      f=frequency[cntx];
       for(s=0;s<256;s++){
         *f=((*f)>>1)|1;
         fc+=*f++;
       };
     };
-    fcs[cstate]=fc;
-    cstate=*c;
+    fcs[cntx]=fc;
     return 0;
   }
   else return 1;
 }
 
 void unpack_file(FILE *ifile, FILE *ofile){
-  uint8_t *cpos=NULL,flags=0,c,rle_flag=0,bytes=0;
+  uint8_t *cpos=NULL,flags=0,c,rle_flag=0,bytes=0,cntx=0,cflags=0;
   uint8_t cbuffer[LZ_CAPACITY+1];
+  uint8_t cntxs[LZ_CAPACITY+1];
   uint16_t vocroot=0,offset=0,length=0;
-  low=hlp=icbuf=rpos=cstate=0;
+  low=hlp=icbuf=rpos=0;
   range=0xffffffff;
   hlpp=&((uint8_t *)&hlp)[0];
-  for(int i=0;i<256;i++){
+  for(int i=0;i<5;i++){
     for(int j=0;j<256;j++) frequency[i][j]=1;
     fcs[i]=256;
   };
@@ -102,10 +101,21 @@ void unpack_file(FILE *ifile, FILE *ofile){
       continue;
     };
     cpos=cbuffer;
-    if(rc32_getc(cpos++,ifile)) break;
+    if(rc32_getc(cpos++,ifile,0)) break;
     for(c=~*cbuffer;c;flags++) c&=c-1;
-    for(c=8+(flags<<1);c;c--)
-      if(rc32_getc(cpos++,ifile)) return;
+    cflags=*cbuffer;
+    cntx=8+(flags<<1);
+    for(c=0;c<cntx;){
+      if(cflags&0x80) cntxs[c++]=4;
+      else{
+        cntxs[c++]=1;
+        cntxs[c++]=2;
+        cntxs[c++]=3;
+      };
+      cflags<<=1;
+    };
+    for(c=0;c<cntx;c++)
+      if(rc32_getc(cpos++,ifile,cntxs[c])) return;
     cpos=&cbuffer[1];
     flags=8;
   };

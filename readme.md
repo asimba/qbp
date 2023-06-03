@@ -71,11 +71,11 @@ lzfse (1.0) | -encode | 319756993 | 25,34 | 9,67 |
 gzip (1.12) | -9 | 322591995 | 49,25 | 8,73 |  
 pkzip (2.50b) | /add | 323645288 | 32,94 | 7,04 |  
 makecab/expand (5.0.1.1) |  | 324125809 | 57,91 | 5,81 |  
+**qbp** `(built with "gcc -O3")` | **c** | **324501858** | **45,87** | **29,65** |  
+**unqbp** `(built with "gcc -O3")` |  | **324501858** |  | **29,31** |  
 ain (2.32) | a /m1 | 324538744 | 90,10 | 28,51 |  
 arj32 (3.10) | a -m1 | 328553984 | 129,71 | 23,21 |  
 zoo (2.10) | ah | 353022373 | 104,18 | 30,69 |  
-**qbp** `(built with "gcc -O3")` | **c** | **358471053** | **47,22** | **30,18** |  
-**unqbp** `(built with "gcc -O3")` |  | **358471053** |  | **30,06** |  
 lzop (1.04) | -9 -F | 366349786 | 105,33 | 3,31 |  
 lz4 (1.9.4) | --best | 372443347 | 65,90 | 11,91 |  
 lzari <br/> [(reference realization by Haruhiko Okumura)](https://web.archive.org/web/19990209183635/http://oak.oakland.edu/pub/simtelnet/msdos/arcutils/lz_comp2.zip) | e | 388521578 | 182,69 | 77,72 |  
@@ -83,7 +83,7 @@ lzari <br/> [(reference realization by Haruhiko Okumura)](https://web.archive.or
 **unlz16** `(built with "gcc -O3")` |  | **407180647** |  | **3,86** |  
 ncompress (5.1) |  | 448136005 | 31,98 | 12,85 |  
 lzss <br/> [(reference realization by Haruhiko Okumura)](https://oku.edu.mie-u.ac.jp/~okumura/compression/lzss.c) | e | 455245327 | 136,39 | 36,33 |  
-carryless rangecoder <br/> [(reference algorithm by Dmitry Subbotin with the same frequency model)](https://web.archive.org/web/20020420161153/http://www.softcomplete.com/algo/pack/rus-range.txt) |  | 480296513 | 28,12 |  |  
+carryless rangecoder <br/> [(reference algorithm by Dmitry Subbotin with the order-1 frequency model)](https://web.archive.org/web/20020420161153/http://www.softcomplete.com/algo/pack/rus-range.txt) |  | 480296513 | 28,12 |  |  
 rangecoder (1.3) <br/> [(reference realization by Michael Schindler)](http://www.compressconsult.com/rangecoder/) | comp1/decomp1 | 489741259 | 44,36 | 53,35 |  
 lz4 (1.9.4) | -1 | 509454838 | 10,07 | 8,97 |  
 rangecoder (1.3) <br/> [(reference realization by Michael Schindler)](http://www.compressconsult.com/rangecoder/) | comp/decomp | 644426106 | 48,38 | 57,54 |  

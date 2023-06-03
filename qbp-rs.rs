@@ -34,11 +34,12 @@ pub struct Packer {
   obuf: [u8; 0x10000],
   vocbuf: [u8; 0x10000],
   cbuffer: [u8; (LZ_CAPACITY+1) as usize],
+  cntxs: [u8; (LZ_CAPACITY+1) as usize],
   vocarea: [u16; 0x10000],
   hashes: [u16; 0x10000],
   vocindx: [Vocpntr; 0x10000],
   frequency: Vec<Vec<u16>>,
-  fcs: [u16; 256],
+  fcs: [u16; 5],
   icbuf: u32,
   wpos: u32,
   rpos: u32,
@@ -54,7 +55,6 @@ pub struct Packer {
   hs: u16,
   lowp: *mut u8,
   hlpp: *mut u8,
-  cstate: u8,
   flags: u8,
   pub ifile: File,
   pub ofile: File,
@@ -67,16 +67,16 @@ impl Packer {
       obuf: [0 as u8; 0x10000],
       vocbuf: [0 as u8; 0x10000],
       cbuffer: [0 as u8; (LZ_CAPACITY+1) as usize],
+      cntxs: [0 as u8; (LZ_CAPACITY+1) as usize],
       vocarea: [0 as u16; 0x10000],
       hashes: [0 as u16; 0x10000],
       vocindx: [Vocpntr{v:1 as u32,}; 0x10000],
-      frequency: vec![vec![0 as u16; 256]; 256],
-      fcs: [0 as u16; 256],
+      frequency: vec![vec![0 as u16; 256]; 5],
+      fcs: [0 as u16; 5],
       icbuf: 0,wpos: 0,rpos: 0,low: 0,hlp: 0,range: 0,
       buf_size: 0,voclast: 0,vocroot: 0,offset: 0,length: 0,symbol: 0,hs: 0,
       lowp: ptr::null_mut(),
       hlpp: ptr::null_mut(),
-      cstate: 0,
       flags: 0,
       ifile:match File::open(&Path::new(i)){
         Err(why)=>{
@@ -100,6 +100,7 @@ impl Packer {
     self.flags=0;
     self.vocroot=0;
     self.cbuffer[0]=0;
+    self.cntxs[0]=0;
     self.low=0;
     self.hlp=0;
     self.icbuf=0;
@@ -107,13 +108,12 @@ impl Packer {
     self.rpos=0;
     self.voclast=0xfffd;
     self.range=0xffffffff;
-    for i in 0..256{
+    for i in 0..5{
       for j in 0..256{
         self.frequency[i][j]=1 as u16;
       }
       self.fcs[i]=256;
     }
-    self.cstate=0;
     for i in 0..0x10000{
       self.vocbuf[i]=0xff;
       self.hashes[i]=0;
@@ -162,22 +162,22 @@ impl Packer {
   }
 
   #[inline(always)]
-  fn rc32_rescale(&mut self,s: u32) {
+  fn rc32_rescale(&mut self,s: u32,cntx: u8) {
     self.low+=s*self.range;
-    self.range*=self.frequency[self.cstate as usize][self.symbol as usize] as u32;
-    self.frequency[self.cstate as usize][self.symbol as usize]+=1;
-    self.fcs[self.cstate as usize]+=1;
-    if self.fcs[self.cstate as usize]==0 {
+    self.range*=self.frequency[cntx as usize][self.symbol as usize] as u32;
+    self.frequency[cntx as usize][self.symbol as usize]+=1;
+    self.fcs[cntx as usize]+=1;
+    if self.fcs[cntx as usize]==0 {
       let mut fc: u16=0;
       for i in 0..256 {
-        self.frequency[self.cstate as usize][i]=(self.frequency[self.cstate as usize][i]>>1)|1;
-        fc+=self.frequency[self.cstate as usize][i];
+        self.frequency[cntx as usize][i]=(self.frequency[cntx as usize][i]>>1)|1;
+        fc+=self.frequency[cntx as usize][i];
       }
-      self.fcs[self.cstate as usize]=fc;
+      self.fcs[cntx as usize]=fc;
     }
   }
 
-  fn rc32_getc(&mut self,c: *mut u8)->bool {
+  fn rc32_getc(&mut self,c: *mut u8,cntx: u8)->bool {
     while (self.low^(self.low+self.range))<0x1000000 || self.range<0x10000 || self.hlp<self.low {
       self.hlp<<=8;
       if self.rbuf(self.hlpp) {
@@ -192,27 +192,26 @@ impl Packer {
         self.range=!self.low;
       }
     }
-    self.range/=self.fcs[self.cstate as usize] as u32;
+    self.range/=self.fcs[cntx as usize] as u32;
     let count: u32=(self.hlp-self.low)/self.range;
-    if count>=self.fcs[self.cstate as usize] as u32 {
+    if count>=self.fcs[cntx as usize] as u32 {
       return true;
     }
     let mut s: u32=0;
     for i in 0..256 {
-      s+=self.frequency[self.cstate as usize][i as usize] as u32;
+      s+=self.frequency[cntx as usize][i as usize] as u32;
       if s>count {
         self.symbol=i as u16;
         break;
       };
     };
-    s-=self.frequency[self.cstate as usize][self.symbol as usize] as u32;
+    s-=self.frequency[cntx as usize][self.symbol as usize] as u32;
     unsafe { *c=self.symbol as u8};
-    self.rc32_rescale(s);
-    self.cstate=self.symbol as u8;
+    self.rc32_rescale(s,cntx);
     return false;
   }
   
-  fn rc32_putc(&mut self,c: u8)->bool {
+  fn rc32_putc(&mut self,c: u8,cntx: u8)->bool {
     while (self.low^(self.low+self.range))<0x1000000 || self.range<0x10000 {
       if self.wbuf(unsafe { *self.lowp }) {
         return true;
@@ -224,13 +223,12 @@ impl Packer {
       }
     }
     self.symbol=c as u16;
-    self.range/=self.fcs[self.cstate as usize] as u32;
+    self.range/=self.fcs[cntx as usize] as u32;
     let mut s: u32=0;
     for i in 0..self.symbol {
-      s+=self.frequency[self.cstate as usize][i as usize] as u32;
+      s+=self.frequency[cntx as usize][i as usize] as u32;
     }
-    self.rc32_rescale(s);
-    self.cstate=c;
+    self.rc32_rescale(s,cntx);
     return false;
   }
 
@@ -244,6 +242,7 @@ impl Packer {
     unsafe { cpos=cpos.add(1) };
     let mut eoff: bool=false;
     let mut eofs: bool=false;
+    let mut cntx: u8=1;
     self.flags=8;
     loop {
       if !eoff {
@@ -327,6 +326,12 @@ impl Packer {
           }
         }
         if rle>self.length {
+          self.cntxs[cntx as usize]=1;
+          cntx+=1;
+          self.cntxs[cntx as usize]=2;
+          cntx+=1;
+          self.cntxs[cntx as usize]=3;
+          cntx+=1;
           unsafe {
             *cpos=(rle-LZ_MIN_MATCH-1) as u8;
             cpos=cpos.add(1);
@@ -339,6 +344,12 @@ impl Packer {
         }
         else {
           if self.length>LZ_MIN_MATCH {
+            self.cntxs[cntx as usize]=1;
+            cntx+=1;
+            self.cntxs[cntx as usize]=2;
+            cntx+=1;
+            self.cntxs[cntx as usize]=3;
+            cntx+=1;
             unsafe {
               *cpos=(self.length-LZ_MIN_MATCH-1) as u8;
               cpos=cpos.add(1);
@@ -350,6 +361,8 @@ impl Packer {
             }
           }
           else {
+            self.cntxs[cntx as usize]=4;
+            cntx+=1;
             self.cbuffer[0]|=0x01;
             unsafe { *cpos=self.vocbuf[self.symbol as usize] };
             self.buf_size-=1;
@@ -357,6 +370,12 @@ impl Packer {
         }
       }
       else {
+        self.cntxs[cntx as usize]=1;
+        cntx+=1;
+        self.cntxs[cntx as usize]=2;
+        cntx+=1;
+        self.cntxs[cntx as usize]=3;
+        cntx+=1;
         unsafe {
           cpos=cpos.add(1);
           cnv.u=0x0100;
@@ -373,10 +392,11 @@ impl Packer {
       if self.flags==0 || eofs {
         self.cbuffer[0]<<=self.flags;
         for  i in 0..(cpos as u32 - w as u32) as u16 {
-          if self.rc32_putc(self.cbuffer[i as usize]){
+          if self.rc32_putc(self.cbuffer[i as usize],self.cntxs[i as usize]){
             return;
           }
         }
+        cntx=1;
         self.flags=8;
         cpos=w;
         unsafe { cpos=cpos.add(1) };
@@ -401,6 +421,8 @@ impl Packer {
   pub fn unpack(&mut self) {
     let mut cpos: *mut u8=ptr::addr_of_mut!(self.cbuffer).cast();
     let mut c: u8=0;
+    let mut cntx: u8;
+    let mut cflags: u8;
     let mut rle_flag: bool=false;
     let mut bytes: bool=false;
     for _i in 0..4 {
@@ -430,17 +452,35 @@ impl Packer {
       else {
         if self.flags==0 {
           cpos=ptr::addr_of_mut!(self.cbuffer) as *mut u8;
-          if self.rc32_getc(cpos){
+          if self.rc32_getc(cpos,0){
             return;
           }
           unsafe { cpos=cpos.add(1) };
+          cflags=self.cbuffer[0];
           c=!self.cbuffer[0];
           while c!=0 {
             c&=c-1;
             self.flags+=1;
           }
-          for _i in 0..8+(self.flags<<1) {
-            if self.rc32_getc(cpos) {
+          cntx=8+(self.flags<<1);
+          let mut i: u8=0;
+          while i<cntx {
+            if cflags&0x80!=0 {
+              self.cntxs[i as usize]=4;
+              i+=1;
+            }
+            else {
+              self.cntxs[i as usize]=1;
+              i+=1;
+              self.cntxs[i as usize]=2;
+              i+=1;
+              self.cntxs[i as usize]=3;
+              i+=1;
+            }
+            cflags<<=1;
+          }
+          for i in 0..cntx {
+            if self.rc32_getc(cpos,self.cntxs[i as usize]) {
               return;
             }
             unsafe { cpos=cpos.add(1) }
