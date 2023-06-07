@@ -73,8 +73,8 @@ lzfse (1.0) | -encode | 319756993 | 25,34 | 9,67 |
 gzip (1.12) | -9 | 322591995 | 49,25 | 8,73 |  
 pkzip (2.50b) | /add | 323645288 | 32,94 | 7,04 |  
 makecab/expand (5.0.1.1) |  | 324125809 | 57,91 | 5,81 |  
-$\textcolor[RGB]{48,183,0}{\textbf{qbp}}$ `(built with "gcc -O3")` | $\textcolor[RGB]{48,183,0}{\textbf{c}}$ | $\textcolor[RGB]{48,183,0}{\textbf{324501858}}$ | $\textcolor[RGB]{48,183,0}{\textbf{45,87}}$ | $\textcolor[RGB]{48,183,0}{\textbf{29,65}}$ |  
-$\textcolor[RGB]{48,183,0}{\textbf{unqbp}}$ `(built with "gcc -O3")` |  | $\textcolor[RGB]{48,183,0}{\textbf{324501858}}$ |  | $\textcolor[RGB]{48,183,0}{\textbf{29,31}}$ |  
+$\textcolor[RGB]{0,154,23}{\textbf{qbp}}$ `(built with "gcc -O3")` | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{324501858}}$ | $\textcolor[RGB]{0,154,23}{\textbf{45,87}}$ | $\textcolor[RGB]{0,154,23}{\textbf{29,65}}$ |  
+$\textcolor[RGB]{0,154,23}{\textbf{unqbp}}$ `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{324501858}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{29,31}}$ |  
 ain (2.32) | a /m1 | 324538744 | 90,10 | 28,51 |  
 arj32 (3.10) | a -m1 | 328553984 | 129,71 | 23,21 |  
 zoo (2.10) | ah | 353022373 | 104,18 | 30,69 |  
