@@ -63,24 +63,26 @@ rzip (2.1) | -9 -k | 253920811 | 113,04 | 56,55 |
 bzip2 (1.0.8) | -9 | 253977891 | 81,44 | 40,03 |  
 imp (1.12) | a -g -2 -mm | 256861382 | 77,49 | 21,71 |  
 ha (0.999c) | a2 | 285739328 | 278,29 | 285,12 |  
+7z (22.01) | a -tzip -m0=Deflate64 -mx9 | 298494477 | 861,46 | 6,26 |  
 ace (1.2b) | a -s -d512 -m5 | 298687158 | 173,79 | 8,24 |  
 zopfli (1.0.3) |  | 309578152 | 2508,81 |  |  
+7z (22.01) | a -tzip -m0=Deflate -mx9 | 310706257 | 790,08 | 6,54 |  
 yzenc/yzdec (1.06.1) |  | 312789435 | 48,74 | 23,86 |  
 lha (1.14i) | a -o7 | 312912781 | 113,52 | 10,46 |  
 lzfse (1.0) | -encode | 319756993 | 25,34 | 9,67 |  
 gzip (1.12) | -9 | 322591995 | 49,25 | 8,73 |  
 pkzip (2.50b) | /add | 323645288 | 32,94 | 7,04 |  
 makecab/expand (5.0.1.1) |  | 324125809 | 57,91 | 5,81 |  
-**qbp** `(built with "gcc -O3")` | **c** | **324501858** | **45,87** | **29,65** |  
-**unqbp** `(built with "gcc -O3")` |  | **324501858** |  | **29,31** |  
+$\textcolor[RGB]{170,219,30}{\textbf{qbp}}$ `(built with "gcc -O3")` | $\textcolor[RGB]{170,219,30}{\textbf{c}}$ | $\textcolor[RGB]{170,219,30}{\textbf{324501858}}$ | $\textcolor[RGB]{170,219,30}{\textbf{45,87}}$ | $\textcolor[RGB]{170,219,30}{\textbf{29,65}}$ |  
+$\textcolor[RGB]{170,219,30}{\textbf{unqbp}}$ `(built with "gcc -O3")` |  | $\textcolor[RGB]{170,219,30}{\textbf{324501858}}$ |  | $\textcolor[RGB]{170,219,30}{\textbf{29,31}}$ |  
 ain (2.32) | a /m1 | 324538744 | 90,10 | 28,51 |  
 arj32 (3.10) | a -m1 | 328553984 | 129,71 | 23,21 |  
 zoo (2.10) | ah | 353022373 | 104,18 | 30,69 |  
 lzop (1.04) | -9 -F | 366349786 | 105,33 | 3,31 |  
 lz4 (1.9.4) | --best | 372443347 | 65,90 | 11,91 |  
 lzari <br/> [(reference realization by Haruhiko Okumura)](https://web.archive.org/web/19990209183635/http://oak.oakland.edu/pub/simtelnet/msdos/arcutils/lz_comp2.zip) | e | 388521578 | 182,69 | 77,72 |  
-**lz16** `(built with "gcc -O3")` | **c** | **407180647** | **31,50** | **3,86** |  
-**unlz16** `(built with "gcc -O3")` |  | **407180647** |  | **3,86** |  
+$\textcolor[RGB]{0,154,23}{\textbf{lz16}}$ `(built with "gcc -O3")` | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{407180647}}$ | $\textcolor[RGB]{0,154,23}{\textbf{31,50}}$ | $\textcolor[RGB]{0,154,23}{\textbf{3,86}}$ |  
+$\textcolor[RGB]{0,154,23}{\textbf{unlz16}}$ `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{407180647}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{3,86}}$ |  
 ncompress (5.1) |  | 448136005 | 31,98 | 12,85 |  
 lzss <br/> [(reference realization by Haruhiko Okumura)](https://oku.edu.mie-u.ac.jp/~okumura/compression/lzss.c) | e | 455245327 | 136,39 | 36,33 |  
 carryless rangecoder <br/> [(reference algorithm by Dmitry Subbotin with the order-1 frequency model)](https://web.archive.org/web/20020420161153/http://www.softcomplete.com/algo/pack/rus-range.txt) |  | 480296513 | 28,12 |  |  
