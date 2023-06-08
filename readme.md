@@ -49,7 +49,8 @@ zpaq (7.15) | a -m5 -t1 | 168590740 | 2472,30 | 2519,52 |
 lrzip (0.651) | -z -p 1 -L 9 -U | 169357574 | 1967,30 | 1991,57 |  
 rz (1.03.7) | a -d 1023M | 173041178 | 3070,63 | 14,31 |  
 nanozip (0.09a) <br/> [(by Sami Runsas)](https://web.archive.org/web/20160304232219/http://nanozip.net/) | a -p1 -cO -m512m | 178225148 | 56,31 | 28,93 |  
-freearc (0.51) | a -mx | 185153701 | 219,45 | 187,81 |  
+freearc (0.51) <br/> [(by Bulat Ziganshin)](https://sourceforge.net/projects/freearc/) | a -mx | 185153701 | 219,45 | 187,81 |  
+freearc (0.666) <br/> [(by Bulat Ziganshin)](https://web.archive.org/web/20161118235221/http://freearc.org/Download.aspx) | a -mt1 -mx | 189696374 | 210,74 | 182,99 |  
 lzip (1.23) | -k -9 -s29 | 199138993 | 1134,42 | 20,09 |  
 uharc (0.6b) | a -d0 -md32768 -mm+ -mx | 208026696 | 493,92 | 383,33 |  
 rk (1.04.1a) | -mx | 208096232 | 1380,00 | 1372,69 |  
