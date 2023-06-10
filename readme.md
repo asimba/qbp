@@ -47,6 +47,7 @@ Packer | Options | Resulting size (bytes) | Packing time (sec) | Unpacking time 
 ----- | ----- | ----- | ----- | ----- |    
 mcm (0.85) <br/> [(by Mathieu Chartier)](https://github.com/mathieuchartier/mcm) | -x11 | 139343403 | 942,72 | 938,02 |  
 tangelo (1.0) <br/> [(by Matt Mahoney,Jan Ondrus)](https://encode.su/threads/1738-TANGELO-new-compressor-%28derived-from-PAQ8-FP8%29) | c | 156355536 | 7472,22 | 7549,93 |  
+zcm (0.93) <br/> [(by Nania Francesco Antonio)](http://heartofcomp.altervista.org/index.htm) | a -t1 -s -m8 | 159135549 | 295,03 | 297,55 |  
 zpaq (7.15) | a -m5 -t1 | 168590740 | 2472,30 | 2519,52 |  
 lrzip (0.651) | -z -p 1 -L 9 -U | 169357574 | 1967,30 | 1991,57 |  
 rz (1.03.7) | a -d 1023M | 173041178 | 3070,63 | 14,31 |  
@@ -74,19 +75,24 @@ ha (0.999c) | a2 | 285739328 | 278,29 | 285,12 |
 ace (1.2b) | a -s -d512 -m5 | 298687158 | 173,79 | 8,24 |  
 winzip (27.0) <br/> (using wzzip/wzunzip,limited to single thread) |  -a -ee | 298774317 | 456,93 | 8,33 |  
 zopfli (1.0.3) |  | 309578152 | 2508,81 |  |  
+hap/pah (3.00) |  | 309615837 | 440,31 | 466,25 |  
 rar (2.50) | a -s -m5 | 309827109 | 196,01 | 38,05 |  
 kzip <br/> [(by Ken Silverman)](http://advsys.net/ken/utils.htm) | /q /s0 | 310281906 | 2181,83 |  |  
 7z (22.01) | a -tzip -m0=Deflate -mx9 | 310706257 | 790,08 | 6,54 |  
 yzenc/yzdec (1.06.1) |  | 312789435 | 48,74 | 23,86 |  
 lha (1.14i) | a -o7 | 312912781 | 113,52 | 10,46 |  
 lzfse (1.0) | -encode | 319756993 | 25,34 | 9,67 |  
+limit (1.2) | a -mx | 320342601 | 138,10 | 38,25 |  
+sqz (1.08.3) | -q0 -m4 | 322400393 | 195,15 | 42,25 |  
 gzip (1.12) | -9 | 322591995 | 49,25 | 8,73 |  
+info-zip (3.0) <br/> (using zip/unzip) | -9 | 322592221 | 46,73 | 6,61 |  
 pkzip (2.50b) | /add | 323645288 | 32,94 | 7,04 |  
 makecab/expand (5.0.1.1) |  | 324125809 | 57,91 | 5,81 |  
 $\textcolor[RGB]{0,154,23}{\textbf{qbp}}$ `(built with "gcc -O3")` | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{324501858}}$ | $\textcolor[RGB]{0,154,23}{\textbf{45,87}}$ | $\textcolor[RGB]{0,154,23}{\textbf{29,65}}$ |  
 $\textcolor[RGB]{0,154,23}{\textbf{unqbp}}$ `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{324501858}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{29,31}}$ |  
 ain (2.32) | a /m1 | 324538744 | 90,10 | 28,51 |  
 arj32 (3.10) | a -m1 | 328553984 | 129,71 | 23,21 |  
+ar <br/> (by Haruhiko Okumura) | a | 353022236 | 514,50 | 59,71 |  
 zoo (2.10) | ah | 353022373 | 104,18 | 30,69 |  
 ulz (1.02b) <br/> [(by Ilya Muravyov)](https://compressme.net/) | c9 | 360342071 | 45,76 | 1,18 |  
 lzop (1.04) | -9 -F | 366349786 | 105,33 | 3,31 |  
@@ -95,6 +101,7 @@ lzari <br/> [(reference realization by Haruhiko Okumura)](https://web.archive.or
 $\textcolor[RGB]{0,154,23}{\textbf{lz16}}$ `(built with "gcc -O3")` | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{407180647}}$ | $\textcolor[RGB]{0,154,23}{\textbf{31,50}}$ | $\textcolor[RGB]{0,154,23}{\textbf{3,86}}$ |  
 $\textcolor[RGB]{0,154,23}{\textbf{unlz16}}$ `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{407180647}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{3,86}}$ |  
 ncompress (5.1) |  | 448136005 | 31,98 | 12,85 |  
+larc (3.33) | a | 455245358 | 214,15 | 36,23 |  
 lzss <br/> [(reference realization by Haruhiko Okumura)](https://oku.edu.mie-u.ac.jp/~okumura/compression/lzss.c) | e | 455245327 | 136,39 | 36,33 |  
 shrinker <br/> [(Shinker Fast&Light Compression Demo by fusiyuan2010@gmail.com)](https://code.google.com/archive/p/data-shrinker/) | c | 459825318 | 4,76 | 1,74 |  
 carryless rangecoder <br/> [(reference algorithm by Dmitry Subbotin with the order-1 frequency model)](https://web.archive.org/web/20020420161153/http://www.softcomplete.com/algo/pack/rus-range.txt) |  | 480296513 | 28,12 |  |  
