@@ -48,11 +48,11 @@ Packer | Options | Resulting size (bytes) | Packing time (sec) | Unpacking time 
 mcm (0.85) <br/> [(by Mathieu Chartier)](https://github.com/mathieuchartier/mcm) | -x11 | 139343403 | 942,72 | 938,02 |  
 tangelo (1.0) <br/> [(by Matt Mahoney,Jan Ondrus)](https://encode.su/threads/1738-TANGELO-new-compressor-%28derived-from-PAQ8-FP8%29) | c | 156355536 | 7472,22 | 7549,93 |  
 zcm (0.93) <br/> [(by Nania Francesco Antonio)](http://heartofcomp.altervista.org/index.htm) | a -t1 -s -m8 | 159135549 | 295,03 | 297,55 |  
+bcm (2.03) <br/> [(by Ilya Muravyov)](https://compressme.net/) | -b1000x- -t1 | 163646387 | 105,74 | 68,09 |  
 zpaq (7.15) | a -m5 -t1 | 168590740 | 2472,30 | 2519,52 |  
 lrzip (0.651) | -z -p 1 -L 9 -U | 169357574 | 1967,30 | 1991,57 |  
 rz (1.03.7) | a -d 1023M | 173041178 | 3070,63 | 14,31 |  
 nanozip (0.09a) <br/> [(by Sami Runsas)](https://web.archive.org/web/20160304232219/http://nanozip.net/) | a -p1 -cO -m512m | 178225148 | 56,31 | 28,93 |  
-bcm (2.03) <br/> [(by Ilya Muravyov)](https://compressme.net/) | -b64m -t1 | 184960668 | 91,39 | 62,79 |  
 freearc (0.51) <br/> [(by Bulat Ziganshin)](https://sourceforge.net/projects/freearc/) | a -mx | 185153701 | 219,45 | 187,81 |  
 freearc (0.666) <br/> [(by Bulat Ziganshin)](https://web.archive.org/web/20161118235221/http://freearc.org/Download.aspx) | a -mt1 -mx | 189696374 | 210,74 | 182,99 |  
 lzip (1.23) | -k -9 -s29 | 199138993 | 1134,42 | 20,09 |  
@@ -71,6 +71,7 @@ imp (1.12) | a -g -2 -mm | 256861382 | 77,49 | 21,71 |
 squid (0.03) <br/> [(by Ilya Muravyov)](https://compressme.net/) | cx | 269347430 | 65,66 | 34,37 |  
 lzpx (1.5b) <br/> [(by Ilya Muravyov)](https://compressme.net/) | e | 285234480 | 49,47 | 46,37 |  
 ha (0.999c) | a2 | 285739328 | 278,29 | 285,12 |  
+lizard (1.0.0) <br/> [(by by Y.Collet & P.Skibinski)](https://github.com/inikep/lizard) | -49 -BD --no-frame-crc | 289266199 | 574,45 | 8,97 |  
 7z (22.01) | a -tzip -m0=Deflate64 -mx9 | 298494477 | 861,46 | 6,26 |  
 ace (1.2b) | a -s -d512 -m5 | 298687158 | 173,79 | 8,24 |  
 winzip (27.0) <br/> (using wzzip/wzunzip,limited to single thread) |  -a -ee | 298774317 | 456,93 | 8,33 |  
@@ -97,6 +98,7 @@ zoo (2.10) | ah | 353022373 | 104,18 | 30,69 |
 ulz (1.02b) <br/> [(by Ilya Muravyov)](https://compressme.net/) | c9 | 360342071 | 45,76 | 1,18 |  
 lzop (1.04) | -9 -F | 366349786 | 105,33 | 3,31 |  
 lz4 (1.9.4) | --best | 372443347 | 65,90 | 11,91 |  
+lzss (0.02) <br/> [(by Ilya Muravyov)](http://compressme.net/lzss002.zip) | cx | 380192378 | 146,15 | 3,37 |  
 lzari <br/> [(reference realization by Haruhiko Okumura)](https://web.archive.org/web/19990209183635/http://oak.oakland.edu/pub/simtelnet/msdos/arcutils/lz_comp2.zip) | e | 388521578 | 182,69 | 77,72 |  
 $\textcolor[RGB]{0,154,23}{\textbf{lz16}}$ `(built with "gcc -O3")` | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{407180647}}$ | $\textcolor[RGB]{0,154,23}{\textbf{31,50}}$ | $\textcolor[RGB]{0,154,23}{\textbf{3,86}}$ |  
 $\textcolor[RGB]{0,154,23}{\textbf{unlz16}}$ `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{407180647}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{3,86}}$ |  
