@@ -69,12 +69,14 @@ rzip (2.1) | -9 -k | 253920811 | 113,04 | 56,55 |
 bzip2 (1.0.8) | -9 | 253977891 | 81,44 | 40,03 |  
 imp (1.12) | a -g -2 -mm | 256861382 | 77,49 | 21,71 |  
 squid (0.03) <br/> [(by Ilya Muravyov)](https://compressme.net/) | cx | 269347430 | 65,66 | 34,37 |  
+arhangel (1.40) | a -mzf -mm -c31900 -1 -2 | 284775209 | 584,47 | 400,50 |  
 lzpx (1.5b) <br/> [(by Ilya Muravyov)](https://compressme.net/) | e | 285234480 | 49,47 | 46,37 |  
 ha (0.999c) | a2 | 285739328 | 278,29 | 285,12 |  
-lizard (1.0.0) <br/> [(by by Y.Collet & P.Skibinski)](https://github.com/inikep/lizard) | -49 -BD --no-frame-crc | 289266199 | 574,45 | 8,97 |  
+lizard (1.0.0) <br/> [(by Y.Collet & P.Skibinski)](https://github.com/inikep/lizard) | -49 -BD --no-frame-crc | 289266199 | 574,45 | 8,97 |  
 7z (22.01) | a -tzip -m0=Deflate64 -mx9 | 298494477 | 861,46 | 6,26 |  
 ace (1.2b) | a -s -d512 -m5 | 298687158 | 173,79 | 8,24 |  
 winzip (27.0) <br/> (using wzzip/wzunzip,limited to single thread) |  -a -ee | 298774317 | 456,93 | 8,33 |  
+brieflz (1.3.0) <br/> [(by Joergen Ibsen)](https://github.com/jibsen/brieflz) | --optimal | 308781584 | 221,49 | 4,71 |  
 zopfli (1.0.3) |  | 309578152 | 2508,81 |  |  
 hap/pah (3.00) |  | 309615837 | 440,31 | 466,25 |  
 rar (2.50) | a -s -m5 | 309827109 | 196,01 | 38,05 |  
@@ -108,6 +110,7 @@ lzss <br/> [(reference realization by Haruhiko Okumura)](https://oku.edu.mie-u.a
 shrinker <br/> [(Shinker Fast&Light Compression Demo by fusiyuan2010@gmail.com)](https://code.google.com/archive/p/data-shrinker/) | c | 459825318 | 4,76 | 1,74 |  
 carryless rangecoder <br/> [(reference algorithm by Dmitry Subbotin with the order-1 frequency model)](https://web.archive.org/web/20020420161153/http://www.softcomplete.com/algo/pack/rus-range.txt) |  | 480296513 | 28,12 |  |  
 rangecoder (1.3) <br/> [(reference realization by Michael Schindler)](http://www.compressconsult.com/rangecoder/) | comp1/decomp1 | 489741259 | 44,36 | 53,35 |  
+flzp (1.0) <br/> [(by Matt Mahoney)](http://www.mattmahoney.net/dc/flzp.zip) | c | 497535428 | 74,15 | 16,34 |  
 lz4 (1.9.4) | -1 | 509454838 | 10,07 | 8,97 |  
 rangecoder (1.3) <br/> [(reference realization by Michael Schindler)](http://www.compressconsult.com/rangecoder/) | comp/decomp | 644426106 | 48,38 | 57,54 |  
 arc (5.21i) | a | 886038366 | 38,49 | 20,50 |  
