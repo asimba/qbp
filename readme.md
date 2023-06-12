@@ -56,6 +56,7 @@ nanozip (0.09a) <br/> [(by Sami Runsas)](https://web.archive.org/web/20160304232
 freearc (0.51) <br/> [(by Bulat Ziganshin)](https://sourceforge.net/projects/freearc/) | a -mx | 185153701 | 219,45 | 187,81 |  
 freearc (0.666) <br/> [(by Bulat Ziganshin)](https://web.archive.org/web/20161118235221/http://freearc.org/Download.aspx) | a -mt1 -mx | 189696374 | 210,74 | 182,99 |  
 lzip (1.23) | -k -9 -s29 | 199138993 | 1134,42 | 20,09 |  
+ybs (0.03f) | -m16m | 202110510 | 314,00 | 138,69 |  
 uharc (0.6b) | a -d0 -md32768 -mm+ -mx | 208026696 | 493,92 | 383,33 |  
 rk (1.04.1a) | -mx | 208096232 | 1380,00 | 1372,69 |  
 xz (5.2.9) | -9 -e | 211776220 | 871,57 | 13,38 |  
@@ -86,6 +87,7 @@ kzip <br/> [(by Ken Silverman)](http://advsys.net/ken/utils.htm) | /q /s0 | 3102
 7z (22.01) | a -tzip -m0=Deflate -mx9 | 310706257 | 790,08 | 6,54 |  
 yzenc/yzdec (1.06.1) |  | 312789435 | 48,74 | 23,86 |  
 lha (1.14i) | a -o7 | 312912781 | 113,52 | 10,46 |  
+uc2 (uc2 3 pro) | a -tt | 313795096 | 256,12 | 41,40 |  
 lzfse (1.0) | -encode | 319756993 | 25,34 | 9,67 |  
 limit (1.2) | a -mx | 320342601 | 138,10 | 38,25 |  
 sqz (1.08.3) | -q0 -m4 | 322400393 | 195,15 | 42,25 |  
