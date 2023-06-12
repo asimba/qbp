@@ -60,8 +60,10 @@ uharc (0.6b) | a -d0 -md32768 -mm+ -mx | 208026696 | 493,92 | 383,33 |
 rk (1.04.1a) | -mx | 208096232 | 1380,00 | 1372,69 |  
 xz (5.2.9) | -9 -e | 211776220 | 871,57 | 13,38 |  
 7z (22.01) | a -t7z -ms=on -m0=LZMA2 -mx9 -mmt=1 -scsUTF-8 -ssc | 213323101 | 690,12 | 8,50 |  
+boa (0.58b) | -a -s -m15 | 213845481 | 1758,10 | 1926,75 |  
 zstd (1.5.2) | --ultra -22 --no-progress --single-thread | 214910502 | 794,37 | 2,75 |  
 brotli (1.0.9) | -Z -n | 223345718 | 2287,31 | 3,36 |  
+sbc (0.969b) | c -m3 -b5 -os -hn | 224017402 | 291,50 | 104,75 |  
 rar (6.11) | a -s -k -m5 -mt1 -md1g | 232248528 | 811,92 | 5,64 |  
 szip (1.11b) <br/> [(by Michael Schindler)](http://www.compressconsult.com/szip/) | -b41 -o6 | 232346611 | 79,50 | 88,43 |  
 squeez (6.0) | a /mx /fmt sqx | 246152882 | 597,93 | 8,89 |  
@@ -94,11 +96,13 @@ makecab/expand (5.0.1.1) |  | 324125809 | 57,91 | 5,81 |
 $\textcolor[RGB]{0,154,23}{\textbf{qbp}}$ `(built with "gcc -O3")` | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{324501858}}$ | $\textcolor[RGB]{0,154,23}{\textbf{45,87}}$ | $\textcolor[RGB]{0,154,23}{\textbf{29,65}}$ |  
 $\textcolor[RGB]{0,154,23}{\textbf{unqbp}}$ `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{324501858}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{29,31}}$ |  
 ain (2.32) | a /m1 | 324538744 | 90,10 | 28,51 |  
+quark (1.06) | a | 325196497 | 177,25 | 97,30 |  
 arj32 (3.10) | a -m1 | 328553984 | 129,71 | 23,21 |  
 ar <br/> (by Haruhiko Okumura) | a | 353022236 | 514,50 | 59,71 |  
 zoo (2.10) | ah | 353022373 | 104,18 | 30,69 |  
 ulz (1.02b) <br/> [(by Ilya Muravyov)](https://compressme.net/) | c9 | 360342071 | 45,76 | 1,18 |  
 lzop (1.04) | -9 -F | 366349786 | 105,33 | 3,31 |  
+hyper (2.6) | -a | 368163826 | 126,25 | 96,10 |  
 lz4 (1.9.4) | --best | 372443347 | 65,90 | 11,91 |  
 lzss (0.02) <br/> [(by Ilya Muravyov)](http://compressme.net/lzss002.zip) | cx | 380192378 | 146,15 | 3,37 |  
 lzari <br/> [(reference realization by Haruhiko Okumura)](https://web.archive.org/web/19990209183635/http://oak.oakland.edu/pub/simtelnet/msdos/arcutils/lz_comp2.zip) | e | 388521578 | 182,69 | 77,72 |  
