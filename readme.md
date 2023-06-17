@@ -69,6 +69,7 @@ rar (6.11) | a -s -k -m5 -mt1 -md1g | 232248528 | 811,92 | 5,64 |
 szip (1.11b) <br/> [(by Michael Schindler)](http://www.compressconsult.com/szip/) | -b41 -o6 | 232346611 | 79,50 | 88,43 |  
 balz (1.50) <br/> [(by Ilya Muravyov)](https://sourceforge.net/projects/balz/) | cx | 241575273 | 1059,91 | 33,53 |  
 squeez (6.0) | a /mx /fmt sqx | 246152882 | 597,93 | 8,89 |  
+sr3a <br/> [(by Matt Mahoney,Nania Francesco Antonio)](http://mattmahoney.net/dc/sr3a.zip) | c | 253031977 | 55,95 | 67,09 |  
 rzip (2.1) | -9 -k | 253920811 | 113,04 | 56,55 |  
 bzip2 (1.0.8) | -9 | 253977891 | 81,44 | 40,03 |  
 imp (1.12) | a -g -2 -mm | 256861382 | 77,49 | 21,71 |  
@@ -122,5 +123,8 @@ carryless rangecoder <br/> [(reference algorithm by Dmitry Subbotin with the ord
 rangecoder (1.3) <br/> [(reference realization by Michael Schindler)](http://www.compressconsult.com/rangecoder/) | comp1/decomp1 | 489741259 | 44,36 | 53,35 |  
 flzp (1.0) <br/> [(by Matt Mahoney)](http://www.mattmahoney.net/dc/flzp.zip) | c | 497535428 | 74,15 | 16,34 |  
 lz4 (1.9.4) | -1 | 509454838 | 10,07 | 8,97 |  
+fpaqc <br/> [(by Matt Mahoney)](http://mattmahoney.net/dc/fpaqc.zip) | c | 620278358 | 112,53 | 89,40 |  
+fpaqb (2) <br/> [(by Matt Mahoney)](http://mattmahoney.net/dc/fpaqb.zip) | c | 620278361 | 116,20 | 81,57 |  
+fpaq0 <br/> [(by Matt Mahoney)](http://mattmahoney.net/dc/fpaq0.cpp) | c | 641421110 | 95,09 | 122,44 |  
 rangecoder (1.3) <br/> [(reference realization by Michael Schindler)](http://www.compressconsult.com/rangecoder/) | comp/decomp | 644426106 | 48,38 | 57,54 |  
 arc (5.21i) | a | 886038366 | 38,49 | 20,50 |  
