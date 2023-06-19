@@ -48,6 +48,7 @@ class packer{
     uint8_t *hlpp;
     uint8_t *cpos;
     uint8_t rle_flag;
+    uint8_t scntx;
     uint16_t *vocarea;
     uint16_t *hashes;
     uint16_t buf_size;
@@ -104,8 +105,8 @@ packer::packer(){
   hashes=new uint16_t[0x10000];
   vocindx=new vocpntr[0x10000];
   frequency=new uint16_t*[256];
-  for(int i=0;i<5;i++) frequency[i]=new uint16_t[256];
-  fcs=new uint16_t[5];
+  for(int i=0;i<256;i++) frequency[i]=new uint16_t[256];
+  fcs=new uint16_t[256];
   lowp=&((uint8_t *)&low)[3];
   hlpp=&((uint8_t *)&hlp)[0];
   read=NULL;
@@ -119,15 +120,15 @@ packer::~packer(){
   del(cntxs,LZ_CAPACITY+1,(uint8_t)0);
   del(vocarea,0x10000,(uint16_t)0);
   del(hashes,0x10000,(uint16_t)0);
-  for(int i=0;i<5;i++) del(frequency[i],256,(uint16_t)0);
+  for(int i=0;i<256;i++) del(frequency[i],256,(uint16_t)0);
   delete[] frequency;
-  del(fcs,5,(uint16_t)0);
+  del(fcs,256,(uint16_t)0);
   del(vocindx,0x10000,(vocpntr){0,0});
   lowp=NULL;
   hlpp=NULL;
   read=NULL;
   write=NULL;
-  cnt=flags=buf_size=vocroot=voclast=range=low=hlp=icbuf=wpos=rpos=0;
+  scntx=cnt=flags=buf_size=vocroot=voclast=range=low=hlp=icbuf=wpos=rpos=0;
 }
 
 void packer::set_operators(io_operator r, io_operator w){
@@ -140,7 +141,7 @@ void packer::init(){
   cnt=1;
   voclast=0xfffc;
   range=0xffffffff;
-  for(int i=0;i<5;i++){
+  for(int i=0;i<256;i++){
     for(int j=0;j<256;j++) frequency[i][j]=1;
     fcs[i]=256;
   };
@@ -157,6 +158,7 @@ void packer::init(){
   vocarea[0xfffe]=0xfffe;
   vocarea[0xffff]=0xffff;
   cpos=&cbuffer[1];
+  scntx=0xff;
   finalize=false;
 }
 
@@ -171,33 +173,32 @@ inline bool packer::rbuf(void *file, uint8_t *c){
   return false;
 }
 
-inline bool packer::rc32_getc(void *file, uint8_t *c, uint8_t cntx){
+#define rc32_rescale()\
+    range*=(*f)++;\
+    if(!++fc){\
+      f=frequency[cntx];\
+      for(s=0;s<256;s++) fc+=(*f=((*f)>>1)|(*f&1)),f++;\
+    };\
+    fcs[cntx]=fc;\
+    return false;
+
+#define rc32_shift() low<<=8;if((uint32_t)((range<<=8)+low)<low) range=~low;
+
+bool packer::rc32_getc(void *file, uint8_t *c, uint8_t cntx){
   uint16_t *f=frequency[cntx],fc=fcs[cntx];
   uint32_t s=0,i;
   while(hlp<low||(low^(low+range))<0x1000000||range<0x10000){
     hlp<<=8;
     if(rbuf(file,hlpp)) return true;
     if(!rpos) return false;
-    low<<=8;
-    range<<=8;
-    if((uint32_t)(range+low)<low) range=~low;
+    rc32_shift();
   };
-  if((i=(hlp-low)/(range/=fc))<fc){
-    while((s+=*f)<=i) f++;
-    low+=(s-*f)*range;
-    *c=(uint8_t)(f-frequency[cntx]);
-    range*=(*f)++;
-    if(!++fc){
-      f=frequency[cntx];
-      for(s=0;s<256;s++){
-        *f=((*f)>>1)|1;
-        fc+=*f++;
-      };
-    };
-    fcs[cntx]=fc;
-    return false;
-  }
-  else return true;
+  if((i=(hlp-low)/(range/=fc))>=fc) return true;
+  while((s+=*f)<=i) f++;
+  low+=(s-*f)*range;
+  *c=(uint8_t)(f-frequency[cntx]);
+  rc32_rescale();
+  return false;
 }
 
 inline bool packer::rc32_putc(void *file, uint8_t c, uint8_t cntx){
@@ -205,22 +206,11 @@ inline bool packer::rc32_putc(void *file, uint8_t c, uint8_t cntx){
   uint32_t s=0,i=c;
   while((low^(low+range))<0x1000000||range<0x10000){
     if(!(wbuf(file,*lowp),wpos)) return true;
-    low<<=8;
-    range<<=8;
-    if((uint32_t)(range+low)<low) range=~low;
+    rc32_shift();
   };
   while(i--) s+=*f++;
   low+=s*(range/=fc);
-  range*=(*f)++;
-  if(!++fc){
-    f=frequency[cntx];
-    for(s=0;s<256;s++){
-      *f=((*f)>>1)|1;
-      fc+=*f++;
-    };
-  };
-  fcs[cntx]=fc;
-  return false;
+  rc32_rescale();
 }
 
 bool packer::packer_putc(void *file, uint8_t c){
@@ -276,7 +266,8 @@ bool packer::packer_putc(void *file, uint8_t c){
           buf_size-=length;
         }
         else{
-          cntxs[cnt++]=4;
+          cntxs[cnt++]=scntx;
+          scntx=vocbuf[symbol];
           *cbuffer|=1;
           *cpos=vocbuf[symbol];
           buf_size--;
@@ -346,7 +337,13 @@ bool packer::packer_getc(void *file, uint8_t *c){
           cflags<<=1;
         };
         for(s=0;s<cnt;s++)
-          if(rc32_getc(file,cpos++,cntxs[s])) return true;
+          if(cntxs[s]==4){
+            if(rc32_getc(file,cpos,scntx)) return true;
+            scntx=*cpos++;
+          }
+          else{
+            if(rc32_getc(file,cpos++,cntxs[s])) return true;
+          };
         cpos=&cbuffer[1];
         flags=8;
       };

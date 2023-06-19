@@ -17,8 +17,8 @@ uint8_t ibuf[0x10000];
 uint8_t vocbuf[0x10000];
 uint32_t icbuf;
 uint32_t rpos;
-uint16_t frequency[5][256];
-uint16_t fcs[5];
+uint16_t frequency[256][256];
+uint16_t fcs[256];
 uint32_t low;
 uint32_t hlp;
 uint32_t range;
@@ -41,15 +41,12 @@ int rc32_getc(uint8_t *c,FILE *ifile,uint8_t cntx){
   };
   if((i=(hlp-low)/(range/=fc))<fc){
     while((s+=*f)<=i) f++;
-    *c=f-frequency[cntx];
     low+=(s-*f)*range;
+    *c=f-frequency[cntx];
     range*=(*f)++;
     if(!++fc){
       f=frequency[cntx];
-      for(s=0;s<256;s++){
-        *f=((*f)>>1)|1;
-        fc+=*f++;
-      };
+      for(s=0;s<256;s++) fc+=(*f=((*f)>>1)|(*f&1)),f++;
     };
     fcs[cntx]=fc;
     return 0;
@@ -58,14 +55,14 @@ int rc32_getc(uint8_t *c,FILE *ifile,uint8_t cntx){
 }
 
 void unpack_file(FILE *ifile, FILE *ofile){
-  uint8_t *cpos=NULL,flags=0,c,rle_flag=0,bytes=0,cntx=0,cflags=0;
-  uint8_t cbuffer[LZ_CAPACITY+1];
-  uint8_t cntxs[LZ_CAPACITY+1];
+  uint8_t flags=0,c,rle_flag=0,bytes=0,cntx=0,cflags=0,scntx=0xff;
+  uint8_t cbuffer[LZ_CAPACITY+1],*cpos=cbuffer;
+  uint8_t cntxs[LZ_CAPACITY+2];
   uint16_t vocroot=0,offset=0,length=0;
   low=hlp=icbuf=rpos=0;
   range=0xffffffff;
   hlpp=&((uint8_t *)&hlp)[0];
-  for(int i=0;i<5;i++){
+  for(int i=0;i<256;i++){
     for(int j=0;j<256;j++) frequency[i][j]=1;
     fcs[i]=256;
   };
@@ -105,17 +102,22 @@ void unpack_file(FILE *ifile, FILE *ofile){
     for(c=~*cbuffer;c;flags++) c&=c-1;
     cflags=*cbuffer;
     cntx=8+(flags<<1);
-    for(c=0;c<cntx;){
+    for(c=0;c<(cntx=8+(flags<<1));){
       if(cflags&0x80) cntxs[c++]=4;
       else{
-        cntxs[c++]=1;
-        cntxs[c++]=2;
-        cntxs[c++]=3;
+        *(uint32_t*)(cntxs+c)=0x00030201;
+        c+=3;
       };
       cflags<<=1;
     };
     for(c=0;c<cntx;c++)
-      if(rc32_getc(cpos++,ifile,cntxs[c])) return;
+      if(cntxs[c]==4){
+        if(rc32_getc(cpos,ifile,scntx)) return;
+        scntx=*cpos++;
+      }
+      else{
+        if(rc32_getc(cpos++,ifile,cntxs[c])) return;
+      };
     cpos=&cbuffer[1];
     flags=8;
   };

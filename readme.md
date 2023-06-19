@@ -92,6 +92,8 @@ kzip <br/> [(by Ken Silverman)](http://advsys.net/ken/utils.htm) | /q /s0 | 3102
 yzenc/yzdec (1.06.1) |  | 312789435 | 48,74 | 23,86 |  
 lha (1.14i) | a -o7 | 312912781 | 113,52 | 10,46 |  
 uc2 (uc2 3 pro) | a -tt | 313795096 | 256,12 | 41,40 |  
+$\textcolor[RGB]{0,154,23}{\textbf{qbp}}$ `(built with "gcc -O3")` | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{317542161}}$ | $\textcolor[RGB]{0,154,23}{\textbf{45,56}}$ | $\textcolor[RGB]{0,154,23}{\textbf{29,46}}$ |  
+$\textcolor[RGB]{0,154,23}{\textbf{unqbp}}$ `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{317542161}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{30,20}}$ |  
 lzfse (1.0) | -encode | 319756993 | 25,34 | 9,67 |  
 limit (1.2) | a -mx | 320342601 | 138,10 | 38,25 |  
 sqz (1.08.3) | -q0 -m4 | 322400393 | 195,15 | 42,25 |  
@@ -99,8 +101,6 @@ gzip (1.12) | -9 | 322591995 | 49,25 | 8,73 |
 info-zip (3.0) <br/> (using zip/unzip) | -9 | 322592221 | 46,73 | 6,61 |  
 pkzip (2.50b) | /add | 323645288 | 32,94 | 7,04 |  
 makecab/expand (5.0.1.1) |  | 324125809 | 57,91 | 5,81 |  
-$\textcolor[RGB]{0,154,23}{\textbf{qbp}}$ `(built with "gcc -O3")` | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{324501858}}$ | $\textcolor[RGB]{0,154,23}{\textbf{45,87}}$ | $\textcolor[RGB]{0,154,23}{\textbf{29,65}}$ |  
-$\textcolor[RGB]{0,154,23}{\textbf{unqbp}}$ `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{324501858}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{29,31}}$ |  
 ain (2.32) | a /m1 | 324538744 | 90,10 | 28,51 |  
 quark (1.06) | a | 325196497 | 177,25 | 97,30 |  
 arj32 (3.10) | a -m1 | 328553984 | 129,71 | 23,21 |  

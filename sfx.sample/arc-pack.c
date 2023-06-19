@@ -21,14 +21,15 @@ typedef union{
 } vocpntr;
 
 uint8_t flags;
+uint8_t scntx;
 uint8_t cbuffer[LZ_CAPACITY+1];
 uint8_t cntxs[LZ_CAPACITY+1];
 uint8_t vocbuf[0x10000];
 uint16_t vocarea[0x10000];
 uint16_t hashes[0x10000];
 vocpntr vocindx[0x10000];
-uint16_t frequency[5][256];
-uint16_t fcs[5];
+uint16_t frequency[256][256];
+uint16_t fcs[256];
 uint16_t buf_size;
 uint16_t voclast;
 uint16_t vocroot;
@@ -46,7 +47,7 @@ void pack_initialize(){
   range=0xffffffff;
   lowp=&((char *)&low)[3];
   hlpp=&((char *)&hlp)[0];
-  for(int i=0;i<5;i++){
+  for(int i=0;i<256;i++){
     for(int j=0;j<256;j++) frequency[i][j]=1;
     fcs[i]=256;
   };
@@ -62,6 +63,7 @@ void pack_initialize(){
   vocarea[0xfffd]=0xfffd;
   vocarea[0xfffe]=0xfffe;
   vocarea[0xffff]=0xffff;
+  scntx=0xff;
 }
 
 uint32_t rc32_putc(uint8_t c,FILE *ofile,uint8_t cntx){
@@ -79,10 +81,7 @@ uint32_t rc32_putc(uint8_t c,FILE *ofile,uint8_t cntx){
   range*=(*f)++;
   if(!++fc){
     f=frequency[cntx];
-    for(s=0;s<256;s++){
-      *f=((*f)>>1)|1;
-      fc+=*f++;
-    };
+    for(s=0;s<256;s++) fc+=(*f=((*f)>>1)|(*f&1)),f++;
   };
   fcs[cntx]=fc;
   return 0;
@@ -146,7 +145,8 @@ void pack_file(FILE *ifile,FILE *ofile){
         buf_size-=length;
       }
       else{
-        cntxs[cntx++]=4;
+        cntxs[cntx++]=scntx;
+        scntx=vocbuf[symbol];
         *cbuffer|=1;
         *cpos=vocbuf[symbol];
         buf_size--;

@@ -39,7 +39,7 @@ pub struct Packer {
   hashes: [u16; 0x10000],
   vocindx: [Vocpntr; 0x10000],
   frequency: Vec<Vec<u16>>,
-  fcs: [u16; 5],
+  fcs: [u16; 256],
   icbuf: u32,
   wpos: u32,
   rpos: u32,
@@ -56,6 +56,7 @@ pub struct Packer {
   lowp: *mut u8,
   hlpp: *mut u8,
   flags: u8,
+  scntx: u8,
   pub ifile: File,
   pub ofile: File,
 }
@@ -71,13 +72,14 @@ impl Packer {
       vocarea: [0 as u16; 0x10000],
       hashes: [0 as u16; 0x10000],
       vocindx: [Vocpntr{v:1 as u32,}; 0x10000],
-      frequency: vec![vec![0 as u16; 256]; 5],
-      fcs: [0 as u16; 5],
+      frequency: vec![vec![0 as u16; 256]; 256],
+      fcs: [0 as u16; 256],
       icbuf: 0,wpos: 0,rpos: 0,low: 0,hlp: 0,range: 0,
       buf_size: 0,voclast: 0,vocroot: 0,offset: 0,length: 0,symbol: 0,hs: 0,
       lowp: ptr::null_mut(),
       hlpp: ptr::null_mut(),
       flags: 0,
+      scntx: 0xff,
       ifile:match File::open(&Path::new(i)){
         Err(why)=>{
           println!("Couldn't open input file: {}",why);
@@ -98,6 +100,7 @@ impl Packer {
   pub fn init(&mut self) {
     self.buf_size=0;
     self.flags=0;
+    self.scntx=0xff;
     self.vocroot=0;
     self.cbuffer[0]=0;
     self.cntxs[0]=0;
@@ -108,7 +111,7 @@ impl Packer {
     self.rpos=0;
     self.voclast=0xfffd;
     self.range=0xffffffff;
-    for i in 0..5{
+    for i in 0..256{
       for j in 0..256{
         self.frequency[i][j]=1 as u16;
       }
@@ -170,7 +173,7 @@ impl Packer {
     if self.fcs[cntx as usize]==0 {
       let mut fc: u16=0;
       for i in 0..256 {
-        self.frequency[cntx as usize][i]=(self.frequency[cntx as usize][i]>>1)|1;
+        self.frequency[cntx as usize][i]=(self.frequency[cntx as usize][i]>>1)|(self.frequency[cntx as usize][i]&1);
         fc+=self.frequency[cntx as usize][i];
       }
       self.fcs[cntx as usize]=fc;
@@ -361,7 +364,8 @@ impl Packer {
             }
           }
           else {
-            self.cntxs[cntx as usize]=4;
+            self.cntxs[cntx as usize]=self.scntx;
+            self.scntx=self.vocbuf[self.symbol as usize];
             cntx+=1;
             self.cbuffer[0]|=0x01;
             unsafe { *cpos=self.vocbuf[self.symbol as usize] };
@@ -480,8 +484,18 @@ impl Packer {
             cflags<<=1;
           }
           for i in 0..cntx {
-            if self.rc32_getc(cpos,self.cntxs[i as usize]) {
-              return;
+            if self.cntxs[i as usize]==4 {
+              if self.rc32_getc(cpos,self.scntx) {
+                return;
+              }
+              unsafe {
+                self.scntx=*cpos;
+              }
+            }
+            else{
+              if self.rc32_getc(cpos,self.cntxs[i as usize]) {
+                return;
+              }
             }
             unsafe { cpos=cpos.add(1) }
           }

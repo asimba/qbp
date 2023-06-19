@@ -28,13 +28,13 @@ uint32_t wpos;
 uint32_t rpos;
 uint8_t flags;
 uint8_t cbuffer[LZ_CAPACITY+1];
-uint8_t cntxs[LZ_CAPACITY+1];
+uint8_t cntxs[LZ_CAPACITY+2];
 uint8_t vocbuf[0x10000];
 uint16_t vocarea[0x10000];
 uint16_t hashes[0x10000];
 vocpntr vocindx[0x10000];
-uint16_t frequency[5][256];
-uint16_t fcs[5];
+uint16_t frequency[256][256];
+uint16_t fcs[256];
 uint16_t buf_size;
 uint16_t voclast;
 uint16_t vocroot;
@@ -45,6 +45,7 @@ uint32_t hlp;
 uint32_t range;
 uint8_t *lowp;
 uint8_t *hlpp;
+uint8_t scntx;
 
 void pack_initialize(){
   cntxs[0]=flags=buf_size=vocroot=low=hlp=icbuf=wpos=rpos=0;
@@ -52,7 +53,7 @@ void pack_initialize(){
   range=0xffffffff;
   lowp=&((uint8_t *)&low)[3];
   hlpp=&((uint8_t *)&hlp)[0];
-  for(int i=0;i<5;i++){
+  for(int i=0;i<256;i++){
     for(int j=0;j<256;j++) frequency[i][j]=1;
     fcs[i]=256;
   };
@@ -68,6 +69,7 @@ void pack_initialize(){
   vocarea[0xfffd]=0xfffd;
   vocarea[0xfffe]=0xfffe;
   vocarea[0xffff]=0xffff;
+  scntx=0xff;
 }
 
 void wbuf(uint8_t c,FILE *ofile){
@@ -80,59 +82,46 @@ void rbuf(uint8_t *c,FILE *ifile){
   *c=ibuf[rpos++];
 }
 
+#define rc32_rescale()\
+    range*=(*f)++;\
+    if(!++fc){\
+      f=frequency[cntx];\
+      for(s=0;s<256;s++) fc+=(*f=((*f)>>1)|(*f&1)),f++;\
+    };\
+    fcs[cntx]=fc;\
+    return 0;
+
+#define rc32_shift() low<<=8;if((uint32_t)((range<<=8)+low)<low) range=~low;
+
 uint32_t rc32_getc(uint8_t *c,FILE *ifile,uint8_t cntx){
-  uint16_t *f=frequency[cntx],fc=fcs[cntx];
-  uint32_t s=0,i;
   while(hlp<low||(low^(low+range))<0x1000000||range<0x10000){
     hlp<<=8;
     if(!(rbuf(hlpp,ifile),rpos)) return 0;
-    low<<=8;
-    range<<=8;
-    if((uint32_t)(range+low)<low) range=~low;
+    rc32_shift();
   };
-  if((i=(hlp-low)/(range/=fc))<fc){
-    while((s+=*f)<=i) f++;
-    *c=f-frequency[cntx];
-    low+=(s-*f)*range;
-    range*=(*f)++;
-    if(!++fc){
-      f=frequency[cntx];
-      for(s=0;s<256;s++){
-        *f=((*f)>>1)|1;
-        fc+=*f++;
-      };
-    };
-    fcs[cntx]=fc;
-    return 0;
-  }
-  else return 1;
+  uint16_t *f=frequency[cntx],fc=fcs[cntx];
+  uint32_t s=0,i;
+  if((i=(hlp-low)/(range/=fc))>=fc) return 1;
+  while((s+=*f)<=i) f++;
+  low+=(s-*f)*range;
+  *c=f-frequency[cntx];
+  rc32_rescale();
 }
 
-inline uint32_t rc32_putc(uint8_t c,FILE *ofile,uint8_t cntx){
-  uint16_t *f=frequency[cntx],fc=fcs[cntx];
-  uint32_t s=0,i=c;
+uint32_t rc32_putc(uint16_t c,FILE *ofile,uint8_t cntx){
   while((low^(low+range))<0x1000000||range<0x10000){
     if(!(wbuf(*lowp,ofile),wpos)) return 1;
-    low<<=8;
-    range<<=8;
-    if((uint32_t)(range+low)<low) range=~low;
+    rc32_shift();
   };
-  while(i--) s+=*f++;
+  uint16_t *f=frequency[cntx],fc=fcs[cntx];
+  uint32_t s=0;
+  while(c--) s+=*f++;
   low+=s*(range/=fc);
-  range*=(*f)++;
-  if(!++fc){
-    f=frequency[cntx];
-    for(s=0;s<256;s++){
-      *f=((*f)>>1)|1;
-      fc+=*f++;
-    };
-  };
-  fcs[cntx]=fc;
-  return 0;
+  rc32_rescale();
 }
 
 void pack_file(FILE *ifile,FILE *ofile){
-  uint8_t *cpos=&cbuffer[1],eoff=0,cntx=1;
+  uint8_t *cpos=&cbuffer[1],*npos=&cntxs[1],eoff=0;
   flags=8;
   for(;;){
     if(!eoff&&buf_size!=LZ_BUF_SIZE){
@@ -179,24 +168,22 @@ void pack_file(FILE *ifile,FILE *ofile){
       else offset=~(uint16_t)(offset-rle_shift);
       uint16_t i=length-LZ_MIN_MATCH;
       if(i){
-        cntxs[cntx++]=1;
-        cntxs[cntx++]=2;
-        cntxs[cntx++]=3;
+        *(uint32_t*)npos=0x00030201;
+        npos+=3;
         *cpos++=--i;
         *(uint16_t*)cpos++=offset;
         buf_size-=length;
       }
       else{
-        cntxs[cntx++]=4;
+        *npos++=scntx;
+        scntx=vocbuf[symbol];
         *cbuffer|=1;
         *cpos=vocbuf[symbol];
         buf_size--;
       };
     }
     else{
-      cntxs[cntx++]=1;
-      cntxs[cntx++]=2;
-      cntxs[cntx++]=3;
+      *(uint32_t*)npos=0x00030201;
       length=0;
       cpos++;
       *(uint16_t*)cpos++=0x0100;
@@ -215,13 +202,13 @@ void pack_file(FILE *ifile,FILE *ofile){
       break;
     };
     cpos=&cbuffer[1];
-    cntx=1;
+    npos=&cntxs[1];
     flags=8;
   };
 }
 
 void unpack_file(FILE *ifile, FILE *ofile){
-  uint8_t *cpos=NULL,c,rle_flag=0,bytes=0,cntx=0,cflags=0;
+  uint8_t *cpos=NULL,c,rle_flag=0,bytes=0,cntx,cflags;
   length=0;
   for(c=0;c<4;c++){
     hlp<<=8;
@@ -240,7 +227,7 @@ void unpack_file(FILE *ifile, FILE *ofile){
       length=rle_flag=1;
       if(*cbuffer&0x80) c=*cpos;
       else{
-        length+=LZ_MIN_MATCH+*cpos++;
+        length=LZ_MIN_MATCH+1+*cpos++;
         if((offset=*(uint16_t*)cpos++)<0x0100) c=offset;
         else{
           if(offset==0x0100) break;
@@ -257,18 +244,22 @@ void unpack_file(FILE *ifile, FILE *ofile){
     if(rc32_getc(cpos++,ifile,0)) break;
     for(c=~*cbuffer;c;flags++) c&=c-1;
     cflags=*cbuffer;
-    cntx=8+(flags<<1);
-    for(c=0;c<cntx;){
+    for(c=0;c<(cntx=8+(flags<<1));){
       if(cflags&0x80) cntxs[c++]=4;
       else{
-        cntxs[c++]=1;
-        cntxs[c++]=2;
-        cntxs[c++]=3;
+        *(uint32_t*)(cntxs+c)=0x00030201;
+        c+=3;
       };
       cflags<<=1;
     };
     for(c=0;c<cntx;c++)
-      if(rc32_getc(cpos++,ifile,cntxs[c])) return;
+      if(cntxs[c]==4){
+        if(rc32_getc(cpos,ifile,scntx)) return;
+        scntx=*cpos++;
+      }
+      else{
+        if(rc32_getc(cpos++,ifile,cntxs[c])) return;
+      };
     cpos=&cbuffer[1];
     flags=8;
   };
