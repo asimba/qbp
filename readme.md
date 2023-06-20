@@ -100,7 +100,7 @@ sqz (1.08.3) <br/> (by Jonas I. Hammarberg) | -q0 -m4 | 322400393 | 195,15 | 42,
 gzip (1.12) <br/> [(GNU Gzip home page)](https://www.gnu.org/software/gzip/) | -9 | 322591995 | 49,25 | 8,73 |  
 info-zip (3.0) <br/> [(using zip/unzip)](https://infozip.sourceforge.net/) | -9 | 322592221 | 46,73 | 6,61 |  
 pkzip (2.50b) <br/> [(by PKWARE)](https://www.pkware.com/zip/products/pkzip) | /add | 323645288 | 32,94 | 7,04 |  
-makecab/expand (5.0.1.1) |  | 324125809 | 57,91 | 5,81 |  
+makecab/expand (5.0.1.1) <br/> [(by Microsoft Corporation)](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/makecab) |  | 324125809 | 57,91 | 5,81 |  
 ain (2.32) <br/> (by Transas Marine (UK) Ltd.) | a /m1 | 324538744 | 90,10 | 28,51 |  
 quark (1.06) <br/> (by Robert Kunz) | a | 325196497 | 177,25 | 97,30 |  
 arj32 (3.20) <br/> [(by ARJ Software)](http://www.arjsoftware.com/) | a -m1 | 328536964 | 67,71 | 9,25 |  
