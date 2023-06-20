@@ -64,12 +64,12 @@ xz (5.2.9) <br/> [(XZ Utils home page)](https://tukaani.org/xz/) | -9 -e | 21177
 boa (0.58b) <br/> (by Ian Sutton) | -a -s -m15 | 213845481 | 1758,10 | 1926,75 |  
 zstd (1.5.2) <br/> [(Zstandard GitHub home page)](https://github.com/facebook/zstd/) | --ultra -22 --no-progress --single-thread | 214910502 | 794,37 | 2,75 |  
 brotli (1.0.9) <br/> [(by Google)](https://github.com/google/brotli) | -Z -n | 223345718 | 2287,31 | 3,36 |  
-sbc (0.969b) | c -m3 -b5 -os -hn | 224017402 | 291,50 | 104,75 |  
+sbc (0.969b) <br/> (by Sami J. Makinen) | c -m3 -b5 -os -hn | 224017402 | 291,50 | 104,75 |  
 rar (6.11) <br/> [(by Alexander Roshal)](https://www.rarlab.com/) | a -s -k -m5 -mt1 -md1g | 232248528 | 811,92 | 5,64 |  
 szip (1.11b) <br/> [(by Michael Schindler)](http://www.compressconsult.com/szip/) | -b41 -o6 | 232346611 | 79,50 | 88,43 |  
 balz (1.50) <br/> [(by Ilya Muravyov)](https://sourceforge.net/projects/balz/) | cx | 241575273 | 1059,91 | 33,53 |  
-squeez (6.0) | a /mx /fmt sqx | 246152882 | 597,93 | 8,89 |  
-sr3a <br/> [(by Matt Mahoney,Nania Francesco Antonio)](http://mattmahoney.net/dc/sr3a.zip) | c | 253031977 | 55,95 | 67,09 |  
+squeez (6.0) <br/> [(by Sven Ritter)](https://www.speedproject.com/download/old/) | a /mx /fmt sqx | 246152882 | 597,93 | 8,89 |  
+sr3a <br/> [(by Matt Mahoney, Nania Francesco Antonio)](http://mattmahoney.net/dc/sr3a.zip) | c | 253031977 | 55,95 | 67,09 |  
 rzip (2.1) <br/> [(by Andrew Tridgell)](https://rzip.samba.org/) | -9 -k | 253920811 | 113,04 | 56,55 |  
 bzip2 (1.0.8) <br/> [(bzip2 home page)](https://sourceware.org/bzip2/) | -9 | 253977891 | 81,44 | 40,03 |  
 imp (1.12) <br/> [(by Technelysium Pty Ltd.)](https://technelysium.com.au/wp/imp-file-archiver/) | a -g -2 -mm | 256861382 | 77,49 | 21,71 |  
@@ -79,44 +79,44 @@ arhangel (1.40) <br/> (by George Lyapko) | a -mzf -mm -c31900 -1 -2 | 284775209 
 lzpx (1.5b) <br/> [(by Ilya Muravyov)](https://compressme.net/) | e | 285234480 | 49,47 | 46,37 |  
 ha (0.999c) <br/> (by Harri Hirvola) | a2 | 285739328 | 278,29 | 285,12 |  
 jar (1.02) <br/> [(by ARJ Software)](http://www.arjsoftware.com/) | a -m4 | 288825883 | 179,01 | 60,11 |  
-lizard (1.0.0) <br/> [(by Y.Collet & P.Skibinski)](https://github.com/inikep/lizard) | -49 -BD --no-frame-crc | 289266199 | 574,45 | 8,97 |  
+lizard (1.0.0) <br/> [(by Y.Collet, P.Skibinski)](https://github.com/inikep/lizard) | -49 -BD --no-frame-crc | 289266199 | 574,45 | 8,97 |  
 7z (22.01) <br/> [(by Igor Pavlov)](https://7-zip.org/) | a -tzip -m0=Deflate64 -mx9 | 298494477 | 861,46 | 6,26 |  
 ace (1.2b) <br/> (by Marcel Lemke) | a -s -d512 -m5 | 298687158 | 173,79 | 8,24 |  
 winzip (27.0) <br/> (using wzzip/wzunzip,limited to single thread) <br/> [(by Alludo)](https://www.winzip.com/) |  -a -ee | 298774317 | 456,93 | 8,33 |  
 brieflz (1.3.0) <br/> [(by Joergen Ibsen)](https://github.com/jibsen/brieflz) | --optimal | 308781584 | 221,49 | 4,71 |  
-zopfli (1.0.3) [(by Google)](https://github.com/google/zopfli/) |  | 309578152 | 2508,81 |  |  
+zopfli (1.0.3) <br/> [(by Google)](https://github.com/google/zopfli/) |  | 309578152 | 2508,81 |  |  
 hap/pah (3.00) <br/> (by Harald Feldmann) |  | 309615837 | 440,31 | 466,25 |  
 rar (2.50) <br/> [(by Alexander Roshal)](https://www.rarlab.com/) | a -s -m5 | 309827109 | 196,01 | 38,05 |  
 kzip <br/> [(by Ken Silverman)](http://advsys.net/ken/utils.htm) | /q /s0 | 310281906 | 2181,83 |  |  
 7z (22.01) <br/> [(by Igor Pavlov)](https://7-zip.org/) | a -tzip -m0=Deflate -mx9 | 310706257 | 790,08 | 6,54 |  
 yzenc/yzdec (1.06.1) <br/> [(by BinaryTechnology)](https://web.archive.org/web/20040830010118/http://member.nifty.ne.jp/yamazaki/DeepFreezer/) |  | 312789435 | 48,74 | 23,86 |  
-lha (1.14i) | a -o7 | 312912781 | 113,52 | 10,46 |  
-uc2 (uc2 3 pro) | a -tt | 313795096 | 256,12 | 41,40 |  
+lha (1.14i) <br/> [(by Tsugio Okamoto, Koji Arai)](https://sourceforge.net/projects/gnuwin32/files/lha/1.14i/) | a -o7 | 312912781 | 113,52 | 10,46 |  
+uc2 (uc2 3 pro) <br/> (by Ad Infinitum Programs (AIP-NL)) | a -tt | 313795096 | 256,12 | 41,40 |  
 $\textcolor[RGB]{0,154,23}{\textbf{qbp}}$ `(built with "gcc -O3")` | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{317542161}}$ | $\textcolor[RGB]{0,154,23}{\textbf{45,56}}$ | $\textcolor[RGB]{0,154,23}{\textbf{29,46}}$ |  
 $\textcolor[RGB]{0,154,23}{\textbf{unqbp}}$ `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{317542161}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{30,20}}$ |  
 lzfse (1.0) <br/> [(LZFSE home page)](https://github.com/lzfse/lzfse/) | -encode | 319756993 | 25,34 | 9,67 |  
-limit (1.2) | a -mx | 320342601 | 138,10 | 38,25 |  
+limit (1.2) <br/> (by J.Y. Lim) | a -mx | 320342601 | 138,10 | 38,25 |  
 sqz (1.08.3) <br/> (by Jonas I. Hammarberg) | -q0 -m4 | 322400393 | 195,15 | 42,25 |  
 gzip (1.12) <br/> [(GNU Gzip home page)](https://www.gnu.org/software/gzip/) | -9 | 322591995 | 49,25 | 8,73 |  
 info-zip (3.0) <br/> [(using zip/unzip)](https://infozip.sourceforge.net/) | -9 | 322592221 | 46,73 | 6,61 |  
 pkzip (2.50b) <br/> [(by PKWARE)](https://www.pkware.com/zip/products/pkzip) | /add | 323645288 | 32,94 | 7,04 |  
 makecab/expand (5.0.1.1) |  | 324125809 | 57,91 | 5,81 |  
-ain (2.32) | a /m1 | 324538744 | 90,10 | 28,51 |  
-quark (1.06) | a | 325196497 | 177,25 | 97,30 |  
+ain (2.32) <br/> (by Transas Marine (UK) Ltd.) | a /m1 | 324538744 | 90,10 | 28,51 |  
+quark (1.06) <br/> (by Robert Kunz) | a | 325196497 | 177,25 | 97,30 |  
 arj32 (3.20) <br/> [(by ARJ Software)](http://www.arjsoftware.com/) | a -m1 | 328536964 | 67,71 | 9,25 |  
 ar <br/> (by Haruhiko Okumura) | a | 353022236 | 514,50 | 59,71 |  
 zoo (2.10) <br/> [(source)](https://archive.debian.org/debian/pool/main/z/zoo/zoo_2.10.orig.tar.gz) | ah | 353022373 | 104,18 | 30,69 |  
 ulz (1.02b) <br/> [(by Ilya Muravyov)](https://compressme.net/) | c9 | 360342071 | 45,76 | 1,18 |  
 lzop (1.04) <br/> [(LZO home page)](http://www.lzop.org/) | -9 -F | 366349786 | 105,33 | 3,31 |  
-hyper (2.6) <br/> (by Klaus Peter Nischke,Peter Sawatzki) | -a | 368163826 | 126,25 | 96,10 |  
+hyper (2.6) <br/> (by Klaus Peter Nischke, Peter Sawatzki) | -a | 368163826 | 126,25 | 96,10 |  
 lz4 (1.9.4) <br/> [(LZ4 home page)](https://github.com/lz4/lz4) | --best | 372443347 | 65,90 | 11,91 |  
 lzss (0.02) <br/> [(by Ilya Muravyov)](http://compressme.net/lzss002.zip) | cx | 380192378 | 146,15 | 3,37 |  
 lzari <br/> [(reference realization by Haruhiko Okumura)](https://web.archive.org/web/19990209183635/http://oak.oakland.edu/pub/simtelnet/msdos/arcutils/lz_comp2.zip) | e | 388521578 | 182,69 | 77,72 |  
 $\textcolor[RGB]{0,154,23}{\textbf{lz16}}$ `(built with "gcc -O3")` | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{407180647}}$ | $\textcolor[RGB]{0,154,23}{\textbf{31,50}}$ | $\textcolor[RGB]{0,154,23}{\textbf{3,86}}$ |  
 $\textcolor[RGB]{0,154,23}{\textbf{unlz16}}$ `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{407180647}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{3,86}}$ |  
 qpress (1.1) <br/> [(by Lasse Reinhold)](https://web.archive.org/web/20220524060234/http://www.quicklz.com/index.php) | -L3T1i | 422626641 | 41,11 | 8,25 |  
-ncompress (5.1) |  | 448136005 | 31,98 | 12,85 |  
-larc (3.33) <br/> (by Haruhiko Okumura,Kazuhiko Miki) | a | 455245358 | 214,15 | 36,23 |  
+ncompress (5.1) <br/> [(by Mike Frysinger)](https://github.com/vapier/ncompress) |  | 448136005 | 31,98 | 12,85 |  
+larc (3.33) <br/> (by Haruhiko Okumura, Kazuhiko Miki) | a | 455245358 | 214,15 | 36,23 |  
 lzss <br/> [(reference realization by Haruhiko Okumura)](https://oku.edu.mie-u.ac.jp/~okumura/compression/lzss.c) | e | 455245327 | 136,39 | 36,33 |  
 shrinker <br/> [(Shinker Fast&Light Compression Demo by fusiyuan2010@gmail.com)](https://code.google.com/archive/p/data-shrinker/) | c | 459825318 | 4,76 | 1,74 |  
 carryless rangecoder <br/> [(reference algorithm by Dmitry Subbotin with the order-1 frequency model)](https://web.archive.org/web/20020420161153/http://www.softcomplete.com/algo/pack/rus-range.txt) |  | 480296513 | 28,12 |  |  
@@ -127,4 +127,4 @@ fpaqc <br/> [(by Matt Mahoney)](http://mattmahoney.net/dc/fpaqc.zip) | c | 62027
 fpaqb (2) <br/> [(by Matt Mahoney)](http://mattmahoney.net/dc/fpaqb.zip) | c | 620278361 | 116,20 | 81,57 |  
 fpaq0 <br/> [(by Matt Mahoney)](http://mattmahoney.net/dc/fpaq0.cpp) | c | 641421110 | 95,09 | 122,44 |  
 rangecoder (1.3) <br/> [(reference realization by Michael Schindler)](http://www.compressconsult.com/rangecoder/) | comp/decomp | 644426106 | 48,38 | 57,54 |  
-arc (5.21i) | a | 886038366 | 38,49 | 20,50 |  
+arc (5.21) <br/> [(source)](https://archive.debian.org/debian/pool/main/a/arc/arc_5.21q.orig.tar.gz) | a | 886038366 | 38,49 | 20,50 |  
