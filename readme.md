@@ -57,15 +57,15 @@ freearc (0.51) <br/> [(by Bulat Ziganshin)](https://sourceforge.net/projects/fre
 freearc (0.666) <br/> [(by Bulat Ziganshin)](https://web.archive.org/web/20161118235221/http://freearc.org/Download.aspx) | a -mt1 -mx | 189696374 | 210,74 | 182,99 |  
 lzip (1.23) <br/> [(Lzip home page)](http://www.nongnu.org/lzip/lzip.html) | -k -9 -s29 | 199138993 | 1134,42 | 20,09 |  
 ybs (0.03f) <br/> (by Vadim Yoockin) | -m16m | 202110510 | 314,00 | 138,69 |  
-uharc (0.6b) | a -d0 -md32768 -mm+ -mx | 208026696 | 493,92 | 383,33 |  
-rk (1.04.1a) | -mx | 208096232 | 1380,00 | 1372,69 |  
+uharc (0.6b) <br/> (by Uwe Herklotz) | a -d0 -md32768 -mm+ -mx | 208026696 | 493,92 | 383,33 |  
+rk (1.04.1a) <br/> (by Malcolm Taylor) | -mx | 208096232 | 1380,00 | 1372,69 |  
 xz (5.2.9) <br/> [(XZ Utils home page)](https://tukaani.org/xz/) | -9 -e | 211776220 | 871,57 | 13,38 |  
 7z (22.01) <br/> [(by Igor Pavlov)](https://7-zip.org/) | a -t7z -ms=on -m0=LZMA2 -mx9 -mmt=1 -scsUTF-8 -ssc | 213323101 | 690,12 | 8,50 |  
 boa (0.58b) <br/> (by Ian Sutton) | -a -s -m15 | 213845481 | 1758,10 | 1926,75 |  
 zstd (1.5.2) <br/> [(Zstandard GitHub home page)](https://github.com/facebook/zstd/) | --ultra -22 --no-progress --single-thread | 214910502 | 794,37 | 2,75 |  
-brotli (1.0.9) [(by Google)](https://github.com/google/brotli) | -Z -n | 223345718 | 2287,31 | 3,36 |  
+brotli (1.0.9) <br/> [(by Google)](https://github.com/google/brotli) | -Z -n | 223345718 | 2287,31 | 3,36 |  
 sbc (0.969b) | c -m3 -b5 -os -hn | 224017402 | 291,50 | 104,75 |  
-rar (6.11) [(by Alexander Roshal)](https://www.rarlab.com/) | a -s -k -m5 -mt1 -md1g | 232248528 | 811,92 | 5,64 |  
+rar (6.11) <br/> [(by Alexander Roshal)](https://www.rarlab.com/) | a -s -k -m5 -mt1 -md1g | 232248528 | 811,92 | 5,64 |  
 szip (1.11b) <br/> [(by Michael Schindler)](http://www.compressconsult.com/szip/) | -b41 -o6 | 232346611 | 79,50 | 88,43 |  
 balz (1.50) <br/> [(by Ilya Muravyov)](https://sourceforge.net/projects/balz/) | cx | 241575273 | 1059,91 | 33,53 |  
 squeez (6.0) | a /mx /fmt sqx | 246152882 | 597,93 | 8,89 |  
@@ -81,12 +81,12 @@ ha (0.999c) <br/> (by Harri Hirvola) | a2 | 285739328 | 278,29 | 285,12 |
 jar (1.02) <br/> [(by ARJ Software)](http://www.arjsoftware.com/) | a -m4 | 288825883 | 179,01 | 60,11 |  
 lizard (1.0.0) <br/> [(by Y.Collet & P.Skibinski)](https://github.com/inikep/lizard) | -49 -BD --no-frame-crc | 289266199 | 574,45 | 8,97 |  
 7z (22.01) <br/> [(by Igor Pavlov)](https://7-zip.org/) | a -tzip -m0=Deflate64 -mx9 | 298494477 | 861,46 | 6,26 |  
-ace (1.2b) | a -s -d512 -m5 | 298687158 | 173,79 | 8,24 |  
-winzip (27.0) <br/> (using wzzip/wzunzip,limited to single thread) |  -a -ee | 298774317 | 456,93 | 8,33 |  
+ace (1.2b) <br/> (by Marcel Lemke) | a -s -d512 -m5 | 298687158 | 173,79 | 8,24 |  
+winzip (27.0) <br/> (using wzzip/wzunzip,limited to single thread) <br/> [(by Alludo)](https://www.winzip.com/) |  -a -ee | 298774317 | 456,93 | 8,33 |  
 brieflz (1.3.0) <br/> [(by Joergen Ibsen)](https://github.com/jibsen/brieflz) | --optimal | 308781584 | 221,49 | 4,71 |  
 zopfli (1.0.3) [(by Google)](https://github.com/google/zopfli/) |  | 309578152 | 2508,81 |  |  
 hap/pah (3.00) <br/> (by Harald Feldmann) |  | 309615837 | 440,31 | 466,25 |  
-rar (2.50) [(by Alexander Roshal)](https://www.rarlab.com/) | a -s -m5 | 309827109 | 196,01 | 38,05 |  
+rar (2.50) <br/> [(by Alexander Roshal)](https://www.rarlab.com/) | a -s -m5 | 309827109 | 196,01 | 38,05 |  
 kzip <br/> [(by Ken Silverman)](http://advsys.net/ken/utils.htm) | /q /s0 | 310281906 | 2181,83 |  |  
 7z (22.01) <br/> [(by Igor Pavlov)](https://7-zip.org/) | a -tzip -m0=Deflate -mx9 | 310706257 | 790,08 | 6,54 |  
 yzenc/yzdec (1.06.1) <br/> [(by BinaryTechnology)](https://web.archive.org/web/20040830010118/http://member.nifty.ne.jp/yamazaki/DeepFreezer/) |  | 312789435 | 48,74 | 23,86 |  
@@ -96,7 +96,7 @@ $\textcolor[RGB]{0,154,23}{\textbf{qbp}}$ `(built with "gcc -O3")` | $\textcolor
 $\textcolor[RGB]{0,154,23}{\textbf{unqbp}}$ `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{317542161}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{30,20}}$ |  
 lzfse (1.0) <br/> [(LZFSE home page)](https://github.com/lzfse/lzfse/) | -encode | 319756993 | 25,34 | 9,67 |  
 limit (1.2) | a -mx | 320342601 | 138,10 | 38,25 |  
-sqz (1.08.3) | -q0 -m4 | 322400393 | 195,15 | 42,25 |  
+sqz (1.08.3) <br/> (by Jonas I. Hammarberg) | -q0 -m4 | 322400393 | 195,15 | 42,25 |  
 gzip (1.12) <br/> [(GNU Gzip home page)](https://www.gnu.org/software/gzip/) | -9 | 322591995 | 49,25 | 8,73 |  
 info-zip (3.0) <br/> [(using zip/unzip)](https://infozip.sourceforge.net/) | -9 | 322592221 | 46,73 | 6,61 |  
 pkzip (2.50b) | /add | 323645288 | 32,94 | 7,04 |  
