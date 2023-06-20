@@ -99,7 +99,7 @@ limit (1.2) | a -mx | 320342601 | 138,10 | 38,25 |
 sqz (1.08.3) <br/> (by Jonas I. Hammarberg) | -q0 -m4 | 322400393 | 195,15 | 42,25 |  
 gzip (1.12) <br/> [(GNU Gzip home page)](https://www.gnu.org/software/gzip/) | -9 | 322591995 | 49,25 | 8,73 |  
 info-zip (3.0) <br/> [(using zip/unzip)](https://infozip.sourceforge.net/) | -9 | 322592221 | 46,73 | 6,61 |  
-pkzip (2.50b) | /add | 323645288 | 32,94 | 7,04 |  
+pkzip (2.50b) <br/> [(by PKWARE)](https://www.pkware.com/zip/products/pkzip) | /add | 323645288 | 32,94 | 7,04 |  
 makecab/expand (5.0.1.1) |  | 324125809 | 57,91 | 5,81 |  
 ain (2.32) | a /m1 | 324538744 | 90,10 | 28,51 |  
 quark (1.06) | a | 325196497 | 177,25 | 97,30 |  
@@ -122,7 +122,7 @@ shrinker <br/> [(Shinker Fast&Light Compression Demo by fusiyuan2010@gmail.com)]
 carryless rangecoder <br/> [(reference algorithm by Dmitry Subbotin with the order-1 frequency model)](https://web.archive.org/web/20020420161153/http://www.softcomplete.com/algo/pack/rus-range.txt) |  | 480296513 | 28,12 |  |  
 rangecoder (1.3) <br/> [(reference realization by Michael Schindler)](http://www.compressconsult.com/rangecoder/) | comp1/decomp1 | 489741259 | 44,36 | 53,35 |  
 flzp (1.0) <br/> [(by Matt Mahoney)](http://www.mattmahoney.net/dc/flzp.zip) | c | 497535428 | 74,15 | 16,34 |  
-lz4 (1.9.4) <br/> [(github)](https://github.com/lz4/lz4) | -1 | 509454838 | 10,07 | 8,97 |  
+lz4 (1.9.4) <br/> [(LZ4 home page)](https://github.com/lz4/lz4) | -1 | 509454838 | 10,07 | 8,97 |  
 fpaqc <br/> [(by Matt Mahoney)](http://mattmahoney.net/dc/fpaqc.zip) | c | 620278358 | 112,53 | 89,40 |  
 fpaqb (2) <br/> [(by Matt Mahoney)](http://mattmahoney.net/dc/fpaqb.zip) | c | 620278361 | 116,20 | 81,57 |  
 fpaq0 <br/> [(by Matt Mahoney)](http://mattmahoney.net/dc/fpaq0.cpp) | c | 641421110 | 95,09 | 122,44 |  
