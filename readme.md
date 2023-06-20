@@ -82,7 +82,7 @@ jar (1.02) <br/> [(by ARJ Software)](http://www.arjsoftware.com/) | a -m4 | 2888
 lizard (1.0.0) <br/> [(by Y.Collet, P.Skibinski)](https://github.com/inikep/lizard) | -49 -BD --no-frame-crc | 289266199 | 574,45 | 8,97 |  
 7z (22.01) <br/> [(by Igor Pavlov)](https://7-zip.org/) | a -tzip -m0=Deflate64 -mx9 | 298494477 | 861,46 | 6,26 |  
 ace (1.2b) <br/> (by Marcel Lemke) | a -s -d512 -m5 | 298687158 | 173,79 | 8,24 |  
-winzip (27.0) <br/> (using wzzip/wzunzip,limited to single thread) <br/> [(by Alludo)](https://www.winzip.com/) |  -a -ee | 298774317 | 456,93 | 8,33 |  
+winzip (27.0) <br/> (using wzzip/wzunzip, limited to single thread) <br/> [(by Alludo)](https://www.winzip.com/) |  -a -ee | 298774317 | 456,93 | 8,33 |  
 brieflz (1.3.0) <br/> [(by Joergen Ibsen)](https://github.com/jibsen/brieflz) | --optimal | 308781584 | 221,49 | 4,71 |  
 zopfli (1.0.3) <br/> [(by Google)](https://github.com/google/zopfli/) |  | 309578152 | 2508,81 |  |  
 hap/pah (3.00) <br/> (by Harald Feldmann) |  | 309615837 | 440,31 | 466,25 |  
