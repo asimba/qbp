@@ -76,6 +76,7 @@ rzip (2.1) <br/> [(by Andrew Tridgell)](https://rzip.samba.org/) | -9 -k | 25392
 bzip2 (1.0.8) <br/> [(bzip2 home page)](https://sourceware.org/bzip2/) | -9 | 253977891 | 81,44 | 40,03 |  
 imp (1.12) <br/> [(by Technelysium Pty Ltd.)](https://technelysium.com.au/wp/imp-file-archiver/) | a -g -2 -mm | 256861382 | 77,49 | 21,71 |  
 squid (0.03) <br/> [(by Ilya Muravyov)](https://compressme.net/) | cx | 269347430 | 65,66 | 34,37 |  
+irolz <br/> [(by Andrew Polar)](http://ezcodesample.com/rolz/rolz_article.html) | e | 273786077 | 130,22 | 55,95 |  
 crush (1.00) <br/> [(by Ilya Muravyov)](https://sourceforge.net/projects/crush/) | cx | 279491430 | 1812,58 | 7,96 |  
 arhangel (1.40) <br/> (by George Lyapko) | a -mzf -mm -c31900 -1 -2 | 284775209 | 584,47 | 400,50 |  
 lzpx (1.5b) <br/> [(by Ilya Muravyov)](https://compressme.net/) | e | 285234480 | 49,47 | 46,37 |  
