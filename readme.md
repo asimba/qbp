@@ -44,7 +44,7 @@ Written by Alexey V. Simbarsky.
   
 ---
 
-**[Test results](#result)**:  
+**[Test results (direct link to qbp result)](#result)**:  
 
 | | |
 ----- | ----- |  
