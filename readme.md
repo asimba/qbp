@@ -9,6 +9,7 @@ _Minimum match length_ | 4 |
 _Maximum match length_ | 259 |  
 _Memory requirements (encoding algorithm, bytes)_ | ~721482‬ |  
 _Memory requirements (decoding algorithm, bytes)_ | ~197132‬ |  
+_Range coder type_ | byte-oriented, mixed context (0/1) |  
 _Input buffer size (bytes)_ | 65536‬‬ |  
 _Output buffer size (bytes)_ | 65536‬‬ |  
   
