@@ -56,6 +56,7 @@ nanozip (0.09a) <br/> [(by Sami Runsas)](https://web.archive.org/web/20160304232
 freearc (0.51) <br/> [(by Bulat Ziganshin)](https://sourceforge.net/projects/freearc/) | a -mx | 185153701 | 219,45 | 187,81 |  
 freearc (0.666) <br/> [(by Bulat Ziganshin)](https://web.archive.org/web/20161118235221/http://freearc.org/Download.aspx) | a -mt1 -mx | 189696374 | 210,74 | 182,99 |  
 lzip (1.23) <br/> [(Lzip home page)](http://www.nongnu.org/lzip/lzip.html) | -k -9 -s29 | 199138993 | 1134,42 | 20,09 |  
+lzham (alpha 7 r1) <br/> [(by Rich Geldreich)](https://code.google.com/archive/p/lzham/downloads) | -m4 -d29 -t0 -x -o -e c | 199611734 | 4164,14 | 6,42 |  
 ybs (0.03f) <br/> (by Vadim Yoockin) | -m16m | 202110510 | 314,00 | 138,69 |  
 uharc (0.6b) <br/> (by Uwe Herklotz) | a -d0 -md32768 -mm+ -mx | 208026696 | 493,92 | 383,33 |  
 rk (1.04.1a) <br/> (by Malcolm Taylor) | -mx | 208096232 | 1380,00 | 1372,69 |  
@@ -122,12 +123,14 @@ ncompress (5.1) <br/> [(by Mike Frysinger)](https://github.com/vapier/ncompress)
 larc (3.33) <br/> (by Haruhiko Okumura, Kazuhiko Miki) | a | 455245358 | 214,15 | 36,23 |  
 lzss <br/> [(reference realization by Haruhiko Okumura)](https://oku.edu.mie-u.ac.jp/~okumura/compression/lzss.c) | e | 455245327 | 136,39 | 36,33 |  
 shrinker <br/> [(Shinker Fast&Light Compression Demo by fusiyuan2010@gmail.com)](https://code.google.com/archive/p/data-shrinker/) | c | 459825318 | 4,76 | 1,74 |  
+context compressor <br/> [(by M.Smirnov)](http://ezcodesample.com/ralpha/Subbotin.txt) | c | 478467738 | 55,85 | 90,64 |  
 carryless rangecoder <br/> [(reference algorithm by Dmitry Subbotin with the order-1 frequency model)](https://web.archive.org/web/20020420161153/http://www.softcomplete.com/algo/pack/rus-range.txt) |  | 480296513 | 28,12 |  |  
 rangecoder (1.3) <br/> [(reference realization by Michael Schindler)](http://www.compressconsult.com/rangecoder/) | comp1/decomp1 | 489741259 | 44,36 | 53,35 |  
 flzp (1.0) <br/> [(by Matt Mahoney)](http://www.mattmahoney.net/dc/flzp.zip) | c | 497535428 | 74,15 | 16,34 |  
 lz4 (1.9.4) <br/> [(LZ4 home page)](https://github.com/lz4/lz4) | -1 | 509454838 | 10,07 | 8,97 |  
 fpaqc <br/> [(by Matt Mahoney)](http://mattmahoney.net/dc/fpaqc.zip) | c | 620278358 | 112,53 | 89,40 |  
 fpaqb (2) <br/> [(by Matt Mahoney)](http://mattmahoney.net/dc/fpaqb.zip) | c | 620278361 | 116,20 | 81,57 |  
+fpc <br/> [(by Konstantinos Agiannis)](https://github.com/kagiannis/FPC) | -b 0 | 635922910 | 9,21 | 2,12 |  
 fpaq0 <br/> [(by Matt Mahoney)](http://mattmahoney.net/dc/fpaq0.cpp) | c | 641421110 | 95,09 | 122,44 |  
 rangecoder (1.3) <br/> [(reference realization by Michael Schindler)](http://www.compressconsult.com/rangecoder/) | comp/decomp | 644426106 | 48,38 | 57,54 |  
 arc (5.21) <br/> [(source)](https://archive.debian.org/debian/pool/main/a/arc/arc_5.21q.orig.tar.gz) | a | 886038366 | 38,49 | 20,50 |  
