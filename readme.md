@@ -3,15 +3,15 @@
 Simple LZSS+RLE+RC32 compression algorithm realization.  
 | Internal parameters | |
 ----- | ----- |  
-_Sliding window size (bytes)_ | ‭65536‬ |  
+_Sliding window size (bytes)_ | 65536 |  
 _Window buffer size (bytes)_ | 259 |  
 _Minimum match length_ | 4 |  
 _Maximum match length_ | 259 |  
-_Memory requirements (encoding algorithm, bytes)_ | ~721482‬ |  
-_Memory requirements (decoding algorithm, bytes)_ | ~197132‬ |  
-_Range coder type_ | byte-oriented, mixed context (0/1) |  
-_Input buffer size (bytes)_ | 65536‬‬ |  
-_Output buffer size (bytes)_ | 65536‬‬ |  
+_Memory requirements (encoding algorithm, bytes)_ | ~721483 |  
+_Memory requirements (decoding algorithm, bytes)_ | ~197133 |  
+_Range coder type_ | byte-oriented, mixed order (0/1) |  
+_Input buffer size (bytes)_ | 65536 |  
+_Output buffer size (bytes)_ | 65536 |  
   
 --- 
 Usage : ./qbp \<OPTIONS\> \<SOURCE\> \<DESTINATION\>  
@@ -98,6 +98,7 @@ lizard (1.0.0) <br/> [(by Y.Collet, P.Skibinski)](https://github.com/inikep/liza
 7z (22.01) <br/> [(by Igor Pavlov)](https://7-zip.org/) | a -tzip -m0=Deflate64 -mx9 | 298494477 | 861,46 | 6,26 |  
 ace (1.2b) <br/> (by Marcel Lemke) | a -s -d512 -m5 | 298687158 | 173,79 | 8,24 |  
 winzip (27.0) <br/> (using wzzip/wzunzip, limited to single thread) <br/> [(by Alludo)](https://www.winzip.com/) |  -a -ee | 298774317 | 456,93 | 8,33 |  
+zhuff (0.99b) <br/> [(by Yann Collet)](https://web.archive.org/web/20230523125825/https://fastcompression.blogspot.com/p/zhuff.html) | -c2t1s | 308234163 | 34,38 | 1,54 |  
 brieflz (1.3.0) <br/> [(by Joergen Ibsen)](https://github.com/jibsen/brieflz) | --optimal | 308781584 | 221,49 | 4,71 |  
 zopfli (1.0.3) <br/> [(by Google)](https://github.com/google/zopfli/) |  | 309578152 | 2508,81 |  |  
 hap/pah (3.00) <br/> (by Harald Feldmann) |  | 309615837 | 440,31 | 466,25 |  
@@ -107,8 +108,9 @@ kzip <br/> [(by Ken Silverman)](http://advsys.net/ken/utils.htm) | /q /s0 | 3102
 yzenc/yzdec (1.06.1) <br/> [(by BinaryTechnology)](https://web.archive.org/web/20040830010118/http://member.nifty.ne.jp/yamazaki/DeepFreezer/) |  | 312789435 | 48,74 | 23,86 |  
 lha (1.14i) <br/> [(by Tsugio Okamoto, Koji Arai)](https://sourceforge.net/projects/gnuwin32/files/lha/1.14i/) | a -o7 | 312912781 | 113,52 | 10,46 |  
 uc2 (uc2 3 pro) <br/> (by Ad Infinitum Programs (AIP-NL)) | a -tt | 313795096 | 256,12 | 41,40 |  
-<span id="result">$\textcolor[RGB]{0,154,23}{\textbf{qbp}}$ `(built with "gcc -O3")` </span> | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{317542161}}$ | $\textcolor[RGB]{0,154,23}{\textbf{45,56}}$ | $\textcolor[RGB]{0,154,23}{\textbf{29,46}}$ |  
-$\textcolor[RGB]{0,154,23}{\textbf{unqbp}}$ `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{317542161}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{30,20}}$ |  
+thor (0.96a) <br/> [(Oscar Garcia)](https://web.archive.org/web/20080725180307/http://www.maximumcompression.com/thor_096.zip) | e4 | 314092324 | 26,36 | 9,73 |  
+<span id="result">$\textcolor[RGB]{0,154,23}{\textbf{qbp}}$ <br/> `(built with "gcc -O3")` </span> | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{317542161}}$ | $\textcolor[RGB]{0,154,23}{\textbf{45,56}}$ | $\textcolor[RGB]{0,154,23}{\textbf{29,46}}$ |  
+$\textcolor[RGB]{0,154,23}{\textbf{unqbp}}$ <br/> `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{317542161}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{30,20}}$ |  
 lzfse (1.0) <br/> [(LZFSE home page)](https://github.com/lzfse/lzfse/) | -encode | 319756993 | 25,34 | 9,67 |  
 limit (1.2) <br/> (by J.Y. Lim) | a -mx | 320342601 | 138,10 | 38,25 |  
 sqz (1.08.3) <br/> (by Jonas I. Hammarberg) | -q0 -m4 | 322400393 | 195,15 | 42,25 |  
@@ -127,14 +129,14 @@ hyper (2.6) <br/> (by Klaus Peter Nischke, Peter Sawatzki) | -a | 368163826 | 12
 lz4 (1.9.4) <br/> [(LZ4 home page)](https://github.com/lz4/lz4) | --best | 372443347 | 65,90 | 11,91 |  
 lzss (0.02) <br/> [(by Ilya Muravyov)](http://compressme.net/lzss002.zip) | cx | 380192378 | 146,15 | 3,37 |  
 lzari <br/> [(reference realization by Haruhiko Okumura)](https://web.archive.org/web/19990209183635/http://oak.oakland.edu/pub/simtelnet/msdos/arcutils/lz_comp2.zip) | e | 388521578 | 182,69 | 77,72 |  
-$\textcolor[RGB]{0,154,23}{\textbf{lz16}}$ `(built with "gcc -O3")` | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{407180647}}$ | $\textcolor[RGB]{0,154,23}{\textbf{31,50}}$ | $\textcolor[RGB]{0,154,23}{\textbf{3,86}}$ |  
-$\textcolor[RGB]{0,154,23}{\textbf{unlz16}}$ `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{407180647}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{3,86}}$ |  
+$\textcolor[RGB]{0,154,23}{\textbf{lz16}}$ <br/> `(built with "gcc -O3")` | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{407180647}}$ | $\textcolor[RGB]{0,154,23}{\textbf{31,50}}$ | $\textcolor[RGB]{0,154,23}{\textbf{3,86}}$ |  
+$\textcolor[RGB]{0,154,23}{\textbf{unlz16}}$ <br/> `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{407180647}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{3,86}}$ |  
 qpress (1.1) <br/> [(by Lasse Reinhold)](https://web.archive.org/web/20220524060234/http://www.quicklz.com/index.php) | -L3T1i | 422626641 | 41,11 | 8,25 |  
 ncompress (5.1) <br/> [(by Mike Frysinger)](https://github.com/vapier/ncompress) |  | 448136005 | 31,98 | 12,85 |  
 larc (3.33) <br/> (by Haruhiko Okumura, Kazuhiko Miki) | a | 455245358 | 214,15 | 36,23 |  
 lzss <br/> [(reference realization by Haruhiko Okumura)](https://oku.edu.mie-u.ac.jp/~okumura/compression/lzss.c) | e | 455245327 | 136,39 | 36,33 |  
 shrinker <br/> [(Shinker Fast&Light Compression Demo by fusiyuan2010@gmail.com)](https://code.google.com/archive/p/data-shrinker/) | c | 459825318 | 4,76 | 1,74 |  
-context compressor <br/> [(by M.Smirnov)](http://ezcodesample.com/ralpha/Subbotin.txt) | c | 478467738 | 55,85 | 90,64 |  
+context compressor <br/> [(by Maxim Smirnov)](http://ezcodesample.com/ralpha/Subbotin.txt) | c | 478467738 | 55,85 | 90,64 |  
 carryless rangecoder <br/> [(reference algorithm by Dmitry Subbotin with the order-1 frequency model)](https://web.archive.org/web/20020420161153/http://www.softcomplete.com/algo/pack/rus-range.txt) |  | 480296513 | 28,12 |  |  
 rangecoder (1.3) <br/> [(reference realization by Michael Schindler)](http://www.compressconsult.com/rangecoder/) | comp1/decomp1 | 489741259 | 44,36 | 53,35 |  
 flzp (1.0) <br/> [(by Matt Mahoney)](http://www.mattmahoney.net/dc/flzp.zip) | c | 497535428 | 74,15 | 16,34 |  
