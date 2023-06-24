@@ -69,6 +69,8 @@ freearc (0.666) <br/> [(by Bulat Ziganshin)](https://web.archive.org/web/2016111
 lzip (1.23) <br/> [(Lzip home page)](http://www.nongnu.org/lzip/lzip.html) | -k -9 -s29 | 199138993 | 1134,42 | 20,09 |  
 lzham (alpha 7 r1) <br/> [(by Rich Geldreich)](https://code.google.com/archive/p/lzham/downloads) | -m4 -d29 -t0 -x -o -e c | 199611734 | 4164,14 | 6,42 |  
 ybs (0.03f) <br/> (by Vadim Yoockin) | -m16m | 202110510 | 314,00 | 138,69 |  
+csarc (3.3) <br/> [(by Siyuan Fu)](https://github.com/fusiyuan2010/CSC) | a -m5 -d1024m -t1 | 203995004 | 491,60 | 16,07 |  
+nlzm (1.03) <br/> [(by Nauful)](https://github.com/nauful/NLZM) | -window:28 c | 206548024 | 1966,19 | 9,38 |  
 uharc (0.6b) <br/> (by Uwe Herklotz) | a -d0 -md32768 -mm+ -mx | 208026696 | 493,92 | 383,33 |  
 rk (1.04.1a) <br/> (by Malcolm Taylor) | -mx | 208096232 | 1380,00 | 1372,69 |  
 grzipii (0.2.4) <br/> [(by Ilya Grebnov)](http://web.archive.org/web/20070819094051/http://magicssoft.ru/?folder=projects&page=GRZipII) | e -b8m -m1 | 208993966 | 108,79 | 109,66 |  
@@ -80,6 +82,7 @@ zstd (1.5.2) <br/> [(Zstandard GitHub home page)](https://github.com/facebook/zs
 dark (0.51) <br/> [(by Dmitry Malyshev)](http://darchiver.narod.ru/index.html) | p -b16mi0 | 218507990 | 97,00 | 98,09 |  
 brotli (1.0.9) <br/> [(by Google)](https://github.com/google/brotli) | -Z -n | 223345718 | 2287,31 | 3,36 |  
 sbc (0.969b) <br/> (by Sami J. Makinen) | c -m3 -b5 -os -hn | 224017402 | 291,50 | 104,75 |  
+alzip (12.16.0.2) <br/> [(by ESTsoft)](https://www.altools.co.kr/Download/ALZip.aspx) | -a -s -m3 | 227906109 | 754,58 | 15,88 |  
 rar (6.11) <br/> [(by Alexander Roshal)](https://www.rarlab.com/) | a -s -k -m5 -mt1 -md1g | 232248528 | 811,92 | 5,64 |  
 szip (1.11b) <br/> [(by Michael Schindler)](http://www.compressconsult.com/szip/) | -b41 -o6 | 232346611 | 79,50 | 88,43 |  
 balz (1.50) <br/> [(by Ilya Muravyov)](https://sourceforge.net/projects/balz/) | cx | 241575273 | 1059,91 | 33,53 |  
@@ -138,7 +141,7 @@ qpress (1.1) <br/> [(by Lasse Reinhold)](https://web.archive.org/web/20220524060
 ncompress (5.1) <br/> [(by Mike Frysinger)](https://github.com/vapier/ncompress) |  | 448136005 | 31,98 | 12,85 |  
 larc (3.33) <br/> (by Haruhiko Okumura, Kazuhiko Miki) | a | 455245358 | 214,15 | 36,23 |  
 lzss <br/> [(reference realization by Haruhiko Okumura)](https://oku.edu.mie-u.ac.jp/~okumura/compression/lzss.c) | e | 455245327 | 136,39 | 36,33 |  
-shrinker <br/> [(Shinker Fast&Light Compression Demo by fusiyuan2010@gmail.com)](https://code.google.com/archive/p/data-shrinker/) | c | 459825318 | 4,76 | 1,74 |  
+shrinker <br/> [(by Siyuan Fu)](https://code.google.com/archive/p/data-shrinker/) | c | 459825318 | 4,76 | 1,74 |  
 context compressor <br/> [(by Maxim Smirnov)](http://ezcodesample.com/ralpha/Subbotin.txt) | c | 478467738 | 55,85 | 90,64 |  
 carryless rangecoder <br/> [(reference algorithm by Dmitry Subbotin with the order-1 frequency model)](https://web.archive.org/web/20020420161153/http://www.softcomplete.com/algo/pack/rus-range.txt) |  | 480296513 | 28,12 |  |  
 rangecoder (1.3) <br/> [(reference realization by Michael Schindler)](http://www.compressconsult.com/rangecoder/) | comp1/decomp1 | 489741259 | 44,36 | 53,35 |  
