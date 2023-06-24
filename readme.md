@@ -85,6 +85,7 @@ szip (1.11b) <br/> [(by Michael Schindler)](http://www.compressconsult.com/szip/
 balz (1.50) <br/> [(by Ilya Muravyov)](https://sourceforge.net/projects/balz/) | cx | 241575273 | 1059,91 | 33,53 |  
 zzip (0.36c) <br/> [(by Damien Debin)](https://web.archive.org/web/20080509103426/http://debin.net/zzip/index.php) | a -a -mx -mm | 244746544 | 174,98 | 94,90 |  
 squeez (6.0) <br/> [(by Sven Ritter)](https://www.speedproject.com/download/old/) | a /mx /fmt sqx | 246152882 | 597,93 | 8,89 |  
+makecab/expand (5.0.1.1) <br/> [(by Microsoft Corporation)](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/makecab) | /D CompressionType=LZX /D CompressionMemory=21 | 250764075 | 539,68 | 4,90 |  
 sr3a <br/> [(by Matt Mahoney, Nania Francesco Antonio)](http://mattmahoney.net/dc/sr3a.zip) | c | 253031977 | 55,95 | 67,09 |  
 rzip (2.1) <br/> [(by Andrew Tridgell)](https://rzip.samba.org/) | -9 -k | 253920811 | 113,04 | 56,55 |  
 bzip2 (1.0.8) <br/> [(bzip2 home page)](https://sourceware.org/bzip2/) | -9 | 253977891 | 81,44 | 40,03 |  
