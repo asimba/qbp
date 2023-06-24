@@ -71,6 +71,7 @@ lzham (alpha 7 r1) <br/> [(by Rich Geldreich)](https://code.google.com/archive/p
 ybs (0.03f) <br/> (by Vadim Yoockin) | -m16m | 202110510 | 314,00 | 138,69 |  
 uharc (0.6b) <br/> (by Uwe Herklotz) | a -d0 -md32768 -mm+ -mx | 208026696 | 493,92 | 383,33 |  
 rk (1.04.1a) <br/> (by Malcolm Taylor) | -mx | 208096232 | 1380,00 | 1372,69 |  
+grzipii (0.2.4) <br/> [(by Ilya Grebnov)](http://web.archive.org/web/20070819094051/http://magicssoft.ru/?folder=projects&page=GRZipII) | e -b8m -m1 | 208993966 | 108,79 | 109,66 |  
 xz (5.2.9) <br/> [(XZ Utils home page)](https://tukaani.org/xz/) | -9 -e | 211776220 | 871,57 | 13,38 |  
 7z (22.01) <br/> [(by Igor Pavlov)](https://7-zip.org/) | a -t7z -ms=on -m0=LZMA2 -mx9 -mmt=1 -scsUTF-8 -ssc | 213323101 | 690,12 | 8,50 |  
 boa (0.58b) <br/> (by Ian Sutton) | -a -s -m15 | 213845481 | 1758,10 | 1926,75 |  
@@ -82,6 +83,7 @@ sbc (0.969b) <br/> (by Sami J. Makinen) | c -m3 -b5 -os -hn | 224017402 | 291,50
 rar (6.11) <br/> [(by Alexander Roshal)](https://www.rarlab.com/) | a -s -k -m5 -mt1 -md1g | 232248528 | 811,92 | 5,64 |  
 szip (1.11b) <br/> [(by Michael Schindler)](http://www.compressconsult.com/szip/) | -b41 -o6 | 232346611 | 79,50 | 88,43 |  
 balz (1.50) <br/> [(by Ilya Muravyov)](https://sourceforge.net/projects/balz/) | cx | 241575273 | 1059,91 | 33,53 |  
+zzip (0.36c) <br/> [(by Damien Debin)](https://web.archive.org/web/20080509103426/http://debin.net/zzip/index.php) | a -a -mx -mm | 244746544 | 174,98 | 94,90 |  
 squeez (6.0) <br/> [(by Sven Ritter)](https://www.speedproject.com/download/old/) | a /mx /fmt sqx | 246152882 | 597,93 | 8,89 |  
 sr3a <br/> [(by Matt Mahoney, Nania Francesco Antonio)](http://mattmahoney.net/dc/sr3a.zip) | c | 253031977 | 55,95 | 67,09 |  
 rzip (2.1) <br/> [(by Andrew Tridgell)](https://rzip.samba.org/) | -9 -k | 253920811 | 113,04 | 56,55 |  
@@ -143,6 +145,7 @@ flzp (1.0) <br/> [(by Matt Mahoney)](http://www.mattmahoney.net/dc/flzp.zip) | c
 lz4 (1.9.4) <br/> [(LZ4 home page)](https://github.com/lz4/lz4) | -1 | 509454838 | 10,07 | 8,97 |  
 fpaqc <br/> [(by Matt Mahoney)](http://mattmahoney.net/dc/fpaqc.zip) | c | 620278358 | 112,53 | 89,40 |  
 fpaqb (2) <br/> [(by Matt Mahoney)](http://mattmahoney.net/dc/fpaqb.zip) | c | 620278361 | 116,20 | 81,57 |  
+q-coder <br/> [(realization by Dmitry Mastrukov)](http://compression.ru/download/sources/ar/mastrukov_arith.rar) | e | 635523992 | 109,20 | 118,21 |  
 fpc <br/> [(by Konstantinos Agiannis)](https://github.com/kagiannis/FPC) | -b 0 | 635922910 | 9,21 | 2,12 |  
 fpaq0 <br/> [(by Matt Mahoney)](http://mattmahoney.net/dc/fpaq0.cpp) | c | 641421110 | 95,09 | 122,44 |  
 rangecoder (1.3) <br/> [(reference realization by Michael Schindler)](http://www.compressconsult.com/rangecoder/) | comp/decomp | 644426106 | 48,38 | 57,54 |  
