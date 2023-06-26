@@ -153,4 +153,5 @@ q-coder <br/> [(realization by Dmitry Mastrukov)](http://compression.ru/download
 fpc <br/> [(by Konstantinos Agiannis)](https://github.com/kagiannis/FPC) | -b 0 | 635922910 | 9,21 | 2,12 |  
 fpaq0 <br/> [(by Matt Mahoney)](http://mattmahoney.net/dc/fpaq0.cpp) | c | 641421110 | 95,09 | 122,44 |  
 rangecoder (1.3) <br/> [(reference realization by Michael Schindler)](http://www.compressconsult.com/rangecoder/) | comp/decomp | 644426106 | 48,38 | 57,54 |  
+tinylzp (0.1) <br/> [(by David Catt)](https://encode.su/threads/1619) | c | 694274932 | 12,44 | 8,73 |  
 arc (5.21) <br/> [(source)](https://archive.debian.org/debian/pool/main/a/arc/arc_5.21q.orig.tar.gz) | a | 886038366 | 38,49 | 20,50 |  
