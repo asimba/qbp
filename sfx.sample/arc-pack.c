@@ -66,9 +66,7 @@ void pack_initialize(){
   scntx=0xff;
 }
 
-uint32_t rc32_putc(uint8_t c,FILE *ofile,uint8_t cntx){
-  uint16_t *f=frequency[cntx],fc=fcs[cntx];
-  uint32_t s=0,i=c;
+uint32_t rc32_putc(uint32_t c,FILE *ofile,uint8_t cntx){
   while((low^(low+range))<0x1000000||range<0x10000){
     fputc(*lowp,ofile);
     if(ferror(ofile)) return 1;
@@ -76,8 +74,14 @@ uint32_t rc32_putc(uint8_t c,FILE *ofile,uint8_t cntx){
     range<<=8;
     if((uint32_t)(range+low)<low) range=~low;
   };
-  while(i--) s+=*f++;
-  low+=s*(range/=fc);
+  uint16_t *f=frequency[cntx],fc=fcs[cntx];
+  register uint64_t s=0;
+  while(c>3) s+=*(uint64_t *)f,f+=4,c-=4;
+  while(c>1) s+=*(uint32_t *)f,f+=2,c-=2;
+  while(c--) s+=*f++;
+  s+=s>>32;
+  s+=s>>16;
+  low+=((uint16_t)s)*(range/=fc);
   range*=(*f)++;
   if(!++fc){
     f=frequency[cntx];
