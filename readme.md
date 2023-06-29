@@ -66,6 +66,7 @@ rz (1.03.7) <br/> (by Christian Martelock) | a -d 1023M | 173041178 | 3070,63 | 
 nanozip (0.09a) <br/> [(by Sami Runsas)](https://web.archive.org/web/20160304232219/http://nanozip.net/) | a -p1 -cO -m512m | 178225148 | 56,31 | 28,93 |  
 freearc (0.51) <br/> [(by Bulat Ziganshin)](https://sourceforge.net/projects/freearc/) | a -mx | 185153701 | 219,45 | 187,81 |  
 freearc (0.666) <br/> [(by Bulat Ziganshin)](https://web.archive.org/web/20161118235221/http://freearc.org/Download.aspx) | a -mt1 -mx | 189696374 | 210,74 | 182,99 |  
+bsc (3.3.2) <br/> [(by Ilya Grebnov)](http://libbsc.com/) | e -b2047 -m8 -cf -e2 -H28 -M4 -t -T | 194367010 | 76,06 | 153,76 |  
 lzip (1.23) <br/> [(Lzip home page)](http://www.nongnu.org/lzip/lzip.html) | -k -9 -s29 | 199138993 | 1134,42 | 20,09 |  
 lzham (alpha 7 r1) <br/> [(by Rich Geldreich)](https://code.google.com/archive/p/lzham/downloads) | -m4 -d29 -t0 -x -o -e c | 199611734 | 4164,14 | 6,42 |  
 ybs (0.03f) <br/> (by Vadim Yoockin) | -m16m | 202110510 | 314,00 | 138,69 |  
