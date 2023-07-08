@@ -273,15 +273,12 @@ void unpack_file(HANDLE ifile,HANDLE ofile){
 
 /***********************************************************************************************************/
 
-const LPCWSTR msg_a=L"qbp file compressor\n\nto   compress use: qbp c input output\nto decompress use: qbp d input output\n";
-const LPCWSTR msg_b=L"Error: unable to open input file!\n";
-const LPCWSTR msg_c=L"Error: unable to open output file or output file already exists!\n";
-
-void msg(LPCWSTR text){
-  WriteConsoleW(winout,text,lstrlenW(text),NULL,NULL);
-}
+void msg(LPCWSTR text){ WriteConsoleW(winout,text,lstrlenW(text),NULL,NULL); }
 
 void __stdcall start(){
+  const LPCWSTR msg_a=L"qbp file compressor\n\nto   compress use: qbp c input output\nto decompress use: qbp d input output\n";
+  const LPCWSTR msg_b=L"Error: unable to open input file!\n";
+  const LPCWSTR msg_c=L"Error: unable to open output file or output file already exists!\n";
   winout=GetStdHandle(STD_OUTPUT_HANDLE);
   int argc=0;
   LPWSTR *argv=CommandLineToArgvW(GetCommandLineW(),&argc);
