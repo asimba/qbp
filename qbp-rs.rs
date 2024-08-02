@@ -290,7 +290,7 @@ impl Packer {
       self.cbuffer[0]<<=1;
       self.symbol=self.vocroot-self.buf_size;
       rle=self.symbol;
-      let mut cnv: U16U8;
+      let cnv: U16U8;
       if self.buf_size>0 {
         rle+=1;
         while rle!=self.vocroot && self.vocbuf[self.symbol as usize]==self.vocbuf[rle as usize] {

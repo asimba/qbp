@@ -10,6 +10,7 @@
 #define LZ_MIN_MATCH 3
 
 HANDLE winout;
+void msg(LPCSTR text){ WriteConsoleA(winout,text,lstrlenA(text),NULL,NULL); }
 
 typedef union{
   struct{
@@ -45,6 +46,16 @@ uint8_t *lowp;
 uint8_t *hlpp;
 uint8_t scntx;
 DWORD wout,*pwout;
+
+typedef struct{
+  uint8_t  symbol;
+  uint16_t freq;
+  void *prev;
+  void *next;
+} freq_node;
+
+freq_node  freqs[256][256];
+freq_node *start_freqs[256];
 
 void pack_initialize(){
   cntxs[0]=flags=buf_size=vocroot=low=hlp=icbuf=wpos=rpos=0;
@@ -273,12 +284,11 @@ void unpack_file(HANDLE ifile,HANDLE ofile){
 
 /***********************************************************************************************************/
 
-void msg(LPCWSTR text){ WriteConsoleW(winout,text,lstrlenW(text),NULL,NULL); }
 
 void __stdcall start(){
-  const LPCWSTR msg_a=L"qbp file compressor\n\nto   compress use: qbp c input output\nto decompress use: qbp d input output\n";
-  const LPCWSTR msg_b=L"Error: unable to open input file!\n";
-  const LPCWSTR msg_c=L"Error: unable to open output file or output file already exists!\n";
+  const LPCSTR msg_a="qbp file compressor\n\nto   compress use: qbp c input output\nto decompress use: qbp d input output\n";
+  const LPCSTR msg_b="Error: unable to open input file!\n";
+  const LPCSTR msg_c="Error: unable to open output file or output file already exists!\n";
   winout=GetStdHandle(STD_OUTPUT_HANDLE);
   int argc=0;
   LPWSTR *argv=CommandLineToArgvW(GetCommandLineW(),&argc);
