@@ -7,7 +7,7 @@ _Sliding window size (bytes)_ | 65536 |
 _Window buffer size (bytes)_ | 259 |  
 _Minimum match length_ | 4 |  
 _Maximum match length_ | 259 |  
-_Memory requirements (encoding algorithm, bytes)_ | ~721483 |  
+_Memory requirements (encoding algorithm, bytes)_ | ~724555 |  
 _Memory requirements (decoding algorithm, bytes)_ | ~197133 |  
 _Range coder type_ | byte-oriented, mixed order (0/1) |  
 _Input buffer size (bytes)_ | 65536 |  
@@ -116,7 +116,7 @@ yzenc/yzdec (1.06.1) <br/> [(by BinaryTechnology)](https://web.archive.org/web/2
 lha (1.14i) <br/> [(by Tsugio Okamoto, Koji Arai)](https://sourceforge.net/projects/gnuwin32/files/lha/1.14i/) | a -o7 | 312912781 | 113,52 | 10,46 |  
 uc2 (uc2 3 pro) <br/> (by Ad Infinitum Programs (AIP-NL)) | a -tt | 313795096 | 256,12 | 41,40 |  
 thor (0.96a) <br/> [(Oscar Garcia)](https://web.archive.org/web/20080725180307/http://www.maximumcompression.com/thor_096.zip) | e4 | 314092324 | 26,36 | 9,73 |  
-<span id="result">$\textcolor[RGB]{0,154,23}{\textbf{qbp}}$ <br/> `(built with "gcc -O3")` </span> | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{317542161}}$ | $\textcolor[RGB]{0,154,23}{\textbf{45,56}}$ | $\textcolor[RGB]{0,154,23}{\textbf{29,46}}$ |  
+<span id="result">$\textcolor[RGB]{0,154,23}{\textbf{qbp}}$ <br/> `(built with "gcc -O3")` </span> | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{317542161}}$ | $\textcolor[RGB]{0,154,23}{\textbf{42,72}}$ | $\textcolor[RGB]{0,154,23}{\textbf{29,46}}$ |  
 $\textcolor[RGB]{0,154,23}{\textbf{unqbp}}$ <br/> `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{317542161}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{30,20}}$ |  
 lzfse (1.0) <br/> [(LZFSE home page)](https://github.com/lzfse/lzfse/) | -encode | 319756993 | 25,34 | 9,67 |  
 limit (1.2) <br/> (by J.Y. Lim) | a -mx | 320342601 | 138,10 | 38,25 |  

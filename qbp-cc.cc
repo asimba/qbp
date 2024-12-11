@@ -58,6 +58,7 @@ class packer{
     uint16_t length;
     uint16_t symbol;
     uint16_t *fcs;
+    uint16_t **_frequency;
     uint16_t **frequency;
     int32_t icbuf;
     uint32_t wpos;
@@ -104,8 +105,9 @@ packer::packer(){
   vocarea=new uint16_t[0x10000];
   hashes=new uint16_t[0x10000];
   vocindx=new vocpntr[0x10000];
+  _frequency=new uint16_t*[256];
   frequency=new uint16_t*[256];
-  for(int i=0;i<256;i++) frequency[i]=new uint16_t[256];
+  for(int i=0;i<256;i++) _frequency[i]=new uint16_t[260];
   fcs=new uint16_t[256];
   lowp=&((uint8_t *)&low)[3];
   hlpp=&((uint8_t *)&hlp)[0];
@@ -120,8 +122,9 @@ packer::~packer(){
   del(cntxs,LZ_CAPACITY+1,(uint8_t)0);
   del(vocarea,0x10000,(uint16_t)0);
   del(hashes,0x10000,(uint16_t)0);
-  for(int i=0;i<256;i++) del(frequency[i],256,(uint16_t)0);
-  delete[] frequency;
+  for(int i=0;i<256;i++) del(_frequency[i],260,(uint16_t)0);
+  delete[] _frequency;
+  del(frequency,256,(uint16_t*)NULL);
   del(fcs,256,(uint16_t)0);
   del(vocindx,0x10000,(vocpntr){0,0});
   lowp=NULL;
@@ -142,7 +145,10 @@ void packer::init(){
   voclast=0xfffc;
   range=0xffffffff;
   for(int i=0;i<256;i++){
-    for(int j=0;j<256;j++) frequency[i][j]=1;
+    uint64_t *f=(uint64_t *)_frequency[i];
+    frequency[i]=_frequency[i]+4;
+    f[0]=0;
+    for(int j=1;j<65;j++) f[j]=0x0001000100010001ULL;
     fcs[i]=256;
   };
   for(int i=0;i<0x10000;i++){
@@ -207,14 +213,12 @@ inline bool packer::rc32_putc(void *file, uint32_t c, uint8_t cntx){
     if(!(wbuf(file,*lowp),wpos)) return true;
     rc32_shift();
   };
-  uint16_t *f=frequency[cntx],fc=fcs[cntx];
+  uint16_t *f=_frequency[cntx]+(c&3),fc=fcs[cntx];
   register uint64_t s=0;
-  while(c>3) s+=*(uint64_t *)f,f+=4,c-=4;
-  if(c>>1) s+=*(uint32_t *)f,f+=2;
-  if(c&1) s+=*f++;
+  c=(c>>2)+1;
+  while(c--) s+=*(uint64_t *)f,f+=4;
   s+=s>>32;
-  s+=s>>16;
-  low+=((uint16_t)s)*(range/=fc);
+  low+=((uint16_t)(s+(s>>16)))*(range/=fc);
   rc32_rescale();
 }
 

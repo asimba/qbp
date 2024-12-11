@@ -32,7 +32,8 @@ uint8_t vocbuf[0x10000];
 uint16_t vocarea[0x10000];
 uint16_t hashes[0x10000];
 vocpntr vocindx[0x10000];
-uint16_t frequency[256][256];
+uint16_t _frequency[256][260];
+uint16_t* frequency[256];
 uint16_t fcs[256];
 uint16_t buf_size;
 uint16_t voclast;
@@ -65,7 +66,10 @@ void pack_initialize(){
   lowp=&((uint8_t *)&low)[3];
   hlpp=&((uint8_t *)&hlp)[0];
   for(int i=0;i<256;i++){
-    for(int j=0;j<256;j++) frequency[i][j]=1;
+    uint64_t *f=(uint64_t *)_frequency[i];
+    frequency[i]=_frequency[i]+4;
+    f[0]=0;
+    for(int j=1;j<65;j++) f[j]=0x0001000100010001ULL;
     fcs[i]=256;
   };
   for(int i=0;i<0x10000;i++){
@@ -125,14 +129,12 @@ uint32_t rc32_putc(uint32_t c,HANDLE ofile,uint8_t cntx){
     if(!(wbuf(*lowp,ofile),wpos)) return 1;
     rc32_shift();
   };
-  uint16_t *f=frequency[cntx],fc=fcs[cntx];
+  uint16_t *f=_frequency[cntx]+(c&3),fc=fcs[cntx];
   register uint64_t s=0;
-  while(c>3) s+=*(uint64_t *)f,f+=4,c-=4;
-  if(c>>1) s+=*(uint32_t *)f,f+=2;
-  if(c&1) s+=*f++;
+  c=(c>>2)+1;
+  while(c--) s+=*(uint64_t *)f,f+=4;
   s+=s>>32;
-  s+=s>>16;
-  low+=((uint16_t)s)*(range/=fc);
+  low+=((uint16_t)(s+(s>>16)))*(range/=fc);
   rc32_rescale();
 }
 
