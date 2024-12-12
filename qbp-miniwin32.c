@@ -48,16 +48,6 @@ uint8_t *hlpp;
 uint8_t scntx;
 DWORD wout,*pwout;
 
-typedef struct{
-  uint8_t  symbol;
-  uint16_t freq;
-  void *prev;
-  void *next;
-} freq_node;
-
-freq_node  freqs[256][256];
-freq_node *start_freqs[256];
-
 void pack_initialize(){
   cntxs[0]=flags=buf_size=vocroot=low=hlp=icbuf=wpos=rpos=0;
   pwout=&wout;
