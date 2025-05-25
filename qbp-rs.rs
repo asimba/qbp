@@ -364,8 +364,7 @@ impl Packer {
             }
           }
           else {
-            self.cntxs[cntx as usize]=self.scntx;
-            self.scntx=self.vocbuf[self.symbol as usize];
+            self.cntxs[cntx as usize]=self.vocbuf[((self.symbol-1) as u16) as usize];
             cntx+=1;
             self.cbuffer[0]|=0x01;
             unsafe { *cpos=self.vocbuf[self.symbol as usize] };
@@ -423,10 +422,9 @@ impl Packer {
   }
 
   pub fn unpack(&mut self) {
-    let mut cpos: *mut u8=ptr::addr_of_mut!(self.cbuffer).cast();
+    let mut cpos: *mut u8;
     let mut c: u8=0;
-    let mut cntx: u8;
-    let mut cflags: u8;
+    let mut cflags: u8=0;
     let mut rle_flag: bool=false;
     let mut bytes: bool=false;
     for _i in 0..4 {
@@ -441,6 +439,7 @@ impl Packer {
           c=self.vocbuf[self.offset as usize];
           self.offset+=1;
         }
+        self.scntx=c;
         self.vocbuf[self.vocroot as usize]=c;
         self.vocroot+=1;
         self.length-=1;
@@ -454,86 +453,56 @@ impl Packer {
         }
       }
       else {
+        cpos=ptr::addr_of_mut!(self.cbuffer) as *mut u8;
         if self.flags==0 {
-          cpos=ptr::addr_of_mut!(self.cbuffer) as *mut u8;
           if self.rc32_getc(cpos,0){
             return;
           }
-          unsafe { cpos=cpos.add(1) };
           cflags=self.cbuffer[0];
-          c=!self.cbuffer[0];
-          while c!=0 {
-            c&=c-1;
-            self.flags+=1;
-          }
-          cntx=8+(self.flags<<1);
-          let mut i: u8=0;
-          while i<cntx {
-            if cflags&0x80!=0 {
-              self.cntxs[i as usize]=4;
-              i+=1;
-            }
-            else {
-              self.cntxs[i as usize]=1;
-              i+=1;
-              self.cntxs[i as usize]=2;
-              i+=1;
-              self.cntxs[i as usize]=3;
-              i+=1;
-            }
-            cflags<<=1;
-          }
-          for i in 0..cntx {
-            if self.cntxs[i as usize]==4 {
-              if self.rc32_getc(cpos,self.scntx) {
-                return;
-              }
-              unsafe {
-                self.scntx=*cpos;
-              }
-            }
-            else{
-              if self.rc32_getc(cpos,self.cntxs[i as usize]) {
-                return;
-              }
-            }
-            unsafe { cpos=cpos.add(1) }
-          }
           self.flags=8;
-          cpos=ptr::addr_of_mut!(self.cbuffer) as *mut u8;
-          unsafe { cpos=cpos.add(1) }
-        }
-        rle_flag=true;
-        if self.cbuffer[0]&0x80!=0 {
-          self.length=1;
-          c=unsafe { *cpos };
         }
         else {
-          let mut cnv: U16U8;
-          cnv.u=0;
-          unsafe {
-            self.length=*cpos as u16;
-            cpos=cpos.add(1);
-            self.length+=LZ_MIN_MATCH+1;
-            cnv.c[0]=*cpos as u8;
-            cpos=cpos.add(1);
-            cnv.c[1]=*cpos as u8;
-            self.offset=cnv.u;
-          }
-          if self.offset<0x0100 {
-            c=self.offset as u8;
+          self.length=1;
+          rle_flag=true;
+          if cflags&0x80!=0 {
+            if self.rc32_getc(cpos,self.scntx) {
+              return;
+            }
+            c=self.cbuffer[0];
           }
           else {
-            if self.offset==0x0100 {
-              break;
+            for _i in 1..4 {
+              if self.rc32_getc(cpos,_i) {
+                return;
+              }
+              unsafe { cpos=cpos.add(1) };
             }
-            self.offset=!self.offset+(self.vocroot+LZ_BUF_SIZE) as u16;
-            rle_flag=false;
+            cpos=ptr::addr_of_mut!(self.cbuffer) as *mut u8;
+            let mut cnv: U16U8;
+            cnv.u=0;
+            unsafe {
+              self.length=*cpos as u16;
+              cpos=cpos.add(1);
+              self.length+=LZ_MIN_MATCH+1;
+              cnv.c[0]=*cpos as u8;
+              cpos=cpos.add(1);
+              cnv.c[1]=*cpos as u8;
+              self.offset=cnv.u;
+            }
+            if self.offset<0x0100 {
+              c=self.offset as u8;
+            }
+            else {
+              if self.offset==0x0100 {
+                break;
+              }
+              self.offset=!self.offset+(self.vocroot+LZ_BUF_SIZE) as u16;
+              rle_flag=false;
+            }
           }
+          cflags<<=1;
+          self.flags-=1;
         }
-        self.cbuffer[0]<<=1;
-        unsafe { cpos=cpos.add(1) };
-        self.flags-=1;
       }
     }
     if bytes {

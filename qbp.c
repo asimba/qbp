@@ -182,10 +182,9 @@ void pack_file(FILE *ifile,FILE *ofile){
         buf_size-=length;
       }
       else{
-        *npos++=scntx;
-        scntx=vocbuf[symbol];
-        *cbuffer|=1;
+        *npos++=vocbuf[(uint16_t)(symbol-1)];
         *cpos=vocbuf[symbol];
+        *cbuffer|=1;
         buf_size--;
       };
     }
@@ -215,7 +214,7 @@ void pack_file(FILE *ifile,FILE *ofile){
 }
 
 void unpack_file(FILE *ifile, FILE *ofile){
-  uint8_t *cpos=NULL,c,rle_flag=0,bytes=0,cntx,cflags;
+  uint8_t c,rle_flag=0,bytes=0,cflags=0;
   length=0;
   for(c=0;c<4;c++){
     hlp<<=8;
@@ -223,51 +222,35 @@ void unpack_file(FILE *ifile, FILE *ofile){
   }
   for(;;){
     if(length){
-      if(!rle_flag) c=vocbuf[offset++];
-      vocbuf[vocroot++]=c;
+      if(rle_flag==0) c=vocbuf[offset++];
+      vocbuf[vocroot++]=scntx=c;
       length--;
       bytes=1;
       if(!vocroot&&(bytes=0,fwrite(vocbuf,1,0x10000,ofile)<0x10000)) break;
       continue;
     };
     if(flags){
+      uint8_t *cpos=cbuffer;
       length=rle_flag=1;
-      if(*cbuffer&0x80) c=*cpos;
+      if(cflags&0x80){
+        if(rc32_getc(&c,ifile,scntx)) return;
+      }
       else{
-        length=LZ_MIN_MATCH+1+*cpos++;
-        if((offset=*(uint16_t*)cpos++)<0x0100) c=offset;
+        for(c=1;c<4;c++)
+          if(rc32_getc(cpos++,ifile,c)) return;
+        length=LZ_MIN_MATCH+1+*cbuffer;
+        if((offset=*(uint16_t*)(cbuffer+1))<0x0100) c=offset;
         else{
           if(offset==0x0100) break;
           offset=~offset+vocroot+LZ_BUF_SIZE;
           rle_flag=0;
         };
       };
-      *cbuffer<<=1;
-      cpos++;
+      cflags<<=1;
       flags--;
       continue;
     };
-    cpos=cbuffer;
-    if(rc32_getc(cpos++,ifile,0)) break;
-    for(c=~*cbuffer;c;flags++) c&=c-1;
-    cflags=*cbuffer;
-    for(c=0;c<(cntx=8+(flags<<1));){
-      if(cflags&0x80) cntxs[c++]=4;
-      else{
-        *(uint32_t*)(cntxs+c)=0x00030201;
-        c+=3;
-      };
-      cflags<<=1;
-    };
-    for(c=0;c<cntx;c++)
-      if(cntxs[c]==4){
-        if(rc32_getc(cpos,ifile,scntx)) return;
-        scntx=*cpos++;
-      }
-      else{
-        if(rc32_getc(cpos++,ifile,cntxs[c])) return;
-      };
-    cpos=&cbuffer[1];
+    if(rc32_getc(&cflags,ifile,0)) break;
     flags=8;
   };
   if(bytes) fwrite(vocbuf,1,vocroot?vocroot:0x10000,ofile);

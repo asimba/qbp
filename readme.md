@@ -114,10 +114,10 @@ kzip <br/> [(by Ken Silverman)](http://advsys.net/ken/utils.htm) | /q /s0 | 3102
 7z (22.01) <br/> [(by Igor Pavlov)](https://7-zip.org/) | a -tzip -m0=Deflate -mx9 | 310706257 | 790,08 | 6,54 |  
 yzenc/yzdec (1.06.1) <br/> [(by BinaryTechnology)](https://web.archive.org/web/20040830010118/http://member.nifty.ne.jp/yamazaki/DeepFreezer/) |  | 312789435 | 48,74 | 23,86 |  
 lha (1.14i) <br/> [(by Tsugio Okamoto, Koji Arai)](https://sourceforge.net/projects/gnuwin32/files/lha/1.14i/) | a -o7 | 312912781 | 113,52 | 10,46 |  
+<span id="result">$\textcolor[RGB]{0,154,23}{\textbf{qbp}}$ <br/> `(built with "gcc -O3")` </span> | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{313023275}}$ | $\textcolor[RGB]{0,154,23}{\textbf{44,10}}$ | $\textcolor[RGB]{0,154,23}{\textbf{30,88}}$ |  
+$\textcolor[RGB]{0,154,23}{\textbf{unqbp}}$ <br/> `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{313023275}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{36,97}}$ |  
 uc2 (uc2 3 pro) <br/> (by Ad Infinitum Programs (AIP-NL)) | a -tt | 313795096 | 256,12 | 41,40 |  
 thor (0.96a) <br/> [(Oscar Garcia)](https://web.archive.org/web/20080725180307/http://www.maximumcompression.com/thor_096.zip) | e4 | 314092324 | 26,36 | 9,73 |  
-<span id="result">$\textcolor[RGB]{0,154,23}{\textbf{qbp}}$ <br/> `(built with "gcc -O3")` </span> | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{317542161}}$ | $\textcolor[RGB]{0,154,23}{\textbf{42,72}}$ | $\textcolor[RGB]{0,154,23}{\textbf{29,46}}$ |  
-$\textcolor[RGB]{0,154,23}{\textbf{unqbp}}$ <br/> `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{317542161}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{30,20}}$ |  
 lzfse (1.0) <br/> [(LZFSE home page)](https://github.com/lzfse/lzfse/) | -encode | 319756993 | 25,34 | 9,67 |  
 limit (1.2) <br/> (by J.Y. Lim) | a -mx | 320342601 | 138,10 | 38,25 |  
 sqz (1.08.3) <br/> (by Jonas I. Hammarberg) | -q0 -m4 | 322400393 | 195,15 | 42,25 |  
