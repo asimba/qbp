@@ -46,7 +46,6 @@ uint32_t hlp;
 uint32_t range;
 uint8_t *lowp;
 uint8_t *hlpp;
-uint8_t scntx;
 
 void pack_initialize(){
   cntxs[0]=flags=buf_size=vocroot=low=hlp=icbuf=wpos=rpos=0;
@@ -73,7 +72,6 @@ void pack_initialize(){
   vocarea[0xfffd]=0xfffd;
   vocarea[0xfffe]=0xfffe;
   vocarea[0xffff]=0xffff;
-  scntx=0xff;
 }
 
 void wbuf(uint8_t c,FILE *ofile){
@@ -214,7 +212,7 @@ void pack_file(FILE *ifile,FILE *ofile){
 }
 
 void unpack_file(FILE *ifile, FILE *ofile){
-  uint8_t c,rle_flag=0,bytes=0,cflags=0;
+  uint8_t c,rle_flag=0,cflags=0;
   length=0;
   for(c=0;c<4;c++){
     hlp<<=8;
@@ -222,38 +220,35 @@ void unpack_file(FILE *ifile, FILE *ofile){
   }
   for(;;){
     if(length){
-      if(rle_flag==0) c=vocbuf[offset++];
-      vocbuf[vocroot++]=scntx=c;
+      if(rle_flag) vocbuf[vocroot++]=offset;
+      else vocbuf[vocroot++]=vocbuf[offset++];
       length--;
-      bytes=1;
-      if(!vocroot&&(bytes=0,fwrite(vocbuf,1,0x10000,ofile)<0x10000)) break;
+      if(!vocroot&&(fwrite(vocbuf,1,0x10000,ofile)<0x10000)) break;
       continue;
     };
     if(flags){
-      uint8_t *cpos=cbuffer;
       length=rle_flag=1;
       if(cflags&0x80){
-        if(rc32_getc(&c,ifile,scntx)) return;
+        if(rc32_getc((uint8_t *)&offset,ifile,vocbuf[(uint16_t)(vocroot-1)])) return;
       }
       else{
         for(c=1;c<4;c++)
-          if(rc32_getc(cpos++,ifile,c)) return;
+          if(rc32_getc(cbuffer+c-1,ifile,c)) return;
         length=LZ_MIN_MATCH+1+*cbuffer;
-        if((offset=*(uint16_t*)(cbuffer+1))<0x0100) c=offset;
-        else{
+        if((offset=*(uint16_t*)(cbuffer+1))>=0x0100){
           if(offset==0x0100) break;
           offset=~offset+vocroot+LZ_BUF_SIZE;
           rle_flag=0;
         };
       };
       cflags<<=1;
-      flags--;
+      flags<<=1;
       continue;
     };
     if(rc32_getc(&cflags,ifile,0)) break;
-    flags=8;
+    flags=0xff;
   };
-  if(bytes) fwrite(vocbuf,1,vocroot?vocroot:0x10000,ofile);
+  if(length) fwrite(vocbuf,1,vocroot?vocroot:0x10000,ofile);
 }
 
 /***********************************************************************************************************/

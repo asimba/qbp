@@ -114,8 +114,8 @@ kzip <br/> [(by Ken Silverman)](http://advsys.net/ken/utils.htm) | /q /s0 | 3102
 7z (22.01) <br/> [(by Igor Pavlov)](https://7-zip.org/) | a -tzip -m0=Deflate -mx9 | 310706257 | 790,08 | 6,54 |  
 yzenc/yzdec (1.06.1) <br/> [(by BinaryTechnology)](https://web.archive.org/web/20040830010118/http://member.nifty.ne.jp/yamazaki/DeepFreezer/) |  | 312789435 | 48,74 | 23,86 |  
 lha (1.14i) <br/> [(by Tsugio Okamoto, Koji Arai)](https://sourceforge.net/projects/gnuwin32/files/lha/1.14i/) | a -o7 | 312912781 | 113,52 | 10,46 |  
-<span id="result">$\textcolor[RGB]{0,154,23}{\textbf{qbp}}$ <br/> `(built with "gcc -O3")` </span> | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{313023275}}$ | $\textcolor[RGB]{0,154,23}{\textbf{44,10}}$ | $\textcolor[RGB]{0,154,23}{\textbf{30,88}}$ |  
-$\textcolor[RGB]{0,154,23}{\textbf{unqbp}}$ <br/> `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{313023275}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{36,97}}$ |  
+<span id="result">$\textcolor[RGB]{0,154,23}{\textbf{qbp}}$ <br/> `(built with "gcc -O3")` </span> | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{313023275}}$ | $\textcolor[RGB]{0,154,23}{\textbf{43,89}}$ | $\textcolor[RGB]{0,154,23}{\textbf{28,38}}$ |  
+$\textcolor[RGB]{0,154,23}{\textbf{unqbp}}$ <br/> `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{313023275}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{27,88}}$ |  
 uc2 (uc2 3 pro) <br/> (by Ad Infinitum Programs (AIP-NL)) | a -tt | 313795096 | 256,12 | 41,40 |  
 thor (0.96a) <br/> [(Oscar Garcia)](https://web.archive.org/web/20080725180307/http://www.maximumcompression.com/thor_096.zip) | e4 | 314092324 | 26,36 | 9,73 |  
 lzfse (1.0) <br/> [(LZFSE home page)](https://github.com/lzfse/lzfse/) | -encode | 319756993 | 25,34 | 9,67 |  
@@ -136,8 +136,8 @@ hyper (2.6) <br/> (by Klaus Peter Nischke, Peter Sawatzki) | -a | 368163826 | 12
 lz4 (1.9.4) <br/> [(LZ4 home page)](https://github.com/lz4/lz4) | --best | 372443347 | 65,90 | 11,91 |  
 lzss (0.02) <br/> [(by Ilya Muravyov)](http://compressme.net/lzss002.zip) | cx | 380192378 | 146,15 | 3,37 |  
 lzari <br/> [(reference realization by Haruhiko Okumura)](https://web.archive.org/web/19990209183635/http://oak.oakland.edu/pub/simtelnet/msdos/arcutils/lz_comp2.zip) | e | 388521578 | 182,69 | 77,72 |  
-$\textcolor[RGB]{0,154,23}{\textbf{lz16}}$ <br/> `(built with "gcc -O3")` | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{407180647}}$ | $\textcolor[RGB]{0,154,23}{\textbf{31,50}}$ | $\textcolor[RGB]{0,154,23}{\textbf{3,86}}$ |  
-$\textcolor[RGB]{0,154,23}{\textbf{unlz16}}$ <br/> `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{407180647}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{3,86}}$ |  
+$\textcolor[RGB]{0,154,23}{\textbf{lz16}}$ <br/> `(built with "gcc -O3")` | $\textcolor[RGB]{0,154,23}{\textbf{c}}$ | $\textcolor[RGB]{0,154,23}{\textbf{407180647}}$ | $\textcolor[RGB]{0,154,23}{\textbf{31,50}}$ | $\textcolor[RGB]{0,154,23}{\textbf{3,34}}$ |  
+$\textcolor[RGB]{0,154,23}{\textbf{unlz16}}$ <br/> `(built with "gcc -O3")` |  | $\textcolor[RGB]{0,154,23}{\textbf{407180647}}$ |  | $\textcolor[RGB]{0,154,23}{\textbf{3,34}}$ |  
 qpress (1.1) <br/> [(by Lasse Reinhold)](https://web.archive.org/web/20220524060234/http://www.quicklz.com/index.php) | -L3T1i | 422626641 | 41,11 | 8,25 |  
 ncompress (5.1) <br/> [(by Mike Frysinger)](https://github.com/vapier/ncompress) |  | 448136005 | 31,98 | 12,85 |  
 larc (3.33) <br/> (by Haruhiko Okumura, Kazuhiko Miki) | a | 455245358 | 214,15 | 36,23 |  

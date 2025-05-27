@@ -25,44 +25,40 @@ inline void rbuf(uint8_t *c,FILE *ifile){
 
 void unpack_file(FILE *ifile, FILE *ofile){
   uint16_t vocroot=0,offset=0,length=0;
-  uint8_t flags=0,rle_flag=0,bytes=0,c,cbuffer[LZ_CAPACITY+1],*cpos=cbuffer;
+  uint8_t flags=0,cflags=0,rle_flag=0,c,cbuffer[3];
   for(int i=0;i<0x10000;i++) vocbuf[i]=0xff;
-  icbuf=rpos=0;
+  cbuffer[0]=icbuf=rpos=0;
   for(;;){
     if(length){
-      if(!rle_flag) c=vocbuf[offset++];
-      vocbuf[vocroot++]=c;
+      if(rle_flag) vocbuf[vocroot++]=offset;
+      else vocbuf[vocroot++]=vocbuf[offset++];
       length--;
-      bytes=1;
-      if(!vocroot&&(bytes=0,fwrite(vocbuf,1,0x10000,ofile)<0x10000)) break;
+      if(!vocroot&&(fwrite(vocbuf,1,0x10000,ofile)<0x10000)) break;
       continue;
     };
     if(flags){
       length=rle_flag=1;
-      if(*cbuffer&0x80) c=*cpos;
+      if(cflags&0x80){
+        if(!(rbuf((uint8_t *)&offset,ifile),rpos)) break;
+      }
       else{
-        length+=LZ_MIN_MATCH+*cpos++;
-        if((offset=*(uint16_t*)cpos++)<0x0100) c=offset;
-        else{
+        for(c=0;c<3;c++)
+          if(!(rbuf(cbuffer+c,ifile),rpos)) return;
+        length=LZ_MIN_MATCH+1+*cbuffer;
+        if((offset=*(uint16_t*)(cbuffer+1))>=0x0100){
           if(offset==0x0100) break;
           offset=~offset+vocroot+LZ_BUF_SIZE;
           rle_flag=0;
         };
       };
-      *cbuffer<<=1;
-      cpos++;
-      flags--;
+      cflags<<=1;
+      flags<<=1;
       continue;
     };
-    cpos=cbuffer;
-    if(!(rbuf(cpos++,ifile),rpos)) break;
-    for(c=~*cbuffer;c;flags++) c&=c-1;
-    for(c=8+(flags<<1);c;c--)
-      if(!(rbuf(cpos++,ifile),rpos)) break;
-    cpos=&cbuffer[1];
-    flags=8;
+    if(!(rbuf(&cflags,ifile),rpos)) break;
+    flags=0xff;
   };
-  if(bytes) fwrite(vocbuf,1,vocroot?vocroot:0x10000,ofile);
+  if(length) fwrite(vocbuf,1,vocroot?vocroot:0x10000,ofile);
 }
 
 /***********************************************************************************************************/

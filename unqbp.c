@@ -13,6 +13,7 @@
 #define LZ_MIN_MATCH 3
 
 uint8_t ibuf[0x10000];
+uint8_t vocbuf[0x10000];
 uint32_t icbuf;
 uint32_t rpos;
 uint16_t frequency[256][256];
@@ -39,8 +40,8 @@ int rc32_getc(uint8_t *c,FILE *ifile,uint8_t cntx){
   };
   if((i=(hlp-low)/(range/=fc))>=fc) return 1;
   while((s+=*f)<=i) f++;
-  low+=(s-*f)*range;
   *c=f-frequency[cntx];
+  low+=(s-*f)*range;
   range*=(*f)++;
   if(!++fc){
     f=frequency[cntx];
@@ -51,8 +52,8 @@ int rc32_getc(uint8_t *c,FILE *ifile,uint8_t cntx){
 }
 
 void unpack_file(FILE *ifile, FILE *ofile){
-  uint8_t cbuffer[3],vocbuf[0x10000],c,rle_flag=0,bytes=0,cflags=0,flags=0,scntx=0xff;
-  uint16_t vocroot=0,length=0,*offset=(uint16_t *)(cbuffer+1);
+  uint8_t cbuffer[3],rle_flag=0,cflags=0,flags=0;
+  uint16_t vocroot=0,length=0,offset=0;
   low=hlp=icbuf=rpos=0;
   range=0xffffffff;
   lowp=&((uint8_t *)&low)[3];
@@ -62,44 +63,41 @@ void unpack_file(FILE *ifile, FILE *ofile){
     fcs[i]=256;
   };
   for(int i=0;i<0x10000;i++) vocbuf[i]=0xff;
-  for(c=0;c<4;c++){
+  for(int i=0;i<4;i++){
     hlp<<=8;
     if(!(rbuf(hlpp,ifile),rpos)) return;
   };
   for(;;){
     if(length){
-      if(rle_flag==0) c=vocbuf[(*offset)++];
-      vocbuf[vocroot++]=scntx=c;
+      if(rle_flag) vocbuf[vocroot++]=offset;
+      else vocbuf[vocroot++]=vocbuf[offset++];
       length--;
-      bytes=1;
-      if(!vocroot&&(bytes=0,fwrite(vocbuf,1,0x10000,ofile)<0x10000)) break;
+      if(!vocroot&&(fwrite(vocbuf,1,0x10000,ofile)<0x10000)) break;
       continue;
     };
     if(flags){
-      uint8_t *cpos=cbuffer;
       length=rle_flag=1;
       if(cflags&0x80){
-        if(rc32_getc(&c,ifile,scntx)) return;
+        if(rc32_getc((uint8_t *)&offset,ifile,vocbuf[(uint16_t)(vocroot-1)])) return;
       }
       else{
-        for(c=1;c<4;c++)
-          if(rc32_getc(cpos++,ifile,c)) return;
+        for(uint8_t c=1;c<4;c++)
+          if(rc32_getc(cbuffer+c-1,ifile,c)) return;
         length=LZ_MIN_MATCH+1+*cbuffer;
-        if(*offset<0x0100) c=*offset;
-        else{
-          if(*offset==0x0100) break;
-          *offset=~(*offset)+vocroot+LZ_BUF_SIZE;
+        if((offset=*(uint16_t*)(cbuffer+1))>=0x0100){
+          if(offset==0x0100) break;
+          offset=~offset+vocroot+LZ_BUF_SIZE;
           rle_flag=0;
         };
       };
       cflags<<=1;
-      flags--;
+      flags<<=1;
       continue;
     };
     if(rc32_getc(&cflags,ifile,0)) break;
-    flags=8;
+    flags=0xff;
   };
-  if(bytes) fwrite(vocbuf,1,vocroot?vocroot:0x10000,ofile);
+  if(length) fwrite(vocbuf,1,vocroot?vocroot:0x10000,ofile);
 }
 
 /***********************************************************************************************************/

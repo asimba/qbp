@@ -48,7 +48,6 @@ class packer{
     uint8_t *hlpp;
     uint8_t *cpos;
     uint8_t rle_flag;
-    uint8_t scntx;
     uint16_t *vocarea;
     uint16_t *hashes;
     uint16_t buf_size;
@@ -131,7 +130,7 @@ packer::~packer(){
   hlpp=NULL;
   read=NULL;
   write=NULL;
-  scntx=cnt=flags=buf_size=vocroot=voclast=range=low=hlp=icbuf=wpos=rpos=0;
+  cnt=flags=buf_size=vocroot=voclast=range=low=hlp=icbuf=wpos=rpos=0;
 }
 
 void packer::set_operators(io_operator r, io_operator w){
@@ -164,7 +163,6 @@ void packer::init(){
   vocarea[0xfffe]=0xfffe;
   vocarea[0xffff]=0xffff;
   cpos=&cbuffer[1];
-  scntx=0xff;
   finalize=false;
 }
 
@@ -271,7 +269,8 @@ bool packer::packer_putc(void *file, uint8_t c){
           cntxs[cnt++]=2;
           cntxs[cnt++]=3;
           *cpos++=--i;
-          *(uint16_t*)cpos++=offset;
+          *cpos++=(uint8_t)offset;
+          *cpos=(uint8_t)(offset>>8);
           buf_size-=length;
         }
         else{
@@ -287,7 +286,8 @@ bool packer::packer_putc(void *file, uint8_t c){
         cntxs[cnt++]=3;
         length=0;
         cpos++;
-        *(uint16_t*)cpos++=0x0100;
+        *cpos++=0;
+        *cpos=1;
       };
       cpos++;
       if(--flags&&length) continue;
@@ -321,24 +321,25 @@ bool packer::load_header(void *file){
 bool packer::packer_getc(void *file, uint8_t *c){
   for(;;){
     if(length){
-      if(!rle_flag) symbol=vocbuf[offset++];
-      *c=vocbuf[vocroot++]=scntx=(uint8_t)symbol;
+      if(rle_flag) *c=vocbuf[vocroot++]=offset;
+      else *c=vocbuf[vocroot++]=vocbuf[offset++];
       length--;
       return false;
     };
     if(flags){
       length=rle_flag=1;
+      uint8_t i=0;
       if(*cbuffer&0x80){
-        if(rc32_getc(file,cbuffer+1,scntx)) return true;
-        symbol=cbuffer[1];
+        if(rc32_getc(file,&i,vocbuf[(uint16_t)(vocroot-1)])) return true;
+        offset=i;
       }
       else{
-        uint8_t *cpos=cbuffer+1;
-        for(uint8_t i=1;i<4;i++)
-          if(rc32_getc(file,cpos++,i)) return true;
+        for(i=1;i<4;i++)
+          if(rc32_getc(file,cbuffer+i,i)) return true;
         length=LZ_MIN_MATCH+1+cbuffer[1];
-        if((offset=*(uint16_t*)(cbuffer+2))<0x0100) symbol=(uint8_t)(offset);
-        else{
+        offset=cbuffer[2];
+        offset|=((uint16_t)cbuffer[3])<<8;
+        if(offset>=0x0100){
           if(offset==0x0100){
             finalize=true;
             break;
@@ -347,12 +348,12 @@ bool packer::packer_getc(void *file, uint8_t *c){
           rle_flag=0;
         };
       };
-      *cbuffer<<=1;
-      flags--;
+      cbuffer[0]<<=1;
+      flags<<=1;
       continue;
     };
     if(rc32_getc(file,cbuffer,0)) return true;
-    flags=8;
+    flags=0xff;
   };
   return false;
 }

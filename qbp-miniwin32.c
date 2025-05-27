@@ -215,7 +215,7 @@ void pack_file(HANDLE ifile,HANDLE ofile){
 }
 
 void unpack_file(HANDLE ifile,HANDLE ofile){
-  uint8_t c,rle_flag=0,bytes=0,cflags=0;
+  uint8_t c,rle_flag=0,cflags=0;
   length=0;
   for(c=0;c<4;c++){
     hlp<<=8;
@@ -223,38 +223,35 @@ void unpack_file(HANDLE ifile,HANDLE ofile){
   }
   for(;;){
     if(length){
-      if(rle_flag==0) c=vocbuf[offset++];
-      vocbuf[vocroot++]=scntx=c;
+      if(rle_flag) vocbuf[vocroot++]=offset;
+      else vocbuf[vocroot++]=vocbuf[offset++];
       length--;
-      bytes=1;
-      if(!vocroot&&(bytes=0,!WriteFile(ofile,vocbuf,0x10000,pwout,NULL))) break;
+      if(!vocroot&&(!WriteFile(ofile,vocbuf,0x10000,pwout,NULL))) break;
       continue;
     };
     if(flags){
-      uint8_t *cpos=cbuffer;
       length=rle_flag=1;
       if(cflags&0x80){
-        if(rc32_getc(&c,ifile,scntx)) return;
+        if(rc32_getc((uint8_t *)&offset,ifile,vocbuf[(uint16_t)(vocroot-1)])) return;
       }
       else{
         for(c=1;c<4;c++)
-          if(rc32_getc(cpos++,ifile,c)) return;
+          if(rc32_getc(cbuffer+c-1,ifile,c)) return;
         length=LZ_MIN_MATCH+1+*cbuffer;
-        if((offset=*(uint16_t*)(cbuffer+1))<0x0100) c=offset;
-        else{
+        if((offset=*(uint16_t*)(cbuffer+1))>=0x0100){
           if(offset==0x0100) break;
           offset=~offset+vocroot+LZ_BUF_SIZE;
           rle_flag=0;
         };
       };
       cflags<<=1;
-      flags--;
+      flags<<=1;
       continue;
     };
     if(rc32_getc(&cflags,ifile,0)) break;
-    flags=8;
+    flags=0xff;
   };
-  if(bytes) WriteFile(ofile,vocbuf,vocroot?vocroot:0x10000,pwout,NULL);
+  if(length) WriteFile(ofile,vocbuf,vocroot?vocroot:0x10000,pwout,NULL);
 }
 
 /***********************************************************************************************************/

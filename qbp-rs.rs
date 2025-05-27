@@ -56,7 +56,6 @@ pub struct Packer {
   lowp: *mut u8,
   hlpp: *mut u8,
   flags: u8,
-  scntx: u8,
   pub ifile: File,
   pub ofile: File,
 }
@@ -79,7 +78,6 @@ impl Packer {
       lowp: ptr::null_mut(),
       hlpp: ptr::null_mut(),
       flags: 0,
-      scntx: 0xff,
       ifile:match File::open(&Path::new(i)){
         Err(why)=>{
           println!("Couldn't open input file: {}",why);
@@ -100,7 +98,6 @@ impl Packer {
   pub fn init(&mut self) {
     self.buf_size=0;
     self.flags=0;
-    self.scntx=0xff;
     self.vocroot=0;
     self.cbuffer[0]=0;
     self.cntxs[0]=0;
@@ -426,7 +423,6 @@ impl Packer {
     let mut c: u8=0;
     let mut cflags: u8=0;
     let mut rle_flag: bool=false;
-    let mut bytes: bool=false;
     for _i in 0..4 {
       self.hlp<<=8;
       if self.rbuf(self.hlpp) || self.rpos==0 {
@@ -439,13 +435,10 @@ impl Packer {
           c=self.vocbuf[self.offset as usize];
           self.offset+=1;
         }
-        self.scntx=c;
         self.vocbuf[self.vocroot as usize]=c;
         self.vocroot+=1;
         self.length-=1;
-        bytes=true;
         if self.vocroot==0 {
-          bytes=false;
           match self.ofile.write(&self.vocbuf) {
             Ok(_) => {},
             Err(_) => return,
@@ -465,7 +458,7 @@ impl Packer {
           self.length=1;
           rle_flag=true;
           if cflags&0x80!=0 {
-            if self.rc32_getc(cpos,self.scntx) {
+            if self.rc32_getc(cpos,self.vocbuf[((self.vocroot-1) as u16) as usize]) {
               return;
             }
             c=self.cbuffer[0];
@@ -505,7 +498,7 @@ impl Packer {
         }
       }
     }
-    if bytes {
+    if self.length!=0 {
       if self.vocroot!=0 {
         match self.ofile.write(&self.vocbuf[..self.vocroot as usize]) {
           Ok(_) => return,

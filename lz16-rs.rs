@@ -294,7 +294,6 @@ impl Packer {
     let mut cpos: *mut u8=ptr::addr_of_mut!(self.cbuffer).cast();
     let mut c: u8=0;
     let mut rle_flag: bool=false;
-    let mut bytes: bool=false;
     loop {
       if self.length!=0 {
         if rle_flag==false {
@@ -304,9 +303,7 @@ impl Packer {
         self.vocbuf[self.vocroot as usize]=c;
         self.vocroot+=1;
         self.length-=1;
-        bytes=true;
         if self.vocroot==0 {
-          bytes=false;
           match self.ofile.write(&self.vocbuf) {
             Ok(_) => {},
             Err(_) => return,
@@ -368,7 +365,7 @@ impl Packer {
         self.flags-=1;
       }
     }
-    if bytes {
+    if self.length!=0 {
       if self.vocroot!=0 {
         match self.ofile.write(&self.vocbuf[..self.vocroot as usize]) {
           Ok(_) => return,
