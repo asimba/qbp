@@ -21,7 +21,6 @@ typedef union{
 } vocpntr;
 
 uint8_t flags;
-uint8_t scntx;
 uint8_t cbuffer[LZ_CAPACITY+1];
 uint8_t cntxs[LZ_CAPACITY+1];
 uint8_t vocbuf[0x10000];
@@ -63,7 +62,6 @@ void pack_initialize(){
   vocarea[0xfffd]=0xfffd;
   vocarea[0xfffe]=0xfffe;
   vocarea[0xffff]=0xffff;
-  scntx=0xff;
 }
 
 uint32_t rc32_putc(uint32_t c,FILE *ofile,uint8_t cntx){
@@ -149,10 +147,9 @@ void pack_file(FILE *ifile,FILE *ofile){
         buf_size-=length;
       }
       else{
-        cntxs[cntx++]=scntx;
-        scntx=vocbuf[symbol];
-        *cbuffer|=1;
+        cntxs[cntx++]=vocbuf[(uint16_t)(symbol-1)];
         *cpos=vocbuf[symbol];
+        *cbuffer|=1;
         buf_size--;
       };
     }

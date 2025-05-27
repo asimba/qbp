@@ -7,8 +7,7 @@
 #define LZ_MIN_MATCH 3
 
 uint8_t flags;
-uint8_t cbuffer[LZ_CAPACITY+1];
-uint8_t cntxs[LZ_CAPACITY+2];
+uint8_t cbuffer[4];
 uint8_t vocbuf[0x10000];
 uint16_t frequency[256][256];
 uint16_t fcs[256];
@@ -24,7 +23,6 @@ char *lowp;
 char *hlpp;
 uint8_t *cpos;
 uint8_t rle_flag;
-uint8_t scntx;
 
 uint8_t rc32_getc(uint8_t *c,FILE *ifile,uint8_t cntx){
   uint16_t *f=frequency[cntx],fc=fcs[cntx];
@@ -56,53 +54,32 @@ uint8_t rc32_getc(uint8_t *c,FILE *ifile,uint8_t cntx){
 uint8_t unpack_file(FILE *ifile){
   for(;;){
     if(length){
-      if(rle_flag==0) symbol=vocbuf[offset++];
-      vocbuf[vocroot++]=symbol;
+      if(rle_flag) vocbuf[vocroot++]=symbol=offset;
+      else symbol=vocbuf[vocroot++]=vocbuf[offset++];
       length--;
       return 0;
-    }
-    else{
-      if(flags==0){
-        cpos=cbuffer;
-        if(rc32_getc(cpos++,ifile,0)) return 1;
-        for(uint8_t c=~*cbuffer;c;length++) c&=c-1;
-        uint8_t cflags=*cbuffer;
-        uint8_t cntx=8+(length<<1);
-        for(uint8_t c=0;c<cntx;){
-          if(cflags&0x80) cntxs[c++]=4;
-          else{
-            *(uint32_t*)(cntxs+c)=0x00030201;
-            c+=3;
-          };
-          cflags<<=1;
-        };
-        for(uint8_t c=0;c<cntx;c++){
-          if(cntxs[c]==4){
-            if(rc32_getc(cpos,ifile,scntx)) return;
-            scntx=*cpos++;
-          }
-          else{
-            if(rc32_getc(cpos++,ifile,cntxs[c])) return;
-          };
-        };
-        cpos=&cbuffer[1];
-        flags=8;
-      };
+    };
+    if(flags){
       length=rle_flag=1;
-      if(*cbuffer&0x80) symbol=*cpos;
+      if(*cbuffer&0x80){
+        if(rc32_getc((uint8_t *)&offset,ifile,vocbuf[(uint16_t)(vocroot-1)])) return 1;
+      }
       else{
-        length=LZ_MIN_MATCH+1+*cpos++;
-        if((offset=*(uint16_t*)cpos++)<0x0100) symbol=(uint8_t)(offset);
-        else{
+        for(uint8_t c=1;c<4;c++)
+          if(rc32_getc(cbuffer+c,ifile,c)) return 1;
+        length=LZ_MIN_MATCH+1+cbuffer[1];
+        if((offset=*(uint16_t*)(cbuffer+2))>=0x0100){
           if(offset==0x0100) break;
-          offset=~offset+(uint16_t)(vocroot+LZ_BUF_SIZE);
+          offset=~offset+vocroot+LZ_BUF_SIZE;
           rle_flag=0;
         };
       };
-      *cbuffer<<=1;
-      cpos++;
-      flags--;
+      cbuffer[0]<<=1;
+      flags<<=1;
+      continue;
     };
+    if(rc32_getc(cbuffer,ifile,0)) return 1;
+    flags=0xff;
   };
   return 0;
 }
@@ -158,7 +135,6 @@ void unarc(char *out,char *fn){
   if(feof(f)) return;
   buf_size=flags=vocroot=low=hlp=length=rle_flag=0;
   offset=range=0xffffffff;
-  scntx=0xff;
   lowp=&((char *)&low)[3];
   hlpp=&((char *)&hlp)[0];
   for(i=0;i<256;i++){
