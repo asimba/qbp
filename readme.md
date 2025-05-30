@@ -52,7 +52,7 @@ Written by Alexey V. Simbarsky.
 _Source file_ | [enwik9](https://cs.fit.edu/~mmahoney/compression/textdata.html) |  
 _Source size (bytes)_ | 1000000000 |  
 _Source hash (SHA1)_ | 2996e86fb978f93cca8f566cc56998923e7fe581 |  
-|_Testing platform_ | Intel Core i7 9700K / 32 GB RAM / Windows 10 Pro |  
+|_Testing platform_ | Intel Core i7 9700K / 64 GB RAM / Windows 10 Pro |  
 
 Packer | Options | Resulting size (bytes) | Packing time (sec) | Unpacking time (sec) |
 ----- | ----- | ----- | ----- | ----- |    
