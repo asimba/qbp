@@ -7,8 +7,8 @@ _Sliding window size (bytes)_ | 65536 |
 _Window buffer size (bytes)_ | 259 |  
 _Minimum match length_ | 4 |  
 _Maximum match length_ | 259 |  
-_Memory requirements (encoding algorithm, bytes)_ | ~724555 |  
-_Memory requirements (decoding algorithm, bytes)_ | ~197133 |  
+_Memory requirements (encoding algorithm, bytes)_ | ~724562‬ |  
+_Memory requirements (decoding algorithm, bytes)_ | ~197140 |  
 _Range coder type_ | byte-oriented, mixed order (0/1) |  
 _Input buffer size (bytes)_ | 65536 |  
 _Output buffer size (bytes)_ | 65536 |  
@@ -77,6 +77,7 @@ rk (1.04.1a) <br/> (by Malcolm Taylor) | -mx | 208096232 | 1380,00 | 1372,69 |
 grzipii (0.2.4) <br/> [(by Ilya Grebnov)](http://web.archive.org/web/20070819094051/http://magicssoft.ru/?folder=projects&page=GRZipII) | e -b8m -m1 | 208993966 | 108,79 | 109,66 |  
 xz (5.2.9) <br/> [(XZ Utils home page)](https://tukaani.org/xz/) | -9 -e | 211776220 | 871,57 | 13,38 |  
 7z (22.01) <br/> [(by Igor Pavlov)](https://7-zip.org/) | a -t7z -ms=on -m0=LZMA2 -mx9 -mmt=1 -scsUTF-8 -ssc | 213323101 | 690,12 | 8,50 |  
+zstd (1.5.7) <br/> [(Zstandard GitHub home page)](https://github.com/facebook/zstd/) | --ultra -22 --no-progress --single-thread | 213726895 | 971,26 | 2,16 |  
 boa (0.58b) <br/> (by Ian Sutton) | -a -s -m15 | 213845481 | 1758,10 | 1926,75 |  
 flashzip (1.1.3) <br/> [(by Nania Francesco Antonio)](http://heartofcomp.altervista.org/Flashzip.htm) | a -t1 -s -mx3 -k7 -b32 | 213919392 | 152,78 | 35,27 |  
 zstd (1.5.2) <br/> [(Zstandard GitHub home page)](https://github.com/facebook/zstd/) | --ultra -22 --no-progress --single-thread | 214910502 | 794,37 | 2,75 |  
