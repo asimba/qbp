@@ -71,6 +71,7 @@ lzip (1.23) <br/> [(Lzip home page)](http://www.nongnu.org/lzip/lzip.html) | -k 
 lzham (alpha 7 r1) <br/> [(by Rich Geldreich)](https://code.google.com/archive/p/lzham/downloads) | -m4 -d29 -t0 -x -o -e c | 199611734 | 4164,14 | 6,42 |  
 ybs (0.03f) <br/> (by Vadim Yoockin) | -m16m | 202110510 | 314,00 | 138,69 |  
 csarc (3.3) <br/> [(by Siyuan Fu)](https://github.com/fusiyuan2010/CSC) | a -m5 -d1024m -t1 | 203995004 | 491,60 | 16,07 |  
+7z (24.09) <br/> [(by Igor Pavlov)](https://7-zip.org/) | a -t7z -bd -ms=on -m0=LZMA2 -mx9 -myx=9 -mmt=1 -scsUTF-8 -ssc | 204719141 | 926,78 | 9,94 |  
 nlzm (1.03) <br/> [(by Nauful)](https://github.com/nauful/NLZM) | -window:28 c | 206548024 | 1966,19 | 9,38 |  
 uharc (0.6b) <br/> (by Uwe Herklotz) | a -d0 -md32768 -mm+ -mx | 208026696 | 493,92 | 383,33 |  
 rk (1.04.1a) <br/> (by Malcolm Taylor) | -mx | 208096232 | 1380,00 | 1372,69 |  
