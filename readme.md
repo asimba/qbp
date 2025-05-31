@@ -74,6 +74,7 @@ csarc (3.3) <br/> [(by Siyuan Fu)](https://github.com/fusiyuan2010/CSC) | a -m5 
 7z (24.09) <br/> [(by Igor Pavlov)](https://7-zip.org/) | a -t7z -bd -ms=on -m0=LZMA2 -mx9 -myx=9 -mmt=1 -scsUTF-8 -ssc | 204719141 | 926,78 | 9,94 |  
 nlzm (1.03) <br/> [(by Nauful)](https://github.com/nauful/NLZM) | -window:28 c | 206548024 | 1966,19 | 9,38 |  
 uharc (0.6b) <br/> (by Uwe Herklotz) | a -d0 -md32768 -mm+ -mx | 208026696 | 493,92 | 383,33 |  
+rar (7.11) <br/> [(by Alexander Roshal)](https://www.rarlab.com/) | a -s -k -m5 -mcx -mt1 -md4g | 208079690 | 2743,68 | 5,50 |  
 rk (1.04.1a) <br/> (by Malcolm Taylor) | -mx | 208096232 | 1380,00 | 1372,69 |  
 grzipii (0.2.4) <br/> [(by Ilya Grebnov)](http://web.archive.org/web/20070819094051/http://magicssoft.ru/?folder=projects&page=GRZipII) | e -b8m -m1 | 208993966 | 108,79 | 109,66 |  
 xz (5.2.9) <br/> [(XZ Utils home page)](https://tukaani.org/xz/) | -9 -e | 211776220 | 871,57 | 13,38 |  
