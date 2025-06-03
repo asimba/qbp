@@ -84,7 +84,7 @@ _Source hash (SHA1)_ | 2996e86fb978f93cca8f566cc56998923e7fe581 |
 | | flashzip (1.1.3) <br/> [(by Nania Francesco Antonio)](http://heartofcomp.altervista.org/Flashzip.htm) | a -t1 -s -mx3 -k7 -b32 | 213919392 | 152,78 | 35,27 |  
 | | zstd (1.5.2) <br/> [(Zstandard GitHub home page)](https://github.com/facebook/zstd/) | --ultra -22 --no-progress --single-thread | 214910502 | 794,37 | 2,75 |  
 | | dark (0.51) <br/> [(by Dmitry Malyshev)](http://darchiver.narod.ru/index.html) | p -b16mi0 | 218507990 | 97,00 | 98,09 |  
-| | brotli (1.0.9) <br/> [(by Google)](https://github.com/google/brotli) | -Z -n | 223345718 | 2287,31 | 3,36 |  
+| | brotli (1.1.0) <br/> [(by Google)](https://github.com/google/brotli) | -Z -n | 223344816 | 2526,47 | 4,31 |  
 | | sbc (0.969b) <br/> (by Sami J. Makinen) | c -m3 -b5 -os -hn | 224017402 | 291,50 | 104,75 |  
 | | alzip (12.16.0.2) <br/> [(by ESTsoft)](https://www.altools.co.kr/Download/ALZip.aspx) | -a -s -m3 | 227906109 | 754,58 | 15,88 |  
 | | rar (6.11) <br/> [(by Alexander Roshal)](https://www.rarlab.com/) | a -s -k -m5 -mt1 -md1g | 232248528 | 811,92 | 5,64 |  
