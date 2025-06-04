@@ -150,6 +150,7 @@ _Source hash (SHA1)_ | 2996e86fb978f93cca8f566cc56998923e7fe581 |
 | | carryless rangecoder <br/> [(reference algorithm by Dmitry Subbotin with the order-1 frequency model)](https://web.archive.org/web/20020420161153/http://www.softcomplete.com/algo/pack/rus-range.txt) |  | 480296513 | 28,12 |  |  
 | | rangecoder (1.3) <br/> [(reference realization by Michael Schindler)](http://www.compressconsult.com/rangecoder/) | comp1/decomp1 | 489741259 | 44,36 | 53,35 |  
 | | flzp (1.0) <br/> [(by Matt Mahoney)](http://www.mattmahoney.net/dc/flzp.zip) | c | 497535428 | 74,15 | 16,34 |  
+| | snappy (1.1.1.8) <br/> [(by Robert Važan)](https://snappy.machinezoo.com/) <br/>[(algorithm by Google)](https://google.github.io/snappy/) | c | 507879264 | 3,97 | 2,25 |  
 | | lz4 (1.9.4) <br/> [(LZ4 home page)](https://github.com/lz4/lz4) | -1 | 509454838 | 10,07 | 8,97 |  
 | | fpaqc <br/> [(by Matt Mahoney)](http://mattmahoney.net/dc/fpaqc.zip) | c | 620278358 | 112,53 | 89,40 |  
 | | fpaqb (2) <br/> [(by Matt Mahoney)](http://mattmahoney.net/dc/fpaqb.zip) | c | 620278361 | 116,20 | 81,57 |  
