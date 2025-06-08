@@ -148,7 +148,7 @@ _Source hash (SHA1)_ | 2996e86fb978f93cca8f566cc56998923e7fe581 |
 | | qpress (1.1) <br/> [(by Lasse Reinhold)](https://web.archive.org/web/20220524060234/http://www.quicklz.com/index.php) | -L3T1i | 422626641 | 41,11 | 8,25 |  
 | | ncompress (5.1) <br/> [(by Mike Frysinger)](https://github.com/vapier/ncompress) |  | 448136005 | 31,98 | 12,85 |  
 | :arrow_right: | $\textbf{rc32}$ <br/> `(built with "gcc -O3")` | $\textbf{c}$ | $\textbf{454498180}$ | $\textbf{26,85}$ | $\textbf{60,60}$ |  
-| :arrow_right: | $\textbf{rc32}$ <br/> `(built with "gcc -O3")` |  | $\textbf{454498180}$ |  | $\textbf{60,91}$ |  
+| :arrow_right: | $\textbf{unrc32}$ <br/> `(built with "gcc -O3")` |  | $\textbf{454498180}$ |  | $\textbf{60,91}$ |  
 | | larc (3.33) <br/> (by Haruhiko Okumura, Kazuhiko Miki) | a | 455245358 | 214,15 | 36,23 |  
 | | lzss <br/> [(reference realization by Haruhiko Okumura)](https://oku.edu.mie-u.ac.jp/~okumura/compression/lzss.c) | e | 455245327 | 136,39 | 36,33 |  
 | | shrinker <br/> [(by Siyuan Fu)](https://code.google.com/archive/p/data-shrinker/) | c | 459825318 | 4,76 | 1,74 |  
