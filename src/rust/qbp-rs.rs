@@ -24,11 +24,6 @@ union Vocpntr {
   v: u32,
 }
 
-union U16U8 {
-  u: u16,
-  c: [u8; 2],
-}
-
 pub struct Packer {
   ibuf: [u8; 0x10000],
   obuf: [u8; 0x10000],
@@ -58,6 +53,24 @@ pub struct Packer {
   flags: u8,
   pub ifile: File,
   pub ofile: File,
+}
+
+macro_rules! write_err {
+  ($x:expr) => {
+    {
+      println!("Couldn't write output file: {}",$x);
+      panic!()
+    }
+  }
+}
+
+macro_rules! read_err {
+  () => {
+    {
+      println!("Couldn't read input file!");
+      panic!();
+    }
+  }
 }
 
 impl Packer {
@@ -132,33 +145,36 @@ impl Packer {
   }
 
   #[inline(always)]
-  fn rbuf(&mut self,c: *mut u8)->bool {
+  fn rbuf(&mut self)->u8 {
     if self.rpos==self.icbuf {
       self.rpos=0;
       match self.ifile.read(&mut self.ibuf) {
         Ok(r) => self.icbuf=r as u32,
-        Err(_) => return true,
+        Err(why)=>{
+          println!("Couldn't read input file: {}",why);
+          panic!();
+        },
       }
     }
+    let mut c: u8=0;
     if self.icbuf>0 {
-      unsafe { *c=self.ibuf[self.rpos as usize] };
+      c=self.ibuf[self.rpos as usize];
       self.rpos+=1;
     }
-    return false;
+    c
   }
 
   #[inline(always)]
-  fn wbuf(&mut self,c: u8)->bool {
+  fn wbuf(&mut self,c: u8) {
     if self.wpos==0x10000{
       self.wpos=0;
       match self.ofile.write(&self.obuf) {
         Ok(_) => {},
-        Err(_) => return true,
+        Err(why) => write_err!(why),
       }
     }
     self.obuf[self.wpos as usize]=c;
     self.wpos+=1;
-    return false;
   }
 
   #[inline(always)]
@@ -177,15 +193,13 @@ impl Packer {
     }
   }
 
-  fn rc32_getc(&mut self,c: *mut u8,cntx: u8)->bool {
+  fn rc32_getc(&mut self,cntx: u8) {
     while (self.low^(self.low+self.range))<0x1000000 || self.range<self.fcs[cntx as usize] as u32 || self.hlp<self.low {
       self.hlp<<=8;
-      if self.rbuf(self.hlpp) {
-        return true;
-      }
+      unsafe{ *self.hlpp=self.rbuf() };
       if self.rpos==0 {
-        return false;
-      };
+        read_err!()
+      }
       self.low<<=8;
       self.range<<=8;
       if self.range>!self.low  {
@@ -195,7 +209,7 @@ impl Packer {
     self.range/=self.fcs[cntx as usize] as u32;
     let count: u32=(self.hlp-self.low)/self.range;
     if count>=self.fcs[cntx as usize] as u32 {
-      return true;
+      read_err!()
     }
     let mut s: u32=0;
     for i in 0..256 {
@@ -206,16 +220,12 @@ impl Packer {
       };
     };
     s-=self.frequency[cntx as usize][self.symbol as usize] as u32;
-    unsafe { *c=self.symbol as u8};
     self.rc32_rescale(s,cntx);
-    return false;
   }
   
-  fn rc32_putc(&mut self,c: u8,cntx: u8)->bool {
+  fn rc32_putc(&mut self,c: u8,cntx: u8) {
     while (self.low^(self.low+self.range))<0x1000000 || self.range<self.fcs[cntx as usize] as u32 {
-      if self.wbuf(unsafe { *self.lowp }) {
-        return true;
-      }
+      self.wbuf(unsafe { *self.lowp });
       self.low<<=8;
       self.range<<=8;
       if self.range>!self.low  {
@@ -229,7 +239,6 @@ impl Packer {
       s+=self.frequency[cntx as usize][i as usize] as u32;
     }
     self.rc32_rescale(s,cntx);
-    return false;
   }
 
   pub fn pack(&mut self) {
@@ -237,9 +246,7 @@ impl Packer {
     let mut rle: u16;
     let mut rle_shift: u16=0;
     let mut cnode: u16;
-    let mut cpos: *mut u8=ptr::addr_of_mut!(self.cbuffer).cast();
-    let w: *mut u8=cpos;
-    unsafe { cpos=cpos.add(1) };
+    let mut cpos: usize=1;
     let mut eoff: bool=false;
     let mut eofs: bool=false;
     let mut cntx: u8=1;
@@ -247,9 +254,7 @@ impl Packer {
     loop {
       if !eoff {
         if (LZ_BUF_SIZE-self.buf_size)>0 {
-          if self.rbuf(ptr::addr_of!(self.vocbuf[self.vocroot as usize]) as *mut u8) {
-            break;
-          }
+          self.vocbuf[self.vocroot as usize]=self.rbuf();
           if self.rpos==0 {
             eoff=true;
             continue;
@@ -282,12 +287,10 @@ impl Packer {
             continue;
           }
         }
-
       }
       self.cbuffer[0]<<=1;
       self.symbol=self.vocroot-self.buf_size;
       rle=self.symbol;
-      let cnv: U16U8;
       if self.buf_size>0 {
         rle+=1;
         while rle!=self.vocroot && self.vocbuf[self.symbol as usize]==self.vocbuf[rle as usize] {
@@ -332,15 +335,12 @@ impl Packer {
           cntx+=1;
           self.cntxs[cntx as usize]=3;
           cntx+=1;
-          unsafe {
-            *cpos=(rle-LZ_MIN_MATCH-1) as u8;
-            cpos=cpos.add(1);
-            cnv.u=self.vocbuf[self.symbol as usize] as u16;
-            *cpos=cnv.c[0];
-            cpos=cpos.add(1);
-            *cpos=cnv.c[1];
-            self.buf_size-=rle;
-          }
+          self.cbuffer[cpos]=(rle-LZ_MIN_MATCH-1) as u8;
+          cpos+=1;
+          self.cbuffer[cpos]=self.vocbuf[self.symbol as usize] as u8;
+          cpos+=1;
+          self.cbuffer[cpos]=0;
+          self.buf_size-=rle;
         }
         else {
           if self.length>LZ_MIN_MATCH {
@@ -350,21 +350,19 @@ impl Packer {
             cntx+=1;
             self.cntxs[cntx as usize]=3;
             cntx+=1;
-            unsafe {
-              *cpos=(self.length-LZ_MIN_MATCH-1) as u8;
-              cpos=cpos.add(1);
-              cnv.u=!(self.offset-rle_shift);
-              *cpos=cnv.c[0];
-              cpos=cpos.add(1);
-              *cpos=cnv.c[1];
-              self.buf_size-=self.length;
-            }
+            self.cbuffer[cpos]=(self.length-LZ_MIN_MATCH-1) as u8;
+            cpos+=1;
+            self.offset=!(self.offset-rle_shift);
+            self.cbuffer[cpos]=self.offset as u8;
+            cpos+=1;
+            self.cbuffer[cpos]=(self.offset>>8) as u8;
+            self.buf_size-=self.length;
           }
           else {
             self.cntxs[cntx as usize]=self.vocbuf[((self.symbol-1) as u16) as usize];
             cntx+=1;
-            self.cbuffer[0]|=0x01;
-            unsafe { *cpos=self.vocbuf[self.symbol as usize] };
+            self.cbuffer[0]|=1;
+            self.cbuffer[cpos]=self.vocbuf[self.symbol as usize];
             self.buf_size-=1;
           }
         }
@@ -376,42 +374,34 @@ impl Packer {
         cntx+=1;
         self.cntxs[cntx as usize]=3;
         cntx+=1;
-        unsafe {
-          cpos=cpos.add(1);
-          cnv.u=0x0100;
-          *cpos=cnv.c[0];
-          cpos=cpos.add(1);
-          *cpos=cnv.c[1];
-          if eoff {
-            eofs=true;
-          }
+        cpos+=1;
+        self.cbuffer[cpos]=0;
+        cpos+=1;
+        self.cbuffer[cpos]=1;
+        if eoff {
+          eofs=true;
         }
       }
-      unsafe { cpos=cpos.add(1) };
+      cpos+=1;
       self.flags-=1;
       if self.flags==0 || eofs {
         self.cbuffer[0]<<=self.flags;
-        for  i in 0..(cpos as u32 - w as u32) as u16 {
-          if self.rc32_putc(self.cbuffer[i as usize],self.cntxs[i as usize]){
-            return;
-          }
+        for  i in 0..cpos as usize {
+          self.rc32_putc(self.cbuffer[i],self.cntxs[i]);
         }
         cntx=1;
         self.flags=8;
-        cpos=w;
-        unsafe { cpos=cpos.add(1) };
+        cpos=1;
         if eofs {
           i=4;
           while i>0 {
-            if self.wbuf(unsafe { *self.lowp }) {
-              return;
-            }
+            self.wbuf(unsafe { *self.lowp });
             self.low<<=8;
             i-=1;
           }
           match self.ofile.write(&self.obuf[..self.wpos as usize]) {
             Ok(_) => break,
-            Err(_) => return,
+            Err(why) =>  write_err!(why),
           }
         }
       }
@@ -419,14 +409,15 @@ impl Packer {
   }
 
   pub fn unpack(&mut self) {
-    let mut cpos: *mut u8;
+    let mut cpos: usize;
     let mut c: u8=0;
     let mut cflags: u8=0;
     let mut rle_flag: bool=false;
     for _i in 0..4 {
       self.hlp<<=8;
-      if self.rbuf(self.hlpp) || self.rpos==0 {
-        return;
+      unsafe{ *self.hlpp=self.rbuf() };
+      if self.rpos==0 {
+        read_err!()
       }
     }
     loop {
@@ -441,47 +432,38 @@ impl Packer {
         if self.vocroot==0 {
           match self.ofile.write(&self.vocbuf) {
             Ok(_) => {},
-            Err(_) => return,
+            Err(why) => write_err!(why),
           }
         }
       }
       else {
-        cpos=ptr::addr_of_mut!(self.cbuffer) as *mut u8;
         if self.flags==0 {
-          if self.rc32_getc(cpos,0){
-            return;
-          }
-          cflags=self.cbuffer[0];
+          self.rc32_getc(0);
+          cflags=self.symbol as u8;
           self.flags=8;
         }
         else {
           self.length=1;
           rle_flag=true;
           if cflags&0x80!=0 {
-            if self.rc32_getc(cpos,self.vocbuf[((self.vocroot-1) as u16) as usize]) {
-              return;
-            }
-            c=self.cbuffer[0];
+            self.rc32_getc(self.vocbuf[((self.vocroot-1) as u16) as usize]);
+            c=self.symbol as u8;
           }
           else {
+            cpos=0;
             for _i in 1..4 {
-              if self.rc32_getc(cpos,_i) {
-                return;
-              }
-              unsafe { cpos=cpos.add(1) };
+              self.rc32_getc(_i);
+              self.cbuffer[cpos]=self.symbol as u8;
+              cpos+=1;
             }
-            cpos=ptr::addr_of_mut!(self.cbuffer) as *mut u8;
-            let mut cnv: U16U8;
-            cnv.u=0;
-            unsafe {
-              self.length=*cpos as u16;
-              cpos=cpos.add(1);
-              self.length+=LZ_MIN_MATCH+1;
-              cnv.c[0]=*cpos as u8;
-              cpos=cpos.add(1);
-              cnv.c[1]=*cpos as u8;
-              self.offset=cnv.u;
-            }
+            cpos=0;
+            self.offset=0;
+            self.length=self.cbuffer[cpos] as u16;
+            cpos+=1;
+            self.length+=LZ_MIN_MATCH+1;
+            self.offset|=self.cbuffer[cpos] as u16;
+            cpos+=1;
+            self.offset|=(self.cbuffer[cpos] as u16)<<8;
             if self.offset<0x0100 {
               c=self.offset as u8;
             }
@@ -502,18 +484,17 @@ impl Packer {
       if self.vocroot!=0 {
         match self.ofile.write(&self.vocbuf[..self.vocroot as usize]) {
           Ok(_) => return,
-          Err(_) => return,
+          Err(why) => write_err!(why),
         }
       }
       else {
         match self.ofile.write(&self.vocbuf) {
           Ok(_) => return,
-          Err(_) => return,
+          Err(why) => write_err!(why),
         }
       }
     }
   }
-
 }
 
 fn main(){
@@ -539,15 +520,20 @@ fn main(){
     panic!();
   }
   let cmd=argv[1].chars().nth(0).unwrap();
-  if cmd!='c' && cmd!='d' {
-    println!("Wrong argument: \'{}\'!",cmd);
-    panic!();
-  }
-  let mut p=Packer::new(&argv[2],&argv[3]);
-  p.init();
   match cmd {
-    'c' => p.pack(),
-    'd' => p.unpack(),
-    _ => (),
+    'c' => {
+      let mut p=Packer::new(&argv[2],&argv[3]);
+      p.init();
+      p.pack();
+    },
+    'd' => {
+      let mut p=Packer::new(&argv[2],&argv[3]);
+      p.init();
+      p.unpack();
+    },
+    _ => {
+      println!("Wrong argument: \'{}\'!",cmd);
+      panic!();
+    },
   }
 }

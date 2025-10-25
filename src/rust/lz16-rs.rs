@@ -1,12 +1,12 @@
 /***********************************************************************************************************/
-//Базовая реализация упаковки/распаковки файла по упрощённому алгоритму LZSS+RLE+RC32
+//Базовая реализация упаковки/распаковки файла по упрощённому алгоритму LZSS+RLE
 /***********************************************************************************************************/
 
 use std::env::args;
 use std::path::Path;
 use std::fs::{File,metadata};
-use std::{panic,ptr,usize};
-use std::io::{Read, Write};
+use std::{panic,usize};
+use std::io::{Read,Write};
 
 const LZ_BUF_SIZE: u16=259;
 const LZ_CAPACITY: u8=24;
@@ -22,11 +22,6 @@ struct IOpntr {
 union Vocpntr {
   p: IOpntr,
   v: u32,
-}
-
-union U16U8 {
-  u: u16,
-  c: [u8; 2],
 }
 
 pub struct Packer {
@@ -50,6 +45,15 @@ pub struct Packer {
   flags: u8,
   pub ifile: File,
   pub ofile: File,
+}
+
+macro_rules! write_err {
+  ($x:expr) => {
+    {
+      println!("Couldn't write output file: {}",$x);
+      panic!()
+    }
+  }
 }
 
 impl Packer {
@@ -105,33 +109,36 @@ impl Packer {
   }
 
   #[inline(always)]
-  fn rbuf(&mut self,c: *mut u8)->bool {
+  fn rbuf(&mut self)->u8 {
     if self.rpos==self.icbuf {
       self.rpos=0;
       match self.ifile.read(&mut self.ibuf) {
         Ok(r) => self.icbuf=r as u32,
-        Err(_) => return true,
+        Err(why)=>{
+          println!("Couldn't read input file: {}",why);
+          panic!();
+        },
       }
     }
+    let mut c: u8=0;
     if self.icbuf>0 {
-      unsafe { *c=self.ibuf[self.rpos as usize] };
+      c=self.ibuf[self.rpos as usize];
       self.rpos+=1;
     }
-    return false;
+    c
   }
 
   #[inline(always)]
-  fn wbuf(&mut self,c: u8)->bool {
+  fn wbuf(&mut self,c: u8) {
     if self.wpos==0x10000{
       self.wpos=0;
       match self.ofile.write(&self.obuf) {
         Ok(_) => {},
-        Err(_) => return true,
+        Err(why) => write_err!(why),
       }
     }
     self.obuf[self.wpos as usize]=c;
     self.wpos+=1;
-    return false;
   }
 
   pub fn pack(&mut self) {
@@ -139,18 +146,14 @@ impl Packer {
     let mut rle: u16;
     let mut rle_shift: u16=0;
     let mut cnode: u16;
-    let mut cpos: *mut u8=ptr::addr_of_mut!(self.cbuffer).cast();
-    let w: *mut u8=cpos;
-    unsafe { cpos=cpos.add(1) };
+    let mut cpos: usize=1;
     let mut eoff: bool=false;
     let mut eofs: bool=false;
     self.flags=8;
     loop {
       if !eoff {
         if (LZ_BUF_SIZE-self.buf_size)>0 {
-          if self.rbuf(ptr::addr_of!(self.vocbuf[self.vocroot as usize]) as *mut u8) {
-            break;
-          }
+          self.vocbuf[self.vocroot as usize]=self.rbuf();
           if self.rpos==0 {
             eoff=true;
             continue;
@@ -183,12 +186,10 @@ impl Packer {
             continue;
           }
         }
-
       }
       self.cbuffer[0]<<=1;
       self.symbol=self.vocroot-self.buf_size;
       rle=self.symbol;
-      let cnv: U16U8;
       if self.buf_size>0 {
         rle+=1;
         while rle!=self.vocroot && self.vocbuf[self.symbol as usize]==self.vocbuf[rle as usize] {
@@ -227,63 +228,52 @@ impl Packer {
           }
         }
         if rle>self.length {
-          unsafe {
-            *cpos=(rle-LZ_MIN_MATCH-1) as u8;
-            cpos=cpos.add(1);
-            cnv.u=self.vocbuf[self.symbol as usize] as u16;
-            *cpos=cnv.c[0];
-            cpos=cpos.add(1);
-            *cpos=cnv.c[1];
-            self.buf_size-=rle;
-          }
+          self.cbuffer[cpos]=(rle-LZ_MIN_MATCH-1) as u8;
+          cpos+=1;
+          self.cbuffer[cpos]=self.vocbuf[self.symbol as usize] as u8;
+          cpos+=1;
+          self.cbuffer[cpos]=0;
+          self.buf_size-=rle;
         }
         else {
           if self.length>LZ_MIN_MATCH {
-            unsafe {
-              *cpos=(self.length-LZ_MIN_MATCH-1) as u8;
-              cpos=cpos.add(1);
-              cnv.u=!(self.offset-rle_shift);
-              *cpos=cnv.c[0];
-              cpos=cpos.add(1);
-              *cpos=cnv.c[1];
-              self.buf_size-=self.length;
-            }
+            self.cbuffer[cpos]=(self.length-LZ_MIN_MATCH-1) as u8;
+            cpos+=1;
+            self.offset=!(self.offset-rle_shift);
+            self.cbuffer[cpos]=self.offset as u8;
+            cpos+=1;
+            self.cbuffer[cpos]=(self.offset>>8) as u8;
+            self.buf_size-=self.length;
           }
           else {
-            self.cbuffer[0]|=0x01;
-            unsafe { *cpos=self.vocbuf[self.symbol as usize] };
+            self.cbuffer[0]|=1;
+            self.cbuffer[cpos]=self.vocbuf[self.symbol as usize];
             self.buf_size-=1;
           }
         }
       }
       else {
-        unsafe {
-          cpos=cpos.add(1);
-          cnv.u=0x0100;
-          *cpos=cnv.c[0];
-          cpos=cpos.add(1);
-          *cpos=cnv.c[1];
-          if eoff {
-            eofs=true;
-          }
+        cpos+=1;
+        self.cbuffer[cpos]=0;
+        cpos+=1;
+        self.cbuffer[cpos]=1;
+        if eoff {
+          eofs=true;
         }
       }
-      unsafe { cpos=cpos.add(1) };
+      cpos+=1;
       self.flags-=1;
       if self.flags==0 || eofs {
         self.cbuffer[0]<<=self.flags;
-        for  i in 0..(cpos as u32 - w as u32) as u16 {
-          if self.wbuf(self.cbuffer[i as usize]){
-            return;
-          }
+        for  i in 0..cpos as usize {
+          self.wbuf(self.cbuffer[i]);
         }
         self.flags=8;
-        cpos=w;
-        unsafe { cpos=cpos.add(1) };
+        cpos=1;
         if eofs {
           match self.ofile.write(&self.obuf[..self.wpos as usize]) {
             Ok(_) => break,
-            Err(_) => return,
+            Err(why) =>  write_err!(why),
           }
         }
       }
@@ -291,7 +281,7 @@ impl Packer {
   }
 
   pub fn unpack(&mut self) {
-    let mut cpos: *mut u8=ptr::addr_of_mut!(self.cbuffer).cast();
+    let mut cpos: usize=0;
     let mut c: u8=0;
     let mut rle_flag: bool=false;
     loop {
@@ -306,49 +296,40 @@ impl Packer {
         if self.vocroot==0 {
           match self.ofile.write(&self.vocbuf) {
             Ok(_) => {},
-            Err(_) => return,
+            Err(why) => write_err!(why),
           }
         }
       }
       else {
         if self.flags==0 {
-          cpos=ptr::addr_of_mut!(self.cbuffer) as *mut u8;
-          if self.rbuf(cpos){
-            return;
-          }
-          unsafe { cpos=cpos.add(1) };
+          cpos=0;
+          self.cbuffer[cpos]=self.rbuf();
+          cpos+=1;
           c=!self.cbuffer[0];
           while c!=0 {
             c&=c-1;
             self.flags+=1;
           }
           for _i in 0..8+(self.flags<<1) {
-            if self.rbuf(cpos) {
-              return;
-            }
-            unsafe { cpos=cpos.add(1) }
+            self.cbuffer[cpos]=self.rbuf();
+            cpos+=1;
           }
           self.flags=8;
-          cpos=ptr::addr_of_mut!(self.cbuffer) as *mut u8;
-          unsafe { cpos=cpos.add(1) }
+          cpos=1;
         }
         rle_flag=true;
         if self.cbuffer[0]&0x80!=0 {
           self.length=1;
-          c=unsafe { *cpos };
+          c=self.cbuffer[cpos];
         }
         else {
-          let mut cnv: U16U8;
-          cnv.u=0;
-          unsafe {
-            self.length=*cpos as u16;
-            cpos=cpos.add(1);
-            self.length+=LZ_MIN_MATCH+1;
-            cnv.c[0]=*cpos as u8;
-            cpos=cpos.add(1);
-            cnv.c[1]=*cpos as u8;
-            self.offset=cnv.u;
-          }
+          self.offset=0;
+          self.length=self.cbuffer[cpos] as u16;
+          cpos+=1;
+          self.length+=LZ_MIN_MATCH+1;
+          self.offset|=self.cbuffer[cpos] as u16;
+          cpos+=1;
+          self.offset|=(self.cbuffer[cpos] as u16)<<8;
           if self.offset<0x0100 {
             c=self.offset as u8;
           }
@@ -361,7 +342,7 @@ impl Packer {
           }
         }
         self.cbuffer[0]<<=1;
-        unsafe { cpos=cpos.add(1) };
+        cpos+=1;
         self.flags-=1;
       }
     }
@@ -369,18 +350,17 @@ impl Packer {
       if self.vocroot!=0 {
         match self.ofile.write(&self.vocbuf[..self.vocroot as usize]) {
           Ok(_) => return,
-          Err(_) => return,
+          Err(why) => write_err!(why),
         }
       }
       else {
         match self.ofile.write(&self.vocbuf) {
           Ok(_) => return,
-          Err(_) => return,
+          Err(why) => write_err!(why),
         }
       }
     }
   }
-
 }
 
 fn main(){
@@ -406,15 +386,20 @@ fn main(){
     panic!();
   }
   let cmd=argv[1].chars().nth(0).unwrap();
-  if cmd!='c' && cmd!='d' {
-    println!("Wrong argument: \'{}\'!",cmd);
-    panic!();
-  }
-  let mut p=Packer::new(&argv[2],&argv[3]);
-  p.init();
   match cmd {
-    'c' => p.pack(),
-    'd' => p.unpack(),
-    _ => (),
+    'c' => {
+      let mut p=Packer::new(&argv[2],&argv[3]);
+      p.init();
+      p.pack();
+    },
+    'd' => {
+      let mut p=Packer::new(&argv[2],&argv[3]);
+      p.init();
+      p.unpack();
+    },
+    _ => {
+      println!("Wrong argument: \'{}\'!",cmd);
+      panic!();
+    },
   }
 }
