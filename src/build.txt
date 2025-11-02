@@ -3,7 +3,9 @@ Windows:
   (tdm-gcc): gcc qbp.c -O3 -m32 -mtune=native -s -o ./qbp -fno-exceptions -fno-ident -fno-math-errno -fno-stack-protector -ffast-math -fomit-frame-pointer -fmessage-length=0 -Wall
   (tdm-gcc): g++ qbp-cc.cc -O3 -s -o ./qbp-cc -fno-exceptions -ffast-math -fno-ident -fno-math-errno -fno-stack-protector
   rustc -C target-feature=+crt-static -C debuginfo=0 -C strip=symbols -C opt-level=3 qbp-rs.rs
+  go build -ldflags="-s -w" -trimpath qbp-go.go
 Linux  :
   gcc qbp.c -O3 -s -o ./qbp -fno-stack-protector
   g++ qbp-cc.cc -O3 -s -o ./qbp-cc -fno-stack-protector
   rustc -C target-feature=+crt-static -C debuginfo=0 -C strip=symbols -C opt-level=3 qbp-rs.rs
+  go build -ldflags="-s -w" -trimpath qbp-go.go
