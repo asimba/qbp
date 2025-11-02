@@ -48,6 +48,7 @@ type packer struct {
 	hlp       uint32
 	rnge      uint32
 	_low      *uint8
+	_hlp      *uint8
 	ifile     *os.File
 	ofile     *os.File
 }
@@ -83,6 +84,8 @@ func (p *packer) initialize() {
 	p.vocarea[0xfffd] = 0xfffd
 	p.vocarea[0xfffe] = 0xfffe
 	p.vocarea[0xffff] = 0xffff
+	p._low = (*uint8)(unsafe.Pointer(uintptr(unsafe.Pointer(&p.low)) + 3))
+	p._hlp = (*uint8)(unsafe.Pointer(&p.hlp))
 }
 
 func (p *packer) wbuf(c uint8) bool {
@@ -116,11 +119,12 @@ func (p *packer) rc32_rescale(f *[256]uint16, fc *uint16, c uint8) {
 	p.rnge *= uint32((*f)[c])
 	(*f)[c]++
 	*fc++
-	if *fc == 0 {
-		for i := 0; i < 256; i++ {
-			(*f)[i] = ((*f)[i] >> 1) | ((*f)[i] & 1)
-			*fc += (*f)[i]
-		}
+	if *fc != 0 {
+		return
+	}
+	for i := 0; i < 256; i++ {
+		(*f)[i] = ((*f)[i] >> 1) | ((*f)[i] & 1)
+		*fc += (*f)[i]
 	}
 }
 
@@ -136,7 +140,7 @@ func (p *packer) rc32_getc(c *uint8, cntx uint8) bool {
 	fc := &p.fcs[cntx]
 	for p.hlp < p.low || p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
 		p.hlp <<= 8
-		p.hlp |= uint32(p.rbuf())
+		*p._hlp = p.rbuf()
 		if p.rpos == 0 {
 			return true
 		}
@@ -165,14 +169,14 @@ func (p *packer) rc32_putc(c uint8, cntx uint8) bool {
 	fc := &p.fcs[cntx]
 	for p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
 		p.hlp <<= 8
-		if p.wbuf(uint8(p.low >> 24)) {
+		if p.wbuf(*p._low) {
 			return true
 		}
 		p.rc32_shift()
 	}
 	p.rnge /= uint32(*fc)
-	f := &p.frequency[cntx]
 	var s uint32 = 0
+	f := &p.frequency[cntx]
 	for i := 0; i < int(c); i++ {
 		s += uint32((*f)[i])
 	}
