@@ -288,6 +288,10 @@ impl Packer {
           }
         }
       }
+      for c in 1..4 {
+        self.cntxs[cntx as usize]=c;
+        cntx+=1;
+      }
       self.cbuffer[0]<<=1;
       self.symbol=self.vocroot-self.buf_size;
       rle=self.symbol;
@@ -329,12 +333,6 @@ impl Packer {
           }
         }
         if rle>self.length {
-          self.cntxs[cntx as usize]=1;
-          cntx+=1;
-          self.cntxs[cntx as usize]=2;
-          cntx+=1;
-          self.cntxs[cntx as usize]=3;
-          cntx+=1;
           self.cbuffer[cpos]=(rle-LZ_MIN_MATCH-1) as u8;
           cpos+=1;
           self.cbuffer[cpos]=self.vocbuf[self.symbol as usize] as u8;
@@ -344,12 +342,6 @@ impl Packer {
         }
         else {
           if self.length>LZ_MIN_MATCH {
-            self.cntxs[cntx as usize]=1;
-            cntx+=1;
-            self.cntxs[cntx as usize]=2;
-            cntx+=1;
-            self.cntxs[cntx as usize]=3;
-            cntx+=1;
             self.cbuffer[cpos]=(self.length-LZ_MIN_MATCH-1) as u8;
             cpos+=1;
             self.offset=!(self.offset-rle_shift);
@@ -359,6 +351,7 @@ impl Packer {
             self.buf_size-=self.length;
           }
           else {
+            cntx-=3;
             self.cntxs[cntx as usize]=self.vocbuf[((self.symbol-1) as u16) as usize];
             cntx+=1;
             self.cbuffer[0]|=1;
@@ -368,12 +361,6 @@ impl Packer {
         }
       }
       else {
-        self.cntxs[cntx as usize]=1;
-        cntx+=1;
-        self.cntxs[cntx as usize]=2;
-        cntx+=1;
-        self.cntxs[cntx as usize]=3;
-        cntx+=1;
         cpos+=1;
         self.cbuffer[cpos]=0;
         cpos+=1;
@@ -501,10 +488,11 @@ fn main(){
   panic::set_hook(Box::new(|_| { }));
   let argv: Vec<String>=args().collect();
   let argc=argv.len();
+  let name=Path::new(&argv[0]);
   if argc<4 {
-    println!("qbp-rs file compressor");
-    println!("to   compress use: qbp-rs c input output");
-    println!("to decompress use: qbp-rs d input output");
+    println!("qbp file compressor");
+    println!("to   compress use: {} c input output",name.file_name().unwrap().to_str().unwrap());
+    println!("to decompress use: {} d input output",name.file_name().unwrap().to_str().unwrap());
     panic!();
   }
   if !Path::new(&argv[2]).exists() {

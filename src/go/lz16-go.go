@@ -313,7 +313,7 @@ func main() {
 		goto normal
 	}
 usage:
-	fmt.Print("lz16 file compressor\n\n",
+	fmt.Print("lz16 file compressor\n",
 		"to   compress use: ", n, " c input output\n",
 		"to decompress use: ", n, " d input output\n")
 	exitCode = 1

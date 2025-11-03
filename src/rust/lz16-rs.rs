@@ -367,10 +367,11 @@ fn main(){
   panic::set_hook(Box::new(|_| { }));
   let argv: Vec<String>=args().collect();
   let argc=argv.len();
+  let name=Path::new(&argv[0]);
   if argc<4 {
-    println!("lz16-rs file compressor");
-    println!("to   compress use: lz16-rs c input output");
-    println!("to decompress use: lz16-rs d input output");
+    println!("lz16 file compressor");
+    println!("to   compress use: {} c input output",name.file_name().unwrap().to_str().unwrap());
+    println!("to decompress use: {} d input output",name.file_name().unwrap().to_str().unwrap());
     panic!();
   }
   if !Path::new(&argv[2]).exists() {

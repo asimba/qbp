@@ -119,12 +119,11 @@ func (p *packer) rc32_rescale(f *[256]uint16, fc *uint16, c uint8) {
 	p.rnge *= uint32((*f)[c])
 	(*f)[c]++
 	*fc++
-	if *fc != 0 {
-		return
-	}
-	for i := 0; i < 256; i++ {
-		(*f)[i] = ((*f)[i] >> 1) | ((*f)[i] & 1)
-		*fc += (*f)[i]
+	if *fc == 0 {
+		for i := 0; i < 256; i++ {
+			(*f)[i] = ((*f)[i] >> 1) | ((*f)[i] & 1)
+			*fc += (*f)[i]
+		}
 	}
 }
 
@@ -152,14 +151,14 @@ func (p *packer) rc32_getc(c *uint8, cntx uint8) bool {
 		return true
 	}
 	f := &p.frequency[cntx]
-	var s uint32 = 0
+	var s uint16 = 0
 	for ; j < 256; j++ {
-		s += uint32((*f)[j])
-		if s > i {
+		s += (*f)[j]
+		if s > uint16(i) {
 			break
 		}
 	}
-	p.low += (s - uint32((*f)[j])) * p.rnge
+	p.low += uint32((s - (*f)[j])) * p.rnge
 	*c = uint8(j)
 	p.rc32_rescale(f, fc, uint8(j))
 	return false
@@ -174,12 +173,12 @@ func (p *packer) rc32_putc(c uint8, cntx uint8) bool {
 		}
 		p.rc32_shift()
 	}
-	p.rnge /= uint32(*fc)
 	var s uint32 = 0
 	f := &p.frequency[cntx]
-	for i := 0; i < int(c); i++ {
-		s += uint32((*f)[i])
+	for _, v := range (*f)[:c] {
+		s += uint32(v)
 	}
+	p.rnge /= uint32(*fc)
 	p.low += s * p.rnge
 	p.rc32_rescale(f, fc, c)
 	return false
@@ -341,7 +340,7 @@ func (p *packer) unpack() bool {
 	p.length = 0
 	for ; c < 4; c++ {
 		p.hlp <<= 8
-		p.hlp |= uint32(p.rbuf())
+		*p._hlp = p.rbuf()
 		if p.rpos == 0 {
 			return true
 		}
@@ -421,7 +420,7 @@ func main() {
 		goto normal
 	}
 usage:
-	fmt.Print("qbp file compressor\n\n",
+	fmt.Print("qbp file compressor\n",
 		"to   compress use: ", n, " c input output\n",
 		"to decompress use: ", n, " d input output\n")
 	exitCode = 1
