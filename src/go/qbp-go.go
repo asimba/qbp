@@ -12,6 +12,12 @@ import (
 	"unsafe"
 )
 
+type iotype interface {
+	Read(b []byte) (int, error)
+	Write(b []byte) (int, error)
+	Close() error
+}
+
 const (
 	LZ_BUF_SIZE  uint16 = 259
 	LZ_CAPACITY  uint8  = 24
@@ -49,8 +55,8 @@ type packer struct {
 	rnge      uint32
 	_low      *uint8
 	_hlp      *uint8
-	ifile     *os.File
-	ofile     *os.File
+	ifile     iotype
+	ofile     iotype
 }
 
 func (p *packer) initialize() {
