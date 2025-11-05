@@ -198,7 +198,6 @@ func (p *packer) pack() bool {
 		cnode     uint16
 		cpos      uint8  = 1
 		eoff      bool   = false
-		eofs      bool   = false
 		cntx      uint8  = 1
 		_offset   *uint8 = (*uint8)(unsafe.Pointer(uintptr(unsafe.Pointer(&p.offset)) + 1))
 	)
@@ -305,34 +304,33 @@ func (p *packer) pack() bool {
 			p.cbuffer[cpos] = 0
 			cpos++
 			p.cbuffer[cpos] = 1
-			if eoff {
-				eofs = true
-			}
+			p.length = 0
 		}
 		cpos++
 		p.flags--
-		if p.flags == 0 || eofs {
-			p.cbuffer[0] <<= p.flags
-			for i = 0; i < uint16(cpos); i++ {
-				if p.rc32_putc(p.cbuffer[i], p.cntxs[i]) {
+		if p.flags != 0 && p.length != 0 {
+			continue
+		}
+		p.cbuffer[0] <<= p.flags
+		for i = 0; i < uint16(cpos); i++ {
+			if p.rc32_putc(p.cbuffer[i], p.cntxs[i]) {
+				return true
+			}
+		}
+		cntx = 1
+		p.flags = 8
+		cpos = 1
+		if p.length == 0 {
+			for j := 3; j >= 0; j-- {
+				if p.wbuf(uint8(p.low >> (8 * j))) {
 					return true
 				}
 			}
-			cntx = 1
-			p.flags = 8
-			cpos = 1
-			if eofs {
-				for j := 3; j >= 0; j-- {
-					if p.wbuf(uint8(p.low >> (8 * j))) {
-						return true
-					}
-				}
-				_, err := p.ofile.Write(p.obuf[:p.wpos])
-				if err != nil {
-					return true
-				}
-				break
+			_, err := p.ofile.Write(p.obuf[:p.wpos])
+			if err != nil {
+				return true
 			}
+			break
 		}
 	}
 	return false

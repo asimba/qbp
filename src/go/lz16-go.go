@@ -109,7 +109,6 @@ func (p *packer) pack() bool {
 		cnode     uint16
 		cpos      uint8  = 1
 		eoff      bool   = false
-		eofs      bool   = false
 		_offset   *uint8 = (*uint8)(unsafe.Pointer(uintptr(unsafe.Pointer(&p.offset)) + 1))
 	)
 	p.flags = 8
@@ -208,28 +207,27 @@ func (p *packer) pack() bool {
 			p.cbuffer[cpos] = 0
 			cpos++
 			p.cbuffer[cpos] = 1
-			if eoff {
-				eofs = true
-			}
+			p.length = 0
 		}
 		cpos++
 		p.flags--
-		if p.flags == 0 || eofs {
-			p.cbuffer[0] <<= p.flags
-			for i = 0; i < uint16(cpos); i++ {
-				if p.wbuf(p.cbuffer[i]) {
-					return true
-				}
+		if p.flags != 0 && p.length != 0 {
+			continue
+		}
+		p.cbuffer[0] <<= p.flags
+		for i = 0; i < uint16(cpos); i++ {
+			if p.wbuf(p.cbuffer[i]) {
+				return true
 			}
-			p.flags = 8
-			cpos = 1
-			if eofs {
-				_, err := p.ofile.Write(p.obuf[:p.wpos])
-				if err != nil {
-					return true
-				}
-				break
+		}
+		p.flags = 8
+		cpos = 1
+		if p.length == 0 {
+			_, err := p.ofile.Write(p.obuf[:p.wpos])
+			if err != nil {
+				return true
 			}
+			break
 		}
 	}
 	return false
