@@ -15,7 +15,6 @@ import (
 type iotype interface {
 	Read(b []byte) (int, error)
 	Write(b []byte) (int, error)
-	Close() error
 }
 
 const (
@@ -36,7 +35,6 @@ type packer struct {
 	icbuf     uint32
 	wpos      uint32
 	rpos      uint32
-	flags     uint8
 	cbuffer   [LZ_CAPACITY + 1]uint8
 	cntxs     [LZ_CAPACITY + 2]uint8
 	vocbuf    [0x10000]uint8
@@ -45,6 +43,9 @@ type packer struct {
 	vocindx   [0x10000]vocpntr
 	frequency [256][256]uint16
 	fcs       [256]uint16
+	flags     uint8
+	cpos      uint8
+	cntx      uint8
 	buf_size  uint16
 	voclast   uint16
 	vocroot   uint16
@@ -57,41 +58,30 @@ type packer struct {
 	_hlp      *uint8
 	ifile     iotype
 	ofile     iotype
+	eoff      bool
+	rle_flag  bool
 }
 
-func (p *packer) initialize() {
-	p.cntxs[0] = 0
-	p.flags = 0
-	p.low = 0
-	p.hlp = 0
-	p.wpos = 0
-	p.rpos = 0
-	p.icbuf = 0
-	p.buf_size = 0
-	p.vocroot = 0
-	p.voclast = 0xfffc
-	p.rnge = 0xffffffff
-	for i := 0; i < 256; i++ {
-		for j := 0; j < 256; j++ {
+func (p *packer) initialize(ifile, ofile iotype) {
+	p.icbuf, p.wpos, p.rpos, p.buf_size, p.flags, p.cpos = 0, 0, 0, 0, 8, 1
+	p.cntxs[0], p.cntx = 0, 1
+	p.low, p.hlp, p.rnge = 0, 0, 0xffffffff
+	p.vocroot, p.voclast = 0, 0xfffc
+	for i := range 256 {
+		for j := range 256 {
 			p.frequency[i][j] = 1
 		}
 		p.fcs[i] = 256
 	}
-	for i := 0; i < 0x10000; i++ {
-		p.vocbuf[i] = 0xff
-		p.hashes[i] = 0
-		p.vocindx[i].skip = true
-		p.vocarea[i] = uint16(i) + 1
+	for i := range 0x10000 {
+		p.vocbuf[i], p.hashes[i], p.vocindx[i].skip, p.vocarea[i] = 0xff, 0, true, uint16(i)+1
 	}
-	p.vocindx[0].in = 0
-	p.vocindx[0].out = 0xfffc
-	p.vocindx[0].skip = false
-	p.vocarea[0xfffc] = 0xfffc
-	p.vocarea[0xfffd] = 0xfffd
-	p.vocarea[0xfffe] = 0xfffe
-	p.vocarea[0xffff] = 0xffff
-	p._low = (*uint8)(unsafe.Pointer(uintptr(unsafe.Pointer(&p.low)) + 3))
+	p.vocindx[0].in, p.vocindx[0].out, p.vocindx[0].skip = 0, 0xfffc, false
+	p.vocarea[0xfffc], p.vocarea[0xfffd], p.vocarea[0xfffe], p.vocarea[0xffff] = 0xfffc, 0xfffd, 0xfffe, 0xffff
 	p._hlp = (*uint8)(unsafe.Pointer(&p.hlp))
+	p._low = (*uint8)(unsafe.Pointer(uintptr(unsafe.Pointer(&p.low)) + 3))
+	p.eoff, p.rle_flag = false, false
+	p.ifile, p.ofile = ifile, ofile
 }
 
 func (p *packer) wbuf(c uint8) bool {
@@ -126,7 +116,7 @@ func (p *packer) rc32_rescale(f *[256]uint16, fc *uint16, c uint8) {
 	(*f)[c]++
 	*fc++
 	if *fc == 0 {
-		for i := 0; i < 256; i++ {
+		for i := range 256 {
 			(*f)[i] = ((*f)[i] >> 1) | ((*f)[i] & 1)
 			*fc += (*f)[i]
 		}
@@ -190,69 +180,54 @@ func (p *packer) rc32_putc(c uint8, cntx uint8) bool {
 	return false
 }
 
-func (p *packer) pack() bool {
-	var (
-		i         uint16
-		rle       uint16
-		rle_shift uint16 = 0
-		cnode     uint16
-		cpos      uint8  = 1
-		eoff      bool   = false
-		cntx      uint8  = 1
-		_offset   *uint8 = (*uint8)(unsafe.Pointer(uintptr(unsafe.Pointer(&p.offset)) + 1))
-	)
-	p.flags = 8
-	for true {
-		if !eoff {
+func (p *packer) putc(b uint8) bool {
+	for {
+		if !p.eoff {
 			if LZ_BUF_SIZE-p.buf_size > 0 {
-				p.vocbuf[p.vocroot] = p.rbuf()
-				if p.rpos == 0 {
-					eoff = true
-					continue
+				p.vocbuf[p.vocroot] = b
+				if p.vocarea[p.vocroot] == p.vocroot {
+					p.vocindx[p.hashes[p.vocroot]].skip = true
 				} else {
-					if p.vocarea[p.vocroot] == p.vocroot {
-						p.vocindx[p.hashes[p.vocroot]].skip = true
-					} else {
-						p.vocindx[p.hashes[p.vocroot]].in = p.vocarea[p.vocroot]
-					}
-					p.vocarea[p.vocroot] = p.vocroot
-					var hs uint16 = p.hashes[p.voclast] ^ uint16(p.vocbuf[p.voclast]) ^ uint16(p.vocbuf[p.vocroot])
-					hs = (hs << 4) | (hs >> 12)
-					p.voclast++
-					p.hashes[p.voclast] = hs
-					indx := &p.vocindx[hs]
-					if indx.skip {
-						indx.in = p.voclast
-					} else {
-						p.vocarea[indx.out] = p.voclast
-					}
-					indx.skip = false
-					indx.out = p.voclast
-					p.vocroot++
-					p.buf_size++
-					continue
+					p.vocindx[p.hashes[p.vocroot]].in = p.vocarea[p.vocroot]
 				}
+				p.vocarea[p.vocroot] = p.vocroot
+				var hs uint16 = p.hashes[p.voclast] ^ uint16(p.vocbuf[p.voclast]) ^ uint16(p.vocbuf[p.vocroot])
+				hs = (hs << 4) | (hs >> 12)
+				p.voclast++
+				p.hashes[p.voclast] = hs
+				indx := &p.vocindx[hs]
+				if indx.skip {
+					indx.in = p.voclast
+				} else {
+					p.vocarea[indx.out] = p.voclast
+				}
+				indx.skip = false
+				indx.out = p.voclast
+				p.vocroot++
+				p.buf_size++
+				return false
 			}
 		}
 		for j := 1; j < 4; j++ {
-			p.cntxs[cntx] = uint8(j)
-			cntx++
+			p.cntxs[p.cntx] = uint8(j)
+			p.cntx++
 		}
 		p.cbuffer[0] <<= 1
-		var symbol uint16 = p.vocroot - p.buf_size
-		rle = symbol
+		var (
+			offset, i      uint16
+			rle_shift      uint16 = p.vocroot + LZ_BUF_SIZE - p.buf_size
+			length, symbol uint16 = LZ_MIN_MATCH, p.vocroot - p.buf_size
+			rle                   = symbol + 1
+		)
 		if p.buf_size != 0 {
-			rle++
 			for rle != p.vocroot && p.vocbuf[symbol] == p.vocbuf[rle] {
 				rle++
 			}
 			rle -= symbol
-			p.length = LZ_MIN_MATCH
 			if p.buf_size > LZ_MIN_MATCH && rle != p.buf_size {
-				cnode = p.vocindx[p.hashes[symbol]].in
-				rle_shift = p.vocroot + LZ_BUF_SIZE - p.buf_size
+				cnode := p.vocindx[p.hashes[symbol]].in
 				for cnode != symbol {
-					if p.vocbuf[uint16(symbol+p.length)] == p.vocbuf[uint16(cnode+p.length)] {
+					if p.vocbuf[uint16(symbol+length)] == p.vocbuf[uint16(cnode+length)] {
 						i = symbol
 						k := cnode
 						for i != p.vocroot && p.vocbuf[i] == p.vocbuf[k] {
@@ -260,15 +235,15 @@ func (p *packer) pack() bool {
 							i++
 						}
 						i -= symbol
-						if i >= p.length {
+						if i >= length {
 							if p.buf_size < LZ_BUF_SIZE {
 								if uint16(cnode-rle_shift) > 0xfefe {
 									cnode = p.vocarea[cnode]
 									continue
 								}
 							}
-							p.offset = cnode
-							p.length = i
+							offset = cnode
+							length = i
 							if i == p.buf_size {
 								break
 							}
@@ -277,50 +252,49 @@ func (p *packer) pack() bool {
 					cnode = p.vocarea[cnode]
 				}
 			}
-			if rle > p.length {
-				p.length = rle
-				p.offset = uint16(p.vocbuf[symbol])
+			if rle > length {
+				length = rle
+				offset = uint16(p.vocbuf[symbol])
 			} else {
-				p.offset = ^(p.offset - rle_shift)
+				offset = ^(offset - rle_shift)
 			}
-			i = p.length - LZ_MIN_MATCH
+			i = length - LZ_MIN_MATCH
 			if i != 0 {
-				p.cbuffer[cpos] = uint8(i - 1)
-				cpos++
-				p.cbuffer[cpos] = uint8(p.offset)
-				cpos++
-				p.cbuffer[cpos] = uint8(*_offset)
-				p.buf_size -= p.length
+				p.cbuffer[p.cpos] = uint8(i - 1)
+				p.cpos++
+				p.cbuffer[p.cpos] = uint8(offset)
+				p.cpos++
+				p.cbuffer[p.cpos] = uint8(offset >> 8)
+				p.buf_size -= length
 			} else {
-				cntx -= 3
-				p.cntxs[cntx] = p.vocbuf[uint16(symbol-1)]
-				cntx++
+				p.cntx -= 3
+				p.cntxs[p.cntx] = p.vocbuf[uint16(symbol-1)]
+				p.cntx++
 				p.cbuffer[0] |= 1
-				p.cbuffer[cpos] = p.vocbuf[symbol]
+				p.cbuffer[p.cpos] = p.vocbuf[symbol]
 				p.buf_size--
 			}
 		} else {
-			cpos++
-			p.cbuffer[cpos] = 0
-			cpos++
-			p.cbuffer[cpos] = 1
-			p.length = 0
+			p.cpos++
+			p.cbuffer[p.cpos] = 0
+			p.cpos++
+			p.cbuffer[p.cpos] = 1
+			length = 0
 		}
-		cpos++
+		p.cpos++
 		p.flags--
-		if p.flags != 0 && p.length != 0 {
+		if p.flags != 0 && length != 0 {
 			continue
 		}
 		p.cbuffer[0] <<= p.flags
-		for i = 0; i < uint16(cpos); i++ {
+		for i = 0; i < uint16(p.cpos); i++ {
 			if p.rc32_putc(p.cbuffer[i], p.cntxs[i]) {
 				return true
 			}
 		}
-		cntx = 1
 		p.flags = 8
-		cpos = 1
-		if p.length == 0 {
+		p.cntx, p.cpos = 1, 1
+		if length == 0 {
 			for j := 3; j >= 0; j-- {
 				if p.wbuf(uint8(p.low >> (8 * j))) {
 					return true
@@ -336,80 +310,109 @@ func (p *packer) pack() bool {
 	return false
 }
 
-func (p *packer) unpack() bool {
-	var (
-		c, cflags, symbol uint8 = 0, 0, 0
-		rle_flag          bool  = false
-	)
-	p.length = 0
-	for ; c < 4; c++ {
+func (p *packer) getc(b *uint8) bool {
+	for {
+		if p.length != 0 {
+			if !p.rle_flag {
+				p.cbuffer[1] = p.vocbuf[p.offset]
+				p.offset++
+			}
+			p.vocbuf[p.vocroot] = p.cbuffer[1]
+			*b = p.cbuffer[1]
+			p.vocroot++
+			p.length--
+			return false
+		}
+		if p.flags != 0 {
+			p.length = 1
+			p.rle_flag = true
+			if p.cbuffer[0]&0x80 != 0 {
+				if p.rc32_getc(&p.cbuffer[1], p.vocbuf[uint16(uint16((p.vocroot)-1))]) {
+					return true
+				}
+			} else {
+				for c := 1; c < 4; c++ {
+					if p.rc32_getc(&p.cbuffer[c], uint8(c)) {
+						return true
+					}
+				}
+				p.length = LZ_MIN_MATCH + 1 + uint16(p.cbuffer[1])
+				p.offset = uint16(p.cbuffer[2])
+				p.offset |= uint16(p.cbuffer[3]) << 8
+				if p.offset >= 0x0100 {
+					if p.offset == 0x0100 {
+						p.eoff = true
+						return false
+					}
+					p.offset = ^p.offset + p.vocroot + LZ_BUF_SIZE
+					p.rle_flag = false
+				} else {
+					p.cbuffer[1] = uint8(p.offset)
+				}
+			}
+			p.cbuffer[0] <<= 1
+			p.flags--
+			continue
+		}
+		if p.rc32_getc(&p.cbuffer[0], 0) {
+			return true
+		}
+		p.flags = 8
+	}
+}
+
+//go:noinline
+func (p *packer) init_unpack() bool {
+	p.length, p.flags = 0, 0
+	for range 4 {
 		p.hlp <<= 8
 		*p._hlp = p.rbuf()
 		if p.rpos == 0 {
 			return true
 		}
 	}
-	for true {
-		if p.length != 0 {
-			if !rle_flag {
-				symbol = p.vocbuf[p.offset]
-				p.offset++
-			}
-			p.vocbuf[p.vocroot] = symbol
-			p.vocroot++
-			p.length--
-			if p.vocroot == 0 {
-				w, err := p.ofile.Write(p.vocbuf[:])
-				if err != nil || w != 0x10000 {
-					return true
-				}
-			}
-			continue
-		}
-		if p.flags != 0 {
-			p.length = 1
-			rle_flag = true
-			if cflags&0x80 != 0 {
-				if p.rc32_getc(&symbol, p.vocbuf[uint16(uint16((p.vocroot)-1))]) {
-					return true
-				}
-			} else {
-				for c = 1; c < 4; c++ {
-					if p.rc32_getc(&p.cbuffer[c-1], c) {
-						return true
-					}
-				}
-				p.length = LZ_MIN_MATCH + 1 + uint16(p.cbuffer[0])
-				p.offset = uint16(p.cbuffer[1])
-				p.offset |= uint16(p.cbuffer[2]) << 8
-				if p.offset >= 0x0100 {
-					if p.offset == 0x0100 {
-						break
-					}
-					p.offset = ^p.offset + p.vocroot + LZ_BUF_SIZE
-					rle_flag = false
-				} else {
-					symbol = uint8(p.offset)
-				}
-			}
-			cflags <<= 1
-			p.flags <<= 1
-			continue
-		}
-		if p.rc32_getc(&cflags, 0) {
+	return false
+}
+
+func (p *packer) unpack() bool {
+	if p.init_unpack() {
+		return true
+	}
+	var c uint8
+	for {
+		if p.getc(&c) {
 			return true
 		}
-		p.flags = 0xff
-	}
-	if p.length != 0 {
-		var s uint32
-		if p.vocroot != 0 {
-			s = uint32(p.vocroot)
-		} else {
-			s = 0x10000
+		if p.eoff {
+			break
 		}
-		w, err := p.ofile.Write(p.vocbuf[:s])
-		if err != nil || w < int(s) {
+		if p.wbuf(c) {
+			return true
+		}
+	}
+	_, err := p.ofile.Write(p.obuf[:p.wpos])
+	if err != nil {
+		return true
+	}
+	return false
+}
+
+func (p *packer) pack() bool {
+	for {
+		if !p.eoff {
+			b := p.rbuf()
+			if p.rpos == 0 {
+				p.eoff = true
+				break
+			} else {
+				if p.putc(b) {
+					return true
+				}
+			}
+		}
+	}
+	for p.buf_size != 0 {
+		if p.putc(0) {
 			return true
 		}
 	}
@@ -454,20 +457,20 @@ normal:
 	var pack packer
 	switch os.Args[1][0] {
 	case 'c', 'd':
-		pack.initialize()
-		pack.ifile, err = os.OpenFile(os.Args[2], os.O_RDONLY, 0644)
+		ifile, err := os.OpenFile(os.Args[2], os.O_RDONLY, 0644)
 		if err != nil {
 			fmt.Println("Error: unable to open input file!")
 			exitCode = 6
 			return
 		}
-		pack.ofile, err = os.OpenFile(os.Args[3], os.O_CREATE|os.O_WRONLY, 0644)
+		ofile, err := os.OpenFile(os.Args[3], os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			fmt.Println("Error: unable to create output file!")
-			pack.ifile.Close()
+			ifile.Close()
 			exitCode = 7
 			return
 		}
+		pack.initialize(ifile, ofile)
 		if os.Args[1][0] == 'c' {
 			if pack.pack() {
 				fmt.Println("An unexpected error occurred while packing the file!")
@@ -479,8 +482,8 @@ normal:
 				exitCode = 9
 			}
 		}
-		pack.ifile.Close()
-		pack.ofile.Close()
+		ifile.Close()
+		ofile.Close()
 	default:
 		fmt.Println("Error: wrong mode!")
 		goto usage
