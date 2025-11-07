@@ -249,7 +249,6 @@ impl Packer {
     let mut cpos: usize=1;
     let mut eoff: bool=false;
     let mut eofs: bool=false;
-    let mut cntx: u8=1;
     self.flags=8;
     loop {
       if !eoff {
@@ -287,10 +286,6 @@ impl Packer {
             continue;
           }
         }
-      }
-      for c in 1..4 {
-        self.cntxs[cntx as usize]=c;
-        cntx+=1;
       }
       self.cbuffer[0]<<=1;
       self.symbol=self.vocroot-self.buf_size;
@@ -334,37 +329,44 @@ impl Packer {
         }
         if rle>self.length {
           self.cbuffer[cpos]=(rle-LZ_MIN_MATCH-1) as u8;
+          self.cntxs[cpos]=1;
           cpos+=1;
           self.cbuffer[cpos]=self.vocbuf[self.symbol as usize] as u8;
+          self.cntxs[cpos]=2;
           cpos+=1;
           self.cbuffer[cpos]=0;
+          self.cntxs[cpos]=3;
           self.buf_size-=rle;
         }
         else {
           if self.length>LZ_MIN_MATCH {
             self.cbuffer[cpos]=(self.length-LZ_MIN_MATCH-1) as u8;
+            self.cntxs[cpos]=1;
             cpos+=1;
             self.offset=!(self.offset-rle_shift);
             self.cbuffer[cpos]=self.offset as u8;
+            self.cntxs[cpos]=2;
             cpos+=1;
             self.cbuffer[cpos]=(self.offset>>8) as u8;
+            self.cntxs[cpos]=3;
             self.buf_size-=self.length;
           }
           else {
-            cntx-=3;
-            self.cntxs[cntx as usize]=self.vocbuf[((self.symbol-1) as u16) as usize];
-            cntx+=1;
-            self.cbuffer[0]|=1;
+            self.cntxs[cpos]=self.vocbuf[((self.symbol-1) as u16) as usize];
             self.cbuffer[cpos]=self.vocbuf[self.symbol as usize];
+            self.cbuffer[0]|=1;
             self.buf_size-=1;
           }
         }
       }
       else {
+        self.cntxs[cpos]=1;
         cpos+=1;
         self.cbuffer[cpos]=0;
+        self.cntxs[cpos]=2;
         cpos+=1;
         self.cbuffer[cpos]=1;
+        self.cntxs[cpos]=3;
         if eoff {
           eofs=true;
         }
@@ -376,7 +378,6 @@ impl Packer {
         for  i in 0..cpos as usize {
           self.rc32_putc(self.cbuffer[i],self.cntxs[i]);
         }
-        cntx=1;
         self.flags=8;
         cpos=1;
         if eofs {

@@ -45,7 +45,6 @@ type packer struct {
 	fcs       [256]uint16
 	flags     uint8
 	cpos      uint8
-	cntx      uint8
 	buf_size  uint16
 	voclast   uint16
 	vocroot   uint16
@@ -64,7 +63,7 @@ type packer struct {
 
 func (p *packer) initialize(ifile, ofile iotype) {
 	p.icbuf, p.wpos, p.rpos, p.buf_size, p.flags, p.cpos = 0, 0, 0, 0, 8, 1
-	p.cntxs[0], p.cntx = 0, 1
+	p.cntxs[0] = 0
 	p.low, p.hlp, p.rnge = 0, 0, 0xffffffff
 	p.vocroot, p.voclast = 0, 0xfffc
 	for i := range 256 {
@@ -208,10 +207,6 @@ func (p *packer) putc(b uint8) bool {
 				return false
 			}
 		}
-		for j := 1; j < 4; j++ {
-			p.cntxs[p.cntx] = uint8(j)
-			p.cntx++
-		}
 		p.cbuffer[0] <<= 1
 		var (
 			offset, i      uint16
@@ -261,24 +256,28 @@ func (p *packer) putc(b uint8) bool {
 			i = length - LZ_MIN_MATCH
 			if i != 0 {
 				p.cbuffer[p.cpos] = uint8(i - 1)
+				p.cntxs[p.cpos] = 1
 				p.cpos++
 				p.cbuffer[p.cpos] = uint8(offset)
+				p.cntxs[p.cpos] = 2
 				p.cpos++
 				p.cbuffer[p.cpos] = uint8(offset >> 8)
+				p.cntxs[p.cpos] = 3
 				p.buf_size -= length
 			} else {
-				p.cntx -= 3
-				p.cntxs[p.cntx] = p.vocbuf[uint16(symbol-1)]
-				p.cntx++
+				p.cntxs[p.cpos] = p.vocbuf[uint16(symbol-1)]
 				p.cbuffer[0] |= 1
 				p.cbuffer[p.cpos] = p.vocbuf[symbol]
 				p.buf_size--
 			}
 		} else {
+			p.cntxs[p.cpos] = 1
 			p.cpos++
 			p.cbuffer[p.cpos] = 0
+			p.cntxs[p.cpos] = 2
 			p.cpos++
 			p.cbuffer[p.cpos] = 1
+			p.cntxs[p.cpos] = 3
 			length = 0
 		}
 		p.cpos++
@@ -293,7 +292,7 @@ func (p *packer) putc(b uint8) bool {
 			}
 		}
 		p.flags = 8
-		p.cntx, p.cpos = 1, 1
+		p.cpos = 1
 		if length == 0 {
 			for j := 3; j >= 0; j-- {
 				if p.wbuf(uint8(p.low >> (8 * j))) {
