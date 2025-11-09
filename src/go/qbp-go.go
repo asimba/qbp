@@ -62,10 +62,8 @@ type packer struct {
 }
 
 func (p *packer) initialize(ifile, ofile iotype) {
-	p.icbuf, p.wpos, p.rpos, p.buf_size, p.flags, p.cpos = 0, 0, 0, 0, 8, 1
-	p.cntxs[0] = 0
-	p.low, p.hlp, p.rnge = 0, 0, 0xffffffff
-	p.vocroot, p.voclast = 0, 0xfffc
+	p.icbuf, p.wpos, p.rpos, p.buf_size, p.flags, p.cpos, p.cntxs[0] = 0, 0, 0, 0, 8, 1, 0
+	p.low, p.hlp, p.rnge, p.vocroot, p.voclast = 0, 0, 0xffffffff, 0, 0xfffc
 	for i := range 256 {
 		for j := range 256 {
 			p.frequency[i][j] = 1
@@ -77,8 +75,7 @@ func (p *packer) initialize(ifile, ofile iotype) {
 	}
 	p.vocindx[0].in, p.vocindx[0].out, p.vocindx[0].skip = 0, 0xfffc, false
 	p.vocarea[0xfffc], p.vocarea[0xfffd], p.vocarea[0xfffe], p.vocarea[0xffff] = 0xfffc, 0xfffd, 0xfffe, 0xffff
-	p._hlp = (*uint8)(unsafe.Pointer(&p.hlp))
-	p._low = (*uint8)(unsafe.Pointer(uintptr(unsafe.Pointer(&p.low)) + 3))
+	p._hlp, p._low = (*uint8)(unsafe.Pointer(&p.hlp)), (*uint8)(unsafe.Pointer(uintptr(unsafe.Pointer(&p.low))+3))
 	p.eoff, p.rle_flag = false, false
 	p.ifile, p.ofile = ifile, ofile
 }
@@ -115,18 +112,10 @@ func (p *packer) rc32_rescale(f *[256]uint16, fc *uint16, c uint8) {
 	(*f)[c]++
 	*fc++
 	if *fc == 0 {
-		for i := range 256 {
+		for i := 0; i < 256; i++ {
 			(*f)[i] = ((*f)[i] >> 1) | ((*f)[i] & 1)
 			*fc += (*f)[i]
 		}
-	}
-}
-
-func (p *packer) rc32_shift() {
-	p.low <<= 8
-	p.rnge <<= 8
-	if p.rnge > ^p.low {
-		p.rnge = ^p.low
 	}
 }
 
@@ -138,7 +127,11 @@ func (p *packer) rc32_getc(c *uint8, cntx uint8) bool {
 		if p.rpos == 0 {
 			return true
 		}
-		p.rc32_shift()
+		p.low <<= 8
+		p.rnge <<= 8
+		if p.rnge > ^p.low {
+			p.rnge = ^p.low
+		}
 	}
 	p.rnge /= uint32(*fc)
 	var i, j uint32 = (p.hlp - p.low) / p.rnge, 0
@@ -166,7 +159,11 @@ func (p *packer) rc32_putc(c uint8, cntx uint8) bool {
 		if p.wbuf(*p._low) {
 			return true
 		}
-		p.rc32_shift()
+		p.low <<= 8
+		p.rnge <<= 8
+		if p.rnge > ^p.low {
+			p.rnge = ^p.low
+		}
 	}
 	var s uint32 = 0
 	f := &p.frequency[cntx]
@@ -181,37 +178,33 @@ func (p *packer) rc32_putc(c uint8, cntx uint8) bool {
 
 func (p *packer) putc(b uint8) bool {
 	for {
-		if !p.eoff {
-			if LZ_BUF_SIZE-p.buf_size > 0 {
-				p.vocbuf[p.vocroot] = b
-				if p.vocarea[p.vocroot] == p.vocroot {
-					p.vocindx[p.hashes[p.vocroot]].skip = true
-				} else {
-					p.vocindx[p.hashes[p.vocroot]].in = p.vocarea[p.vocroot]
-				}
-				p.vocarea[p.vocroot] = p.vocroot
-				var hs uint16 = p.hashes[p.voclast] ^ uint16(p.vocbuf[p.voclast]) ^ uint16(p.vocbuf[p.vocroot])
-				hs = (hs << 4) | (hs >> 12)
-				p.voclast++
-				p.hashes[p.voclast] = hs
-				indx := &p.vocindx[hs]
-				if indx.skip {
-					indx.in = p.voclast
-				} else {
-					p.vocarea[indx.out] = p.voclast
-				}
-				indx.skip = false
-				indx.out = p.voclast
-				p.vocroot++
-				p.buf_size++
-				return false
+		if p.buf_size != LZ_BUF_SIZE && !p.eoff {
+			if p.vocarea[p.vocroot] == p.vocroot {
+				p.vocindx[p.hashes[p.vocroot]].skip = true
+			} else {
+				p.vocindx[p.hashes[p.vocroot]].in = p.vocarea[p.vocroot]
 			}
+			p.vocarea[p.vocroot], p.vocbuf[p.vocroot] = p.vocroot, b
+			var hs uint16 = p.hashes[p.voclast] ^ uint16(p.vocbuf[p.voclast]) ^ uint16(b)
+			hs = (hs << 4) | (hs >> 12)
+			p.voclast++
+			p.vocroot++
+			p.buf_size++
+			p.hashes[p.voclast] = hs
+			if p.vocindx[hs].skip {
+				p.vocindx[hs].in = p.voclast
+			} else {
+				p.vocarea[p.vocindx[hs].out] = p.voclast
+			}
+			p.vocindx[hs].skip, p.vocindx[hs].out = false, p.voclast
+			return false
 		}
 		p.cbuffer[0] <<= 1
 		var (
 			offset, i      uint16
 			rle_shift      uint16 = p.vocroot + LZ_BUF_SIZE - p.buf_size
 			length, symbol uint16 = LZ_MIN_MATCH, p.vocroot - p.buf_size
+			cnode                 = p.vocindx[p.hashes[symbol]].in
 			rle                   = symbol + 1
 		)
 		if p.buf_size != 0 {
@@ -220,7 +213,6 @@ func (p *packer) putc(b uint8) bool {
 			}
 			rle -= symbol
 			if p.buf_size > LZ_MIN_MATCH && rle != p.buf_size {
-				cnode := p.vocindx[p.hashes[symbol]].in
 				for cnode != symbol {
 					if p.vocbuf[uint16(symbol+length)] == p.vocbuf[uint16(cnode+length)] {
 						i = symbol
@@ -231,14 +223,11 @@ func (p *packer) putc(b uint8) bool {
 						}
 						i -= symbol
 						if i >= length {
-							if p.buf_size < LZ_BUF_SIZE {
-								if uint16(cnode-rle_shift) > 0xfefe {
-									cnode = p.vocarea[cnode]
-									continue
-								}
+							if p.buf_size < LZ_BUF_SIZE && uint16(cnode-rle_shift) > 0xfefe {
+								cnode = p.vocarea[cnode]
+								continue
 							}
-							offset = cnode
-							length = i
+							offset, length = cnode, i
 							if i == p.buf_size {
 								break
 							}
@@ -248,36 +237,29 @@ func (p *packer) putc(b uint8) bool {
 				}
 			}
 			if rle > length {
-				length = rle
-				offset = uint16(p.vocbuf[symbol])
+				length, offset = rle, uint16(p.vocbuf[symbol])
 			} else {
 				offset = ^(offset - rle_shift)
 			}
 			i = length - LZ_MIN_MATCH
 			if i != 0 {
-				p.cbuffer[p.cpos] = uint8(i - 1)
-				p.cntxs[p.cpos] = 1
+				p.cbuffer[p.cpos], p.cntxs[p.cpos] = uint8(i-1), 1
 				p.cpos++
-				p.cbuffer[p.cpos] = uint8(offset)
-				p.cntxs[p.cpos] = 2
+				p.cbuffer[p.cpos], p.cntxs[p.cpos] = uint8(offset), 2
 				p.cpos++
-				p.cbuffer[p.cpos] = uint8(offset >> 8)
-				p.cntxs[p.cpos] = 3
+				p.cbuffer[p.cpos], p.cntxs[p.cpos] = uint8(offset>>8), 3
 				p.buf_size -= length
 			} else {
-				p.cntxs[p.cpos] = p.vocbuf[uint16(symbol-1)]
+				p.cbuffer[p.cpos], p.cntxs[p.cpos] = p.vocbuf[symbol], p.vocbuf[uint16(symbol-1)]
 				p.cbuffer[0] |= 1
-				p.cbuffer[p.cpos] = p.vocbuf[symbol]
 				p.buf_size--
 			}
 		} else {
 			p.cntxs[p.cpos] = 1
 			p.cpos++
-			p.cbuffer[p.cpos] = 0
-			p.cntxs[p.cpos] = 2
+			p.cbuffer[p.cpos], p.cntxs[p.cpos] = 0, 2
 			p.cpos++
-			p.cbuffer[p.cpos] = 1
-			p.cntxs[p.cpos] = 3
+			p.cbuffer[p.cpos], p.cntxs[p.cpos] = 1, 3
 			length = 0
 		}
 		p.cpos++
@@ -291,8 +273,7 @@ func (p *packer) putc(b uint8) bool {
 				return true
 			}
 		}
-		p.flags = 8
-		p.cpos = 1
+		p.flags, p.cpos = 8, 1
 		if length == 0 {
 			for j := 3; j >= 0; j-- {
 				if p.wbuf(uint8(p.low >> (8 * j))) {
@@ -316,36 +297,32 @@ func (p *packer) getc(b *uint8) bool {
 				p.cbuffer[1] = p.vocbuf[p.offset]
 				p.offset++
 			}
-			p.vocbuf[p.vocroot] = p.cbuffer[1]
-			*b = p.cbuffer[1]
+			p.vocbuf[p.vocroot], *b = p.cbuffer[1], p.cbuffer[1]
 			p.vocroot++
 			p.length--
 			return false
 		}
 		if p.flags != 0 {
-			p.length = 1
-			p.rle_flag = true
+			p.length, p.rle_flag = 1, true
 			if p.cbuffer[0]&0x80 != 0 {
 				if p.rc32_getc(&p.cbuffer[1], p.vocbuf[uint16(uint16((p.vocroot)-1))]) {
 					return true
 				}
 			} else {
-				for c := 1; c < 4; c++ {
+				for c := uint8(1); c < 4; c++ {
 					if p.rc32_getc(&p.cbuffer[c], uint8(c)) {
 						return true
 					}
 				}
-				p.length = LZ_MIN_MATCH + 1 + uint16(p.cbuffer[1])
-				p.offset = uint16(p.cbuffer[2])
+				p.length, p.offset = LZ_MIN_MATCH+1+uint16(p.cbuffer[1]), uint16(p.cbuffer[2])
 				p.offset |= uint16(p.cbuffer[3]) << 8
-				if p.offset >= 0x0100 {
-					if p.offset == 0x0100 {
-						p.eoff = true
-						return false
-					}
-					p.offset = ^p.offset + p.vocroot + LZ_BUF_SIZE
-					p.rle_flag = false
-				} else {
+				switch {
+				case p.offset > 0x0100:
+					p.offset, p.rle_flag = ^p.offset+p.vocroot+LZ_BUF_SIZE, false
+				case p.offset == 0x0100:
+					p.eoff = true
+					return false
+				default:
 					p.cbuffer[1] = uint8(p.offset)
 				}
 			}
