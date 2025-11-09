@@ -112,7 +112,7 @@ func (p *packer) rc32_rescale(f *[256]uint16, fc *uint16, c uint8) {
 	(*f)[c]++
 	*fc++
 	if *fc == 0 {
-		for i := 0; i < 256; i++ {
+		for i := range 256 {
 			(*f)[i] = ((*f)[i] >> 1) | ((*f)[i] & 1)
 			*fc += (*f)[i]
 		}
