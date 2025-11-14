@@ -350,38 +350,34 @@ func (p *packer) unpack() bool {
 			return true
 		}
 		if p.eoff {
+			if _, err := p.ofile.Write(p.obuf[:p.wpos]); err != nil {
+				return true
+			}
 			break
 		}
 		if p.wbuf(c) {
 			return true
 		}
 	}
-	if _, err := p.ofile.Write(p.obuf[:p.wpos]); err != nil {
-		return true
-	}
 	return false
 }
 
 func (p *packer) pack() bool {
+pack_loop:
 	for {
-		if !p.eoff {
-			b := p.rbuf()
-			if p.rpos == 0 {
-				p.eoff = true
-				break
-			} else {
-				if p.putc(b) {
-					return true
+		if b := p.rbuf(); p.rpos == 0 {
+			p.eoff = true
+			for p.buf_size != 0 {
+				if p.putc(0) {
+					break pack_loop
 				}
 			}
+			return false
+		} else if p.putc(b) {
+			break
 		}
 	}
-	for p.buf_size != 0 {
-		if p.putc(0) {
-			return true
-		}
-	}
-	return false
+	return true
 }
 
 func main() {
