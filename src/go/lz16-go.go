@@ -91,7 +91,7 @@ func (p *packer) rbuf() uint8 {
 }
 
 func (p *packer) putc(b uint8) bool {
-	var offset, rle, length uint16
+	var offset, symbol, rle, rle_shift, length uint16
 putc_start:
 	if p.buf_size != LZ_BUF_SIZE && !p.eoff {
 		if p.vocarea[p.vocroot] == p.vocroot {
@@ -117,20 +117,17 @@ putc_start:
 	p.cbuffer[0] <<= 1
 	length = LZ_MIN_MATCH
 	if p.buf_size != 0 {
-		symbol := uint16(p.vocroot - p.buf_size)
-		rle_shift := (symbol + LZ_BUF_SIZE)
-		rle = symbol + 1
+		symbol = p.vocroot - p.buf_size
+		rle_shift, rle = symbol+LZ_BUF_SIZE, symbol+1
 		for rle != p.vocroot && p.vocbuf[symbol] == p.vocbuf[rle] {
 			rle++
 		}
 		if rle -= symbol; p.buf_size > LZ_MIN_MATCH && rle != p.buf_size {
 			for cnode := p.vocindx[p.hashes[symbol]].in; cnode != symbol; {
 				if p.vocbuf[uint16(symbol+length)] == p.vocbuf[uint16(cnode+length)] {
-					i := symbol
-					k := cnode
-					for i != p.vocroot && p.vocbuf[i] == p.vocbuf[k] {
+					i, k := symbol, cnode
+					for ; i != p.vocroot && p.vocbuf[i] == p.vocbuf[k]; i++ {
 						k++
-						i++
 					}
 					if i -= symbol; i >= length {
 						if k = cnode - rle_shift; k > 0xfefe {
@@ -176,7 +173,7 @@ putc_start:
 		goto putc_start
 	}
 	p.cbuffer[0] <<= p.flags
-	for i := 0; i < int(p.cpos); i++ {
+	for i := range p.cpos {
 		if p.wbuf(p.cbuffer[i]) {
 			return true
 		}

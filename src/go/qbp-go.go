@@ -118,7 +118,7 @@ func (p *packer) rc32_rescale(f *[256]uint16, fc *uint16, c uint8) {
 }
 
 func (p *packer) rc32_getc(c *uint8, cntx uint8) bool {
-	fc := &p.fcs[cntx]
+	fc, f, s := &p.fcs[cntx], &p.frequency[cntx], uint32(0)
 	for p.hlp < p.low || p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
 		p.hlp <<= 8
 		if *p._hlp = p.rbuf(); p.rpos == 0 {
@@ -131,26 +131,25 @@ func (p *packer) rc32_getc(c *uint8, cntx uint8) bool {
 		}
 	}
 	p.rnge /= uint32(*fc)
-	var i, j uint32 = (p.hlp - p.low) / p.rnge, 0
+	i := uint32((p.hlp - p.low) / p.rnge)
 	if i >= uint32(*fc) {
 		return true
 	}
-	f := &p.frequency[cntx]
-	var s uint16 = 0
-	for ; j < 256; j++ {
-		s += (*f)[j]
-		if s > uint16(i) {
+	for j := range 256 {
+		s += uint32((*f)[j])
+		if s > i {
+			s -= uint32((*f)[j])
+			*c = uint8(j)
 			break
 		}
 	}
-	p.low += uint32((s - (*f)[j])) * p.rnge
-	*c = uint8(j)
-	p.rc32_rescale(f, fc, uint8(j))
+	p.low += s * p.rnge
+	p.rc32_rescale(f, fc, *c)
 	return false
 }
 
 func (p *packer) rc32_putc(c uint8, cntx uint8) bool {
-	fc := &p.fcs[cntx]
+	fc, f, s := &p.fcs[cntx], &p.frequency[cntx], uint32(0)
 	for p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
 		p.hlp <<= 8
 		if p.wbuf(*p._low) {
@@ -162,10 +161,8 @@ func (p *packer) rc32_putc(c uint8, cntx uint8) bool {
 			p.rnge = ^p.low
 		}
 	}
-	var s uint32 = 0
-	f := &p.frequency[cntx]
-	for _, v := range (*f)[:c] {
-		s += uint32(v)
+	for i := range c {
+		s += uint32((*f)[i])
 	}
 	p.rnge /= uint32(*fc)
 	p.low += s * p.rnge
@@ -174,7 +171,7 @@ func (p *packer) rc32_putc(c uint8, cntx uint8) bool {
 }
 
 func (p *packer) putc(b uint8) bool {
-	var offset, rle, length uint16
+	var offset, symbol, rle, rle_shift, length uint16
 putc_start:
 	if p.buf_size != LZ_BUF_SIZE && !p.eoff {
 		if p.vocarea[p.vocroot] == p.vocroot {
@@ -200,20 +197,17 @@ putc_start:
 	p.cbuffer[0] <<= 1
 	length = LZ_MIN_MATCH
 	if p.buf_size != 0 {
-		symbol := uint16(p.vocroot - p.buf_size)
-		rle_shift := (symbol + LZ_BUF_SIZE)
-		rle = symbol + 1
+		symbol = p.vocroot - p.buf_size
+		rle_shift, rle = symbol+LZ_BUF_SIZE, symbol+1
 		for rle != p.vocroot && p.vocbuf[symbol] == p.vocbuf[rle] {
 			rle++
 		}
 		if rle -= symbol; p.buf_size > LZ_MIN_MATCH && rle != p.buf_size {
 			for cnode := p.vocindx[p.hashes[symbol]].in; cnode != symbol; {
 				if p.vocbuf[uint16(symbol+length)] == p.vocbuf[uint16(cnode+length)] {
-					i := symbol
-					k := cnode
-					for i != p.vocroot && p.vocbuf[i] == p.vocbuf[k] {
+					i, k := symbol, cnode
+					for ; i != p.vocroot && p.vocbuf[i] == p.vocbuf[k]; i++ {
 						k++
-						i++
 					}
 					if i -= symbol; i >= length {
 						if k = cnode - rle_shift; k > 0xfefe {
@@ -260,7 +254,7 @@ putc_start:
 		goto putc_start
 	}
 	p.cbuffer[0] <<= p.flags
-	for i := 0; i < int(p.cpos); i++ {
+	for i := range p.cpos {
 		if p.rc32_putc(p.cbuffer[i], p.cntxs[i]) {
 			return true
 		}
@@ -332,8 +326,7 @@ func (p *packer) init_unpack() bool {
 	p.length, p.flags = 0, 0
 	for range 4 {
 		p.hlp <<= 8
-		*p._hlp = p.rbuf()
-		if p.rpos == 0 {
+		if *p._hlp = p.rbuf(); p.rpos == 0 {
 			return true
 		}
 	}
