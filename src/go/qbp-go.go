@@ -29,7 +29,7 @@ type vocpntr struct {
 	skip bool
 }
 
-type packer struct {
+type Packer struct {
 	ibuf      [0x10000]uint8
 	obuf      [0x10000]uint8
 	icbuf     uint32
@@ -59,10 +59,11 @@ type packer struct {
 	ofile     iotype
 	eoff      bool
 	rle_flag  bool
+	Err       int
 }
 
-func (p *packer) initialize(ifile, ofile iotype) {
-	p.icbuf, p.wpos, p.rpos, p.buf_size, p.flags, p.cpos, p.cntxs[0] = 0, 0, 0, 0, 8, 1, 0
+func (p *Packer) Initialize(ifile, ofile iotype) {
+	p.icbuf, p.wpos, p.rpos, p.buf_size, p.flags, p.cpos, p.cntxs[0], p.Err = 0, 0, 0, 0, 8, 1, 0, 0
 	p.low, p.hlp, p.rnge, p.vocroot, p.voclast = 0, 0, 0xffffffff, 0, 0xfffc
 	for i := range 256 {
 		for j := range 256 {
@@ -80,33 +81,33 @@ func (p *packer) initialize(ifile, ofile iotype) {
 	p.ifile, p.ofile = ifile, ofile
 }
 
-func (p *packer) wbuf(c uint8) bool {
+func (p *Packer) wbuf(c uint8) {
 	if p.wpos == 0x10000 {
 		p.wpos = 0
 		if _, err := p.ofile.Write(p.obuf[:]); err != nil {
-			return true
+			p.Err = 8
+			return
 		}
 	}
 	p.obuf[p.wpos] = c
 	p.wpos++
-	return false
 }
 
-func (p *packer) rbuf() uint8 {
+func (p *Packer) rbuf() (c uint8) {
 	if p.rpos == p.icbuf {
 		p.rpos = 0
 		r, err := p.ifile.Read(p.ibuf[:])
 		p.icbuf = uint32(r)
 		if err != nil || r == 0 {
-			return 0
+			return
 		}
 	}
-	c := p.ibuf[p.rpos]
+	c = p.ibuf[p.rpos]
 	p.rpos++
-	return c
+	return
 }
 
-func (p *packer) rc32_rescale(f *[256]uint16, fc *uint16, c uint8) {
+func (p *Packer) rc32_rescale(f *[256]uint16, fc *uint16, c uint8) {
 	p.rnge *= uint32((*f)[c])
 	(*f)[c]++
 	if *fc++; *fc == 0 {
@@ -117,12 +118,13 @@ func (p *packer) rc32_rescale(f *[256]uint16, fc *uint16, c uint8) {
 	}
 }
 
-func (p *packer) rc32_getc(c *uint8, cntx uint8) bool {
+func (p *Packer) rc32_getc(c *uint8, cntx uint8) {
 	fc, f, s := &p.fcs[cntx], &p.frequency[cntx], uint32(0)
 	for p.hlp < p.low || p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
 		p.hlp <<= 8
 		if *p._hlp = p.rbuf(); p.rpos == 0 {
-			return true
+			p.Err = 9
+			return
 		}
 		p.low <<= 8
 		p.rnge <<= 8
@@ -133,7 +135,8 @@ func (p *packer) rc32_getc(c *uint8, cntx uint8) bool {
 	p.rnge /= uint32(*fc)
 	i := uint32((p.hlp - p.low) / p.rnge)
 	if i >= uint32(*fc) {
-		return true
+		p.Err = 10
+		return
 	}
 	for j := range 256 {
 		s += uint32((*f)[j])
@@ -145,15 +148,14 @@ func (p *packer) rc32_getc(c *uint8, cntx uint8) bool {
 	}
 	p.low += s * p.rnge
 	p.rc32_rescale(f, fc, *c)
-	return false
 }
 
-func (p *packer) rc32_putc(c uint8, cntx uint8) bool {
+func (p *Packer) rc32_putc(c uint8, cntx uint8) {
 	fc, f, s := &p.fcs[cntx], &p.frequency[cntx], uint32(0)
 	for p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
 		p.hlp <<= 8
-		if p.wbuf(*p._low) {
-			return true
+		if p.wbuf(*p._low); p.Err != 0 {
+			return
 		}
 		p.low <<= 8
 		p.rnge <<= 8
@@ -167,10 +169,9 @@ func (p *packer) rc32_putc(c uint8, cntx uint8) bool {
 	p.rnge /= uint32(*fc)
 	p.low += s * p.rnge
 	p.rc32_rescale(f, fc, c)
-	return false
 }
 
-func (p *packer) putc(b uint8) bool {
+func (p *Packer) PutC(b uint8) {
 	var offset, symbol, rle, rle_shift, length uint16
 putc_start:
 	if p.buf_size != LZ_BUF_SIZE && !p.eoff {
@@ -192,7 +193,7 @@ putc_start:
 			p.vocarea[p.vocindx[hs].out] = p.voclast
 		}
 		p.vocindx[hs].skip, p.vocindx[hs].out = false, p.voclast
-		return false
+		return
 	}
 	p.cbuffer[0] <<= 1
 	length = LZ_MIN_MATCH
@@ -255,27 +256,27 @@ putc_start:
 	}
 	p.cbuffer[0] <<= p.flags
 	for i := range p.cpos {
-		if p.rc32_putc(p.cbuffer[i], p.cntxs[i]) {
-			return true
+		if p.rc32_putc(p.cbuffer[i], p.cntxs[i]); p.Err != 0 {
+			return
 		}
 	}
 	p.flags, p.cpos = 8, 1
 	if length == 0 {
 		for j := 3; j >= 0; j-- {
-			if p.wbuf(uint8(p.low >> (8 * j))) {
-				return true
+			if p.wbuf(uint8(p.low >> (8 * j))); p.Err != 0 {
+				return
 			}
 		}
 		if _, err := p.ofile.Write(p.obuf[:p.wpos]); err != nil {
-			return true
+			p.Err = 8
+			return
 		}
 	} else {
 		goto putc_start
 	}
-	return false
 }
 
-func (p *packer) getc(b *uint8) bool {
+func (p *Packer) GetC(b *uint8) {
 getc_start:
 	if p.length != 0 {
 		if !p.rle_flag {
@@ -285,18 +286,18 @@ getc_start:
 		p.vocbuf[p.vocroot], *b = p.cbuffer[1], p.cbuffer[1]
 		p.vocroot++
 		p.length--
-		return false
+		return
 	}
 	if p.flags != 0 {
 		p.length, p.rle_flag = 1, true
 		if p.cbuffer[0]&0x80 != 0 {
-			if p.rc32_getc(&p.cbuffer[1], p.vocbuf[uint16(uint16((p.vocroot)-1))]) {
-				return true
+			if p.rc32_getc(&p.cbuffer[1], p.vocbuf[uint16(uint16((p.vocroot)-1))]); p.Err != 0 {
+				return
 			}
 		} else {
 			for c := uint8(1); c < 4; c++ {
-				if p.rc32_getc(&p.cbuffer[c], uint8(c)) {
-					return true
+				if p.rc32_getc(&p.cbuffer[c], uint8(c)); p.Err != 0 {
+					return
 				}
 			}
 			p.length, p.offset = LZ_MIN_MATCH+1+uint16(p.cbuffer[1]), uint16(p.cbuffer[2])
@@ -306,7 +307,7 @@ getc_start:
 				p.offset, p.rle_flag = ^p.offset+p.vocroot+LZ_BUF_SIZE, false
 			case p.offset == 0x0100:
 				p.eoff = true
-				return false
+				return
 			default:
 				p.cbuffer[1] = uint8(p.offset)
 			}
@@ -315,62 +316,60 @@ getc_start:
 		p.flags--
 		goto getc_start
 	}
-	if p.rc32_getc(&p.cbuffer[0], 0) {
-		return true
+	if p.rc32_getc(&p.cbuffer[0], 0); p.Err != 0 {
+		return
 	}
 	p.flags = 8
 	goto getc_start
 }
 
-func (p *packer) init_unpack() bool {
+func (p *Packer) Init_Unpack() {
 	p.length, p.flags = 0, 0
 	for range 4 {
 		p.hlp <<= 8
 		if *p._hlp = p.rbuf(); p.rpos == 0 {
-			return true
+			p.Err = 9
+			break
 		}
 	}
-	return false
 }
 
-func (p *packer) unpack() bool {
-	if p.init_unpack() {
-		return true
+func (p *Packer) Unpack() {
+	if p.Init_Unpack(); p.Err != 0 {
+		return
 	}
 	var c uint8
 	for {
-		if p.getc(&c) {
-			return true
+		if p.GetC(&c); p.Err != 0 {
+			break
 		}
 		if p.eoff {
 			if _, err := p.ofile.Write(p.obuf[:p.wpos]); err != nil {
-				return true
+				p.Err = 8
 			}
 			break
 		}
-		if p.wbuf(c) {
-			return true
+		if p.wbuf(c); p.Err != 0 {
+			break
 		}
 	}
-	return false
 }
 
-func (p *packer) pack() bool {
+func (p *Packer) Pack() {
 pack_loop:
 	for {
 		if b := p.rbuf(); p.rpos == 0 {
 			p.eoff = true
 			for p.buf_size != 0 {
-				if p.putc(0) {
+				if p.PutC(0); p.Err != 0 {
 					break pack_loop
 				}
 			}
-			return false
-		} else if p.putc(b) {
+			break
+		} else if p.PutC(b); p.Err != 0 {
 			break
 		}
 	}
-	return true
 }
 
 func main() {
@@ -379,66 +378,94 @@ func main() {
 		errMsg   string
 	)
 	n := filepath.Base(os.Args[0])
+	help := func() {
+		fmt.Print("qbp file compressor\nUsage:\n",
+			"\tto   compress use: ", n, " c input output\n",
+			"\tto decompress use: ", n, " d input output\n")
+	}
 	defer func() {
+		switch exitCode {
+		case 1:
+			errMsg = "Error: wrong mode!"
+		case 2:
+			errMsg = "Error: input file doesn't exist!"
+		case 3:
+			errMsg = "Error: input file is a directory!"
+		case 4:
+			errMsg = "Error: input file is not a regular file!"
+		case 5:
+			errMsg = "Error: output file is already exist!"
+		case 6:
+			errMsg = "Error: unable to open input file!"
+		case 7:
+			errMsg = "Error: unable to create output file!"
+		case 8:
+			errMsg = "Error writing output file!"
+		case 9:
+			errMsg = "Error reading input file!"
+		case 10:
+			errMsg = "Error: the input file is corrupt or of an unknown/unsupported type!"
+		}
 		if exitCode != 0 {
 			fmt.Println(errMsg)
+			if exitCode == 1 {
+				help()
+			}
 		}
 		os.Exit(exitCode)
 	}()
 	if len(os.Args) == 4 {
 		goto normal
+	} else if len(os.Args) != 1 {
+		exitCode = 1
+		return
 	}
-usage:
-	fmt.Print("qbp file compressor\n",
-		"to   compress use: ", n, " c input output\n",
-		"to decompress use: ", n, " d input output\n")
-	exitCode = 1
+	help()
 	return
 normal:
 	info, err := os.Stat(os.Args[2])
 	if errors.Is(err, os.ErrNotExist) {
-		errMsg, exitCode = "Error: input file doesn't exist!", 2
+		exitCode = 2
 		return
 	}
 	if info.IsDir() {
-		errMsg, exitCode = "Error: input file is a directory!", 3
+		exitCode = 3
 		return
 	}
 	if !info.Mode().IsRegular() {
-		errMsg, exitCode = "Error: input file is not a regular file!", 4
+		exitCode = 4
 		return
 	}
 	if _, err := os.Stat(os.Args[3]); !errors.Is(err, os.ErrNotExist) {
-		errMsg, exitCode = "Error: output file is already exist!", 5
+		exitCode = 5
 		return
 	}
-	var pack packer
+	var pack Packer
 	switch os.Args[1][0] {
 	case 'c', 'd':
 		ifile, err := os.OpenFile(os.Args[2], os.O_RDONLY, 0644)
 		if err != nil {
-			errMsg, exitCode = "Error: unable to open input file!", 6
+			exitCode = 6
 			return
 		}
 		defer ifile.Close()
 		ofile, err := os.OpenFile(os.Args[3], os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			errMsg, exitCode = "Error: unable to create output file!", 7
+			exitCode = 7
 			return
 		}
 		defer ofile.Close()
-		pack.initialize(ifile, ofile)
+		pack.Initialize(ifile, ofile)
 		if os.Args[1][0] == 'c' {
-			if pack.pack() {
-				errMsg, exitCode = "An unexpected error occurred while packing the file!", 8
-			}
+			pack.Pack()
 		} else {
-			if pack.unpack() {
-				errMsg, exitCode = "An unexpected error occurred while unpacking the file!", 9
-			}
+			pack.Unpack()
+		}
+		if pack.Err != 0 {
+			exitCode = pack.Err
 		}
 	default:
-		errMsg = "Error: wrong mode!"
-		goto usage
+		exitCode = 1
+		return
 	}
 }
