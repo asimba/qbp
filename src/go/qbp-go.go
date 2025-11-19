@@ -81,7 +81,7 @@ func (p *Packer) Initialize(ifile, ofile iotype) {
 	p.ifile, p.ofile = ifile, ofile
 }
 
-func (p *Packer) wbuf(c uint8) {
+func (p *Packer) Wbuf(c uint8) {
 	if p.wpos == 0x10000 {
 		p.wpos = 0
 		if _, err := p.ofile.Write(p.obuf[:]); err != nil {
@@ -93,7 +93,7 @@ func (p *Packer) wbuf(c uint8) {
 	p.wpos++
 }
 
-func (p *Packer) rbuf() (c uint8) {
+func (p *Packer) Rbuf() (c uint8) {
 	if p.rpos == p.icbuf {
 		p.rpos = 0
 		r, err := p.ifile.Read(p.ibuf[:])
@@ -122,7 +122,7 @@ func (p *Packer) rc32_getc(c *uint8, cntx uint8) {
 	fc, f, s := &p.fcs[cntx], &p.frequency[cntx], uint32(0)
 	for p.hlp < p.low || p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
 		p.hlp <<= 8
-		if *p._hlp = p.rbuf(); p.rpos == 0 {
+		if *p._hlp = p.Rbuf(); p.rpos == 0 {
 			p.Err = 9
 			return
 		}
@@ -154,7 +154,7 @@ func (p *Packer) rc32_putc(c uint8, cntx uint8) {
 	fc, f, s := &p.fcs[cntx], &p.frequency[cntx], uint32(0)
 	for p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
 		p.hlp <<= 8
-		if p.wbuf(*p._low); p.Err != 0 {
+		if p.Wbuf(*p._low); p.Err != 0 {
 			return
 		}
 		p.low <<= 8
@@ -263,7 +263,7 @@ putc_start:
 	p.flags, p.cpos = 8, 1
 	if length == 0 {
 		for j := 3; j >= 0; j-- {
-			if p.wbuf(uint8(p.low >> (8 * j))); p.Err != 0 {
+			if p.Wbuf(uint8(p.low >> (8 * j))); p.Err != 0 {
 				return
 			}
 		}
@@ -327,7 +327,7 @@ func (p *Packer) Init_Unpack() {
 	p.length, p.flags = 0, 0
 	for range 4 {
 		p.hlp <<= 8
-		if *p._hlp = p.rbuf(); p.rpos == 0 {
+		if *p._hlp = p.Rbuf(); p.rpos == 0 {
 			p.Err = 9
 			break
 		}
@@ -349,7 +349,7 @@ func (p *Packer) Unpack() {
 			}
 			break
 		}
-		if p.wbuf(c); p.Err != 0 {
+		if p.Wbuf(c); p.Err != 0 {
 			break
 		}
 	}
@@ -358,7 +358,7 @@ func (p *Packer) Unpack() {
 func (p *Packer) Pack() {
 pack_loop:
 	for {
-		if b := p.rbuf(); p.rpos == 0 {
+		if b := p.Rbuf(); p.rpos == 0 {
 			p.eoff = true
 			for p.buf_size != 0 {
 				if p.PutC(0); p.Err != 0 {
