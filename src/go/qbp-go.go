@@ -153,7 +153,6 @@ func (p *Packer) rc32_getc(c *uint8, cntx uint8) {
 func (p *Packer) rc32_putc(c uint8, cntx uint8) {
 	fc, f, s := &p.fcs[cntx], &p.frequency[cntx], uint32(0)
 	for p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
-		p.hlp <<= 8
 		if p.Wbuf(*p._low); p.Err != 0 {
 			return
 		}
