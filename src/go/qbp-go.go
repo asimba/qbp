@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
+	"time"
 	"unsafe"
 )
 
@@ -60,6 +62,7 @@ type Packer struct {
 	eoff      bool
 	rle_flag  bool
 	Err       int
+	stat      chan [2]int
 }
 
 func (p *Packer) Initialize(ifile, ofile iotype) {
@@ -88,6 +91,9 @@ func (p *Packer) Wbuf(c uint8) {
 			p.Err = 8
 			return
 		}
+		if p.stat != nil {
+			p.stat <- [2]int{0, 0x10000}
+		}
 	}
 	p.obuf[p.wpos] = c
 	p.wpos++
@@ -98,6 +104,9 @@ func (p *Packer) Rbuf() (c uint8) {
 		p.rpos = 0
 		r, err := p.ifile.Read(p.ibuf[:])
 		p.icbuf = uint32(r)
+		if p.stat != nil {
+			p.stat <- [2]int{r, 0}
+		}
 		if err != nil || r == 0 {
 			return
 		}
@@ -270,6 +279,9 @@ putc_start:
 			p.Err = 8
 			return
 		}
+		if p.stat != nil {
+			p.stat <- [2]int{0, int(p.wpos)}
+		}
 	} else {
 		goto putc_start
 	}
@@ -346,6 +358,9 @@ func (p *Packer) Unpack() {
 			if _, err := p.ofile.Write(p.obuf[:p.wpos]); err != nil {
 				p.Err = 8
 			}
+			if p.stat != nil {
+				p.stat <- [2]int{0, int(p.wpos)}
+			}
 			break
 		}
 		if p.Wbuf(c); p.Err != 0 {
@@ -375,12 +390,16 @@ func main() {
 	var (
 		exitCode int = 0
 		errMsg   string
+		rsize    int64 = 0
+		wsize    int64 = 0
+		wg       sync.WaitGroup
 	)
 	n := filepath.Base(os.Args[0])
 	help := func() {
 		fmt.Print("qbp file compressor\nUsage:\n",
-			"\tto   compress use: ", n, " c input output\n",
-			"\tto decompress use: ", n, " d input output\n")
+			"\tto   compress use: ", n, " c[s] <input_file> <output_file>\n",
+			"\tto decompress use: ", n, " d[s] <input_file> <output_file>\n",
+			"\twhere 's' - silent mode\n")
 	}
 	defer func() {
 		switch exitCode {
@@ -455,10 +474,29 @@ normal:
 		}
 		defer ofile.Close()
 		pack.Initialize(ifile, ofile)
+		progress := func() {
+			defer wg.Done()
+			start := time.Now()
+			for v := range pack.stat {
+				rsize += int64(v[0])
+				wsize += int64(v[1])
+				fmt.Printf("\rProcessing [%#07.02fs] : %#-12d->%#12d", time.Since(start).Seconds(), rsize, wsize)
+			}
+			fmt.Println()
+		}
+		if !(len(os.Args[1]) != 1 && os.Args[1][1] == 's') {
+			pack.stat = make(chan [2]int)
+			wg.Add(1)
+			go progress()
+		}
 		if os.Args[1][0] == 'c' {
 			pack.Pack()
 		} else {
 			pack.Unpack()
+		}
+		if pack.stat != nil {
+			close(pack.stat)
+			wg.Wait()
 		}
 		if pack.Err != 0 {
 			exitCode = pack.Err
