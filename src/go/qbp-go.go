@@ -197,6 +197,7 @@ func (p *Packer) Finalize_Pack() {
 
 func (p *Packer) PutC(b uint8) {
 	var offset, symbol, rle, rle_shift, length uint16
+putc_loop:
 	for {
 		if p.buf_size != LZ_BUF_SIZE && !p.eoff {
 			if p.vocarea[p.vocroot] == p.vocroot {
@@ -217,7 +218,7 @@ func (p *Packer) PutC(b uint8) {
 				p.vocarea[p.vocindx[hs].out] = p.voclast
 			}
 			p.vocindx[hs].skip, p.vocindx[hs].out = false, p.voclast
-			return
+			break
 		}
 		p.cbuffer[0] <<= 1
 		length = LZ_MIN_MATCH
@@ -281,7 +282,7 @@ func (p *Packer) PutC(b uint8) {
 		p.cbuffer[0] <<= p.flags
 		for i := range p.cpos {
 			if p.rc32_putc(p.cbuffer[i], p.cntxs[i]); p.Err != 0 {
-				return
+				break putc_loop
 			}
 		}
 		if p.flags, p.cpos = 8, 1; length == 0 {
