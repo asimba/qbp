@@ -7,6 +7,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -38,7 +39,7 @@ type Packer struct {
 	wpos      uint32
 	rpos      uint32
 	cbuffer   [LZ_CAPACITY + 1]uint8
-	cntxs     [LZ_CAPACITY + 2]uint8
+	cntxs     [LZ_CAPACITY + 1]uint8
 	vocbuf    [0x10000]uint8
 	vocarea   [0x10000]uint16
 	hashes    [0x10000]uint16
@@ -179,111 +180,113 @@ func (p *Packer) rc32_putc(c uint8, cntx uint8) {
 	p.rc32_rescale(f, fc, c)
 }
 
-func (p *Packer) PutC(b uint8) {
-	var offset, symbol, rle, rle_shift, length uint16
-putc_start:
-	if p.buf_size != LZ_BUF_SIZE && !p.eoff {
-		if p.vocarea[p.vocroot] == p.vocroot {
-			p.vocindx[p.hashes[p.vocroot]].skip = true
-		} else {
-			p.vocindx[p.hashes[p.vocroot]].in = p.vocarea[p.vocroot]
-		}
-		p.vocarea[p.vocroot], p.vocbuf[p.vocroot] = p.vocroot, b
-		var hs uint16 = p.hashes[p.voclast] ^ uint16(p.vocbuf[p.voclast]) ^ uint16(b)
-		hs = (hs << 4) | (hs >> 12)
-		p.voclast++
-		p.vocroot++
-		p.buf_size++
-		p.hashes[p.voclast] = hs
-		if p.vocindx[hs].skip {
-			p.vocindx[hs].in = p.voclast
-		} else {
-			p.vocarea[p.vocindx[hs].out] = p.voclast
-		}
-		p.vocindx[hs].skip, p.vocindx[hs].out = false, p.voclast
-		return
-	}
-	p.cbuffer[0] <<= 1
-	length = LZ_MIN_MATCH
-	if p.buf_size != 0 {
-		symbol = p.vocroot - p.buf_size
-		rle_shift, rle = symbol+LZ_BUF_SIZE, symbol+1
-		for rle != p.vocroot && p.vocbuf[symbol] == p.vocbuf[rle] {
-			rle++
-		}
-		if rle -= symbol; p.buf_size > LZ_MIN_MATCH && rle != p.buf_size {
-			for cnode := p.vocindx[p.hashes[symbol]].in; cnode != symbol; {
-				if p.vocbuf[uint16(symbol+length)] == p.vocbuf[uint16(cnode+length)] {
-					i, k := symbol, cnode
-					for ; i != p.vocroot && p.vocbuf[i] == p.vocbuf[k]; i++ {
-						k++
-					}
-					if i -= symbol; i >= length {
-						if k = cnode - rle_shift; k > 0xfefe {
-							cnode = p.vocarea[cnode]
-							continue
-						}
-						length, offset = i, k
-						if i == p.buf_size {
-							break
-						}
-					}
-				}
-				cnode = p.vocarea[cnode]
-			}
-		}
-		if rle > length {
-			length, offset = rle, uint16(p.vocbuf[symbol])
-		} else {
-			offset = ^offset
-		}
-		if rle = uint16(length - LZ_MIN_MATCH); rle != 0 {
-			p.cbuffer[p.cpos], p.cntxs[p.cpos] = uint8(rle-1), 1
-			p.cpos++
-			p.cbuffer[p.cpos], p.cntxs[p.cpos] = uint8(offset), 2
-			p.cpos++
-			p.cbuffer[p.cpos], p.cntxs[p.cpos] = uint8(offset>>8), 3
-			p.buf_size -= length
-		} else {
-			p.cbuffer[p.cpos], p.cntxs[p.cpos] = p.vocbuf[symbol], p.vocbuf[uint16(symbol-1)]
-			p.cbuffer[0] |= 1
-			p.buf_size--
-		}
-	} else {
-		p.cntxs[p.cpos] = 1
-		p.cpos++
-		p.cbuffer[p.cpos], p.cntxs[p.cpos] = 0, 2
-		p.cpos++
-		p.cbuffer[p.cpos], p.cntxs[p.cpos] = 1, 3
-		length = 0
-	}
-	p.cpos++
-	p.flags--
-	if p.flags != 0 && length != 0 {
-		goto putc_start
-	}
-	p.cbuffer[0] <<= p.flags
-	for i := range p.cpos {
-		if p.rc32_putc(p.cbuffer[i], p.cntxs[i]); p.Err != 0 {
+func (p *Packer) Finalize_Pack() {
+	for j := 3; j >= 0; j-- {
+		if p.Wbuf(uint8(p.low >> (8 * j))); p.Err != 0 {
 			return
 		}
 	}
-	p.flags, p.cpos = 8, 1
-	if length == 0 {
-		for j := 3; j >= 0; j-- {
-			if p.Wbuf(uint8(p.low >> (8 * j))); p.Err != 0 {
+	if _, err := p.ofile.Write(p.obuf[:p.wpos]); err != nil {
+		p.Err = 8
+		return
+	}
+	if p.stat != nil {
+		p.stat <- [2]int{0, int(p.wpos)}
+	}
+}
+
+func (p *Packer) PutC(b uint8) {
+	var offset, symbol, rle, rle_shift, length uint16
+	for {
+		if p.buf_size != LZ_BUF_SIZE && !p.eoff {
+			if p.vocarea[p.vocroot] == p.vocroot {
+				p.vocindx[p.hashes[p.vocroot]].skip = true
+			} else {
+				p.vocindx[p.hashes[p.vocroot]].in = p.vocarea[p.vocroot]
+			}
+			p.vocarea[p.vocroot], p.vocbuf[p.vocroot] = p.vocroot, b
+			var hs uint16 = p.hashes[p.voclast] ^ uint16(p.vocbuf[p.voclast]) ^ uint16(b)
+			hs = (hs << 4) | (hs >> 12)
+			p.voclast++
+			p.vocroot++
+			p.buf_size++
+			p.hashes[p.voclast] = hs
+			if p.vocindx[hs].skip {
+				p.vocindx[hs].in = p.voclast
+			} else {
+				p.vocarea[p.vocindx[hs].out] = p.voclast
+			}
+			p.vocindx[hs].skip, p.vocindx[hs].out = false, p.voclast
+			return
+		}
+		p.cbuffer[0] <<= 1
+		length = LZ_MIN_MATCH
+		if p.buf_size != 0 {
+			symbol = p.vocroot - p.buf_size
+			rle_shift, rle = symbol+LZ_BUF_SIZE, symbol+1
+			for rle != p.vocroot && p.vocbuf[symbol] == p.vocbuf[rle] {
+				rle++
+			}
+			if rle -= symbol; p.buf_size > LZ_MIN_MATCH && rle != p.buf_size {
+				for cnode := p.vocindx[p.hashes[symbol]].in; cnode != symbol; {
+					if p.vocbuf[uint16(symbol+length)] == p.vocbuf[uint16(cnode+length)] {
+						i, k := symbol, cnode
+						for ; i != p.vocroot && p.vocbuf[i] == p.vocbuf[k]; i++ {
+							k++
+						}
+						if i -= symbol; i >= length {
+							if k = cnode - rle_shift; k > 0xfefe {
+								cnode = p.vocarea[cnode]
+								continue
+							}
+							length, offset = i, k
+							if i == p.buf_size {
+								break
+							}
+						}
+					}
+					cnode = p.vocarea[cnode]
+				}
+			}
+			if rle > length {
+				length, offset = rle, uint16(p.vocbuf[symbol])
+			} else {
+				offset = ^offset
+			}
+			if rle = uint16(length - LZ_MIN_MATCH); rle != 0 {
+				p.cbuffer[p.cpos], p.cntxs[p.cpos] = uint8(rle-1), 1
+				p.cpos++
+				p.cbuffer[p.cpos], p.cntxs[p.cpos] = uint8(offset), 2
+				p.cpos++
+				p.cbuffer[p.cpos], p.cntxs[p.cpos] = uint8(offset>>8), 3
+				p.buf_size -= length
+			} else {
+				p.cbuffer[p.cpos], p.cntxs[p.cpos] = p.vocbuf[symbol], p.vocbuf[uint16(symbol-1)]
+				p.cbuffer[0] |= 1
+				p.buf_size--
+			}
+		} else {
+			p.cntxs[p.cpos] = 1
+			p.cpos++
+			p.cbuffer[p.cpos], p.cntxs[p.cpos] = 0, 2
+			p.cpos++
+			p.cbuffer[p.cpos], p.cntxs[p.cpos] = 1, 3
+			length = 0
+		}
+		p.cpos++
+		p.flags--
+		if p.flags != 0 && length != 0 {
+			continue
+		}
+		p.cbuffer[0] <<= p.flags
+		for i := range p.cpos {
+			if p.rc32_putc(p.cbuffer[i], p.cntxs[i]); p.Err != 0 {
 				return
 			}
 		}
-		if _, err := p.ofile.Write(p.obuf[:p.wpos]); err != nil {
-			p.Err = 8
-			return
+		if p.flags, p.cpos = 8, 1; length == 0 {
+			break
 		}
-		if p.stat != nil {
-			p.stat <- [2]int{0, int(p.wpos)}
-		}
-	} else {
-		goto putc_start
 	}
 }
 
@@ -379,6 +382,7 @@ pack_loop:
 					break pack_loop
 				}
 			}
+			p.Finalize_Pack()
 			break
 		} else if p.PutC(b); p.Err != 0 {
 			break
@@ -393,13 +397,27 @@ func main() {
 		rsize    int64 = 0
 		wsize    int64 = 0
 		wg       sync.WaitGroup
+		ifile    *os.File
+		ofile    *os.File
+		info     os.FileInfo
+		err      error
 	)
 	n := filepath.Base(os.Args[0])
 	help := func() {
-		fmt.Print("qbp file compressor\nUsage:\n",
-			"\tto   compress use: ", n, " c[s] <input_file> <output_file>\n",
-			"\tto decompress use: ", n, " d[s] <input_file> <output_file>\n",
-			"\twhere 's' - silent mode\n")
+		fmt.Print("\n--------------------------------------------------------------\n",
+			"\t\t      qbp file compressor\n",
+			"--------------------------------------------------------------\n",
+			"Usage:\n",
+			"--------------------------------------------------------------\n\t",
+			n, " <c|d>[s] <input_file|-> <output_file|->\n",
+			"\t------------------------------------------------------\n",
+			"\texample:\n\t\t", n, " cs input_file_name output_file_name\n",
+			"\t------------------------------------------------------\n",
+			"\t'c' - compress mode\n",
+			"\t'd' - decompress mode\n",
+			"\t's' - suppress progress output\n",
+			"\t'-' - use stdin/stdout for input/output\n",
+			"--------------------------------------------------------------\n")
 	}
 	defer func() {
 		switch exitCode {
@@ -425,7 +443,7 @@ func main() {
 			errMsg = "Error: the input file is corrupt or of an unknown/unsupported type!"
 		}
 		if exitCode != 0 {
-			fmt.Println(errMsg)
+			log.Println(errMsg)
 			if exitCode == 1 {
 				help()
 			}
@@ -441,53 +459,63 @@ func main() {
 	help()
 	return
 normal:
-	info, err := os.Stat(os.Args[2])
-	if errors.Is(err, os.ErrNotExist) {
-		exitCode = 2
-		return
+	if os.Args[2] != "-" {
+		info, err = os.Stat(os.Args[2])
+		if errors.Is(err, os.ErrNotExist) {
+			exitCode = 2
+			return
+		}
+		if info.IsDir() {
+			exitCode = 3
+			return
+		}
+		if !info.Mode().IsRegular() {
+			exitCode = 4
+			return
+		}
 	}
-	if info.IsDir() {
-		exitCode = 3
-		return
-	}
-	if !info.Mode().IsRegular() {
-		exitCode = 4
-		return
-	}
-	if _, err := os.Stat(os.Args[3]); !errors.Is(err, os.ErrNotExist) {
-		exitCode = 5
-		return
+	if os.Args[3] != "-" {
+		if _, err = os.Stat(os.Args[3]); !errors.Is(err, os.ErrNotExist) {
+			exitCode = 5
+			return
+		}
 	}
 	var pack Packer
 	switch os.Args[1][0] {
 	case 'c', 'd':
-		ifile, err := os.OpenFile(os.Args[2], os.O_RDONLY, 0644)
-		if err != nil {
-			exitCode = 6
-			return
-		}
-		defer ifile.Close()
-		ofile, err := os.OpenFile(os.Args[3], os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			exitCode = 7
-			return
-		}
-		defer ofile.Close()
-		pack.Initialize(ifile, ofile)
-		progress := func() {
-			defer wg.Done()
-			start := time.Now()
-			for v := range pack.stat {
-				rsize += int64(v[0])
-				wsize += int64(v[1])
-				fmt.Printf("\rProcessing [%#07.02fs] : %#-12d->%#12d", time.Since(start).Seconds(), rsize, wsize)
+		if os.Args[2] != "-" {
+			ifile, err = os.OpenFile(os.Args[2], os.O_RDONLY, 0644)
+			if err != nil {
+				exitCode = 6
+				return
 			}
-			fmt.Println()
+			defer ifile.Close()
+		} else {
+			ifile = os.Stdin
 		}
+		if os.Args[3] != "-" {
+			ofile, err = os.OpenFile(os.Args[3], os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				exitCode = 7
+				return
+			}
+			defer ofile.Close()
+		} else {
+			ofile = os.Stdout
+		}
+		defer ofile.Sync()
+		pack.Initialize(ifile, ofile)
 		if !(len(os.Args[1]) != 1 && os.Args[1][1] == 's') {
-			pack.stat = make(chan [2]int)
-			wg.Add(1)
-			go progress()
+			pack.stat = make(chan [2]int, 2)
+			wg.Go(func() {
+				start := time.Now()
+				for v := range pack.stat {
+					rsize += int64(v[0])
+					wsize += int64(v[1])
+					fmt.Fprintf(os.Stderr, "\rProcessing [%#07.02fs] : %#-12d->%#12d", time.Since(start).Seconds(), rsize, wsize)
+				}
+				fmt.Fprintf(os.Stderr, "\n")
+			})
 		}
 		if os.Args[1][0] == 'c' {
 			pack.Pack()
