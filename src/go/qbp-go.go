@@ -117,7 +117,8 @@ func (p *Packer) Rbuf() (c uint8) {
 	return
 }
 
-func (p *Packer) rc32_rescale(f *[256]uint16, fc *uint16, c uint8) {
+func (p *Packer) rc32_rescale(f *[256]uint16, fc *uint16, c uint8, s uint16) {
+	p.low += uint32(s) * p.rnge
 	p.rnge *= uint32((*f)[c])
 	(*f)[c]++
 	if *fc++; *fc == 0 {
@@ -129,7 +130,7 @@ func (p *Packer) rc32_rescale(f *[256]uint16, fc *uint16, c uint8) {
 }
 
 func (p *Packer) rc32_getc(c *uint8, cntx uint8) {
-	fc, f, s := &p.fcs[cntx], &p.frequency[cntx], uint32(0)
+	fc, f, s := &p.fcs[cntx], &p.frequency[cntx], uint16(0)
 	for p.hlp < p.low || p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
 		p.hlp <<= 8
 		if *p._hlp = p.Rbuf(); p.rpos == 0 {
@@ -149,19 +150,17 @@ func (p *Packer) rc32_getc(c *uint8, cntx uint8) {
 		return
 	}
 	for j := range 256 {
-		s += uint32((*f)[j])
-		if s > i {
-			s -= uint32((*f)[j])
+		if s += (*f)[j]; s > uint16(i) {
+			s -= (*f)[j]
 			*c = uint8(j)
 			break
 		}
 	}
-	p.low += s * p.rnge
-	p.rc32_rescale(f, fc, *c)
+	p.rc32_rescale(f, fc, *c, s)
 }
 
 func (p *Packer) rc32_putc(c uint8, cntx uint8) {
-	fc, f, s := &p.fcs[cntx], &p.frequency[cntx], uint32(0)
+	fc, f, s := &p.fcs[cntx], &p.frequency[cntx], uint16(0)
 	for p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
 		if p.Wbuf(*p._low); p.Err != 0 {
 			return
@@ -172,12 +171,11 @@ func (p *Packer) rc32_putc(c uint8, cntx uint8) {
 			p.rnge = ^p.low
 		}
 	}
-	for i := range c {
-		s += uint32((*f)[i])
-	}
 	p.rnge /= uint32(*fc)
-	p.low += s * p.rnge
-	p.rc32_rescale(f, fc, c)
+	for i := range c {
+		s += (*f)[i]
+	}
+	p.rc32_rescale(f, fc, c, s)
 }
 
 func (p *Packer) Finalize_Pack() {
