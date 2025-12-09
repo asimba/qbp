@@ -389,8 +389,6 @@ func main() {
 	var (
 		exitCode int = 0
 		errMsg   string
-		rsize    int64 = 0
-		wsize    int64 = 0
 		wg       sync.WaitGroup
 		ifile    *os.File
 		ofile    *os.File
@@ -503,6 +501,10 @@ normal:
 		if !(len(os.Args[1]) != 1 && os.Args[1][1] == 's') {
 			pack.stat = make(chan [2]int, 2)
 			wg.Go(func() {
+				var (
+					rsize int64 = 0
+					wsize int64 = 0
+				)
 				start := time.Now()
 				for v := range pack.stat {
 					rsize += int64(v[0])
