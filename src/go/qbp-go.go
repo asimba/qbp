@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
-	"unsafe"
 )
 
 type iotype interface {
@@ -56,8 +55,6 @@ type Packer struct {
 	low       uint32
 	hlp       uint32
 	rnge      uint32
-	_low      *uint8
-	_hlp      *uint8
 	ifile     iotype
 	ofile     iotype
 	eoff      bool
@@ -80,7 +77,6 @@ func (p *Packer) Initialize(ifile, ofile iotype) {
 	}
 	p.vocindx[0].in, p.vocindx[0].out, p.vocindx[0].skip = 0, 0xfffc, false
 	p.vocarea[0xfffc], p.vocarea[0xfffd], p.vocarea[0xfffe], p.vocarea[0xffff] = 0xfffc, 0xfffd, 0xfffe, 0xffff
-	p._hlp, p._low = (*uint8)(unsafe.Pointer(&p.hlp)), (*uint8)(unsafe.Pointer(uintptr(unsafe.Pointer(&p.low))+3))
 	p.eoff, p.rle_flag = false, false
 	p.ifile, p.ofile = ifile, ofile
 }
@@ -133,7 +129,7 @@ func (p *Packer) rc32_getc(c *uint8, cntx uint8) {
 	fc, f, s := &p.fcs[cntx], &p.frequency[cntx], uint16(0)
 	for p.hlp < p.low || p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
 		p.hlp <<= 8
-		if *p._hlp = p.Rbuf(); p.rpos == 0 {
+		if p.hlp |= uint32(p.Rbuf()); p.rpos == 0 {
 			p.Err = 9
 			return
 		}
@@ -162,7 +158,7 @@ func (p *Packer) rc32_getc(c *uint8, cntx uint8) {
 func (p *Packer) rc32_putc(c uint8, cntx uint8) {
 	fc, f, s := &p.fcs[cntx], &p.frequency[cntx], uint16(0)
 	for p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
-		if p.Wbuf(*p._low); p.Err != 0 {
+		if p.Wbuf(uint8(p.low >> 24)); p.Err != 0 {
 			return
 		}
 		p.low <<= 8
@@ -204,18 +200,18 @@ putc_loop:
 				p.vocindx[p.hashes[p.vocroot]].in = p.vocarea[p.vocroot]
 			}
 			p.vocarea[p.vocroot], p.vocbuf[p.vocroot] = p.vocroot, b
-			var hs uint16 = p.hashes[p.voclast] ^ uint16(p.vocbuf[p.voclast]) ^ uint16(b)
-			hs = (hs << 4) | (hs >> 12)
+			hash := p.hashes[p.voclast] ^ uint16(p.vocbuf[p.voclast]) ^ uint16(b)
+			hash = (hash << 4) | (hash >> 12)
 			p.voclast++
 			p.vocroot++
 			p.buf_size++
-			p.hashes[p.voclast] = hs
-			if p.vocindx[hs].skip {
-				p.vocindx[hs].in = p.voclast
+			p.hashes[p.voclast] = hash
+			if p.vocindx[hash].skip {
+				p.vocindx[hash].in = p.voclast
 			} else {
-				p.vocarea[p.vocindx[hs].out] = p.voclast
+				p.vocarea[p.vocindx[hash].out] = p.voclast
 			}
-			p.vocindx[hs].skip, p.vocindx[hs].out = false, p.voclast
+			p.vocindx[hash].skip, p.vocindx[hash].out = false, p.voclast
 			break
 		}
 		p.cbuffer[0] <<= 1
@@ -340,7 +336,7 @@ func (p *Packer) Init_Unpack() {
 	p.length, p.flags = 0, 0
 	for range 4 {
 		p.hlp <<= 8
-		if *p._hlp = p.Rbuf(); p.rpos == 0 {
+		if p.hlp |= uint32(p.Rbuf()); p.rpos == 0 {
 			p.Err = 9
 			break
 		}
