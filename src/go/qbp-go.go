@@ -23,6 +23,7 @@ const (
 	LZ_BUF_SIZE  uint16 = 259
 	LZ_CAPACITY  uint8  = 24
 	LZ_MIN_MATCH uint16 = 3
+	IO_BUF_SIZE  int    = 0x10000
 )
 
 type vocpntr struct {
@@ -31,80 +32,139 @@ type vocpntr struct {
 	skip bool
 }
 
-type Packer struct {
-	ibuf      [0x10000]uint8
-	obuf      [0x10000]uint8
-	icbuf     uint32
-	wpos      uint32
-	rpos      uint32
-	cbuffer   [LZ_CAPACITY + 1]uint8
-	cntxs     [LZ_CAPACITY + 1]uint8
+type commonwork struct {
+	ibuf      []uint8
+	obuf      []uint8
 	vocbuf    [0x10000]uint8
-	vocarea   [0x10000]uint16
-	hashes    [0x10000]uint16
-	vocindx   [0x10000]vocpntr
-	frequency [256][256]uint16
+	frequency [][256]uint16
 	fcs       [256]uint16
-	flags     uint8
-	cpos      uint8
-	buf_size  uint16
-	voclast   uint16
+	icbuf     int
+	rpos      int
+	wpos      int
+	low       uint32
+	rnge      uint32
 	vocroot   uint16
 	length    uint16
 	offset    uint16
-	low       uint32
-	hlp       uint32
-	rnge      uint32
+	flags     uint8
 	ifile     iotype
 	ofile     iotype
 	eoff      bool
-	rle_flag  bool
 	Err       int
 	stat      chan [2]int
 }
 
-func (p *Packer) Initialize(ifile, ofile iotype) {
-	p.icbuf, p.wpos, p.rpos, p.buf_size, p.flags, p.cpos, p.cntxs[0], p.Err = 0, 0, 0, 0, 8, 1, 0, 0
-	p.low, p.hlp, p.rnge, p.vocroot, p.voclast = 0, 0, 0xffffffff, 0, 0xfffc
-	for i := range 256 {
-		for j := range 256 {
+type Compressor struct {
+	commonwork
+	cbuffer [LZ_CAPACITY + 1]uint8
+	cntxs   [LZ_CAPACITY + 1]uint8
+	vocarea []uint16
+	hashes  []uint16
+	vocindx []vocpntr
+	cpos    uint8
+	voclast uint16
+}
+
+type Decompressor struct {
+	commonwork
+	cbuffer  [LZ_MIN_MATCH + 1]uint8
+	hlp      uint32
+	rle_flag bool
+}
+
+func (p *commonwork) initialize(ifile, ofile iotype, stat chan [2]int) {
+	if p.ibuf == nil || len(p.ibuf) != IO_BUF_SIZE {
+		p.ibuf = make([]uint8, IO_BUF_SIZE)
+	}
+	if p.obuf == nil || len(p.obuf) != IO_BUF_SIZE {
+		p.obuf = make([]uint8, IO_BUF_SIZE)
+	}
+	if p.frequency == nil || len(p.frequency) != 256 {
+		p.frequency = make([][256]uint16, 256)
+	}
+	for i := range p.frequency {
+		for j := range p.frequency[i] {
 			p.frequency[i][j] = 1
 		}
 		p.fcs[i] = 256
+	}
+	p.icbuf, p.wpos, p.rpos, p.length, p.vocroot, p.Err = 0, 0, 0, 0, 0, 0
+	p.ifile, p.ofile, p.eoff, p.stat = ifile, ofile, false, stat
+}
+
+func (p *Compressor) Initialize(ifile, ofile iotype, stat chan [2]int) {
+	p.initialize(ifile, ofile, stat)
+	p.flags, p.cpos, p.cntxs[0] = 8, 1, 0
+	p.low, p.rnge, p.voclast = 0, 0xffffffff, 0xfffc
+	if p.vocarea == nil {
+		p.vocarea = make([]uint16, 0x10000)
+	}
+	if p.hashes == nil {
+		p.hashes = make([]uint16, 0x10000)
+	}
+	if p.vocindx == nil {
+		p.vocindx = make([]vocpntr, 0x10000)
 	}
 	for i := range 0x10000 {
 		p.vocbuf[i], p.hashes[i], p.vocindx[i].skip, p.vocarea[i] = 0xff, 0, true, uint16(i)+1
 	}
 	p.vocindx[0].in, p.vocindx[0].out, p.vocindx[0].skip = 0, 0xfffc, false
 	p.vocarea[0xfffc], p.vocarea[0xfffd], p.vocarea[0xfffe], p.vocarea[0xffff] = 0xfffc, 0xfffd, 0xfffe, 0xffff
-	p.eoff, p.rle_flag = false, false
-	p.ifile, p.ofile = ifile, ofile
 }
 
-func (p *Packer) Wbuf(c uint8) {
-	if p.wpos == 0x10000 {
+func (p *Decompressor) Initialize(ifile, ofile iotype, stat chan [2]int) {
+	p.initialize(ifile, ofile, stat)
+	p.flags = 0
+	p.low, p.hlp, p.rnge = 0, 0, 0xffffffff
+	for i := range 0x10000 {
+		p.vocbuf[i] = 0xff
+	}
+	p.rle_flag = false
+	for range 4 {
+		p.hlp <<= 8
+		if p.hlp |= uint32(p.Rbuf()); p.rpos == 0 {
+			p.Err = 9
+			break
+		}
+	}
+}
+
+func NewCompressor(ifile, ofile iotype, stat chan [2]int) *Compressor {
+	var pack Compressor
+	pack.Initialize(ifile, ofile, stat)
+	return &pack
+}
+
+func NewDecompressor(ifile, ofile iotype, stat chan [2]int) *Decompressor {
+	var pack Decompressor
+	pack.Initialize(ifile, ofile, stat)
+	return &pack
+}
+
+func (p *commonwork) Wbuf(c uint8) {
+	if p.wpos == IO_BUF_SIZE {
 		p.wpos = 0
-		if _, err := p.ofile.Write(p.obuf[:]); err != nil {
+		if _, err := p.ofile.Write(p.obuf); err != nil {
 			p.Err = 8
 			return
 		}
 		if p.stat != nil {
-			p.stat <- [2]int{0, 0x10000}
+			p.stat <- [2]int{0, IO_BUF_SIZE}
 		}
 	}
 	p.obuf[p.wpos] = c
 	p.wpos++
 }
 
-func (p *Packer) Rbuf() (c uint8) {
+func (p *commonwork) Rbuf() (c uint8) {
+	var err error
 	if p.rpos == p.icbuf {
 		p.rpos = 0
-		r, err := p.ifile.Read(p.ibuf[:])
-		p.icbuf = uint32(r)
+		p.icbuf, err = p.ifile.Read(p.ibuf)
 		if p.stat != nil {
-			p.stat <- [2]int{r, 0}
+			p.stat <- [2]int{p.icbuf, 0}
 		}
-		if err != nil || r == 0 {
+		if err != nil || p.icbuf == 0 {
 			return
 		}
 	}
@@ -113,7 +173,7 @@ func (p *Packer) Rbuf() (c uint8) {
 	return
 }
 
-func (p *Packer) rc32_rescale(f *[256]uint16, fc *uint16, c uint8, s uint16) {
+func (p *commonwork) frequency_rescale(f *[256]uint16, fc *uint16, c uint8, s uint16) {
 	p.low += uint32(s) * p.rnge
 	p.rnge *= uint32((*f)[c])
 	(*f)[c]++
@@ -125,7 +185,15 @@ func (p *Packer) rc32_rescale(f *[256]uint16, fc *uint16, c uint8, s uint16) {
 	}
 }
 
-func (p *Packer) rc32_getc(c *uint8, cntx uint8) {
+func (p *commonwork) range_shift() {
+	p.low <<= 8
+	p.rnge <<= 8
+	if p.rnge > ^p.low {
+		p.rnge = ^p.low
+	}
+}
+
+func (p *Decompressor) rc32(c *uint8, cntx uint8) {
 	fc, f, s := &p.fcs[cntx], &p.frequency[cntx], uint16(0)
 	for p.hlp < p.low || p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
 		p.hlp <<= 8
@@ -133,11 +201,7 @@ func (p *Packer) rc32_getc(c *uint8, cntx uint8) {
 			p.Err = 9
 			return
 		}
-		p.low <<= 8
-		p.rnge <<= 8
-		if p.rnge > ^p.low {
-			p.rnge = ^p.low
-		}
+		p.range_shift()
 	}
 	p.rnge /= uint32(*fc)
 	i := uint32((p.hlp - p.low) / p.rnge)
@@ -152,29 +216,31 @@ func (p *Packer) rc32_getc(c *uint8, cntx uint8) {
 			break
 		}
 	}
-	p.rc32_rescale(f, fc, *c, s)
+	p.frequency_rescale(f, fc, *c, s)
 }
 
-func (p *Packer) rc32_putc(c uint8, cntx uint8) {
+func (p *Compressor) rc32(c uint8, cntx uint8) {
 	fc, f, s := &p.fcs[cntx], &p.frequency[cntx], uint16(0)
 	for p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
 		if p.Wbuf(uint8(p.low >> 24)); p.Err != 0 {
 			return
 		}
-		p.low <<= 8
-		p.rnge <<= 8
-		if p.rnge > ^p.low {
-			p.rnge = ^p.low
-		}
+		p.range_shift()
 	}
-	p.rnge /= uint32(*fc)
 	for i := range c {
 		s += (*f)[i]
 	}
-	p.rc32_rescale(f, fc, c, s)
+	p.rnge /= uint32(*fc)
+	p.frequency_rescale(f, fc, c, s)
 }
 
-func (p *Packer) Finalize_Pack() {
+func (p *Compressor) Finalize() {
+	p.eoff = true
+	for p.length != 0 {
+		if p.PutC(0); p.Err != 0 {
+			return
+		}
+	}
 	for j := 3; j >= 0; j-- {
 		if p.Wbuf(uint8(p.low >> (8 * j))); p.Err != 0 {
 			return
@@ -189,22 +255,32 @@ func (p *Packer) Finalize_Pack() {
 	}
 }
 
-func (p *Packer) PutC(b uint8) {
+func (p *Decompressor) Finalize() {
+	if _, err := p.ofile.Write(p.obuf[:p.wpos]); err != nil {
+		p.Err = 8
+	}
+	if p.stat != nil {
+		p.stat <- [2]int{0, int(p.wpos)}
+	}
+}
+
+func (p *Compressor) PutC(b uint8) {
 	var offset, symbol, rle, rle_shift, length uint16
 putc_loop:
 	for {
-		if p.buf_size != LZ_BUF_SIZE && !p.eoff {
-			if p.vocarea[p.vocroot] == p.vocroot {
-				p.vocindx[p.hashes[p.vocroot]].skip = true
+		if p.length != LZ_BUF_SIZE && !p.eoff {
+			vocroot := p.vocroot
+			if p.vocarea[vocroot] == vocroot {
+				p.vocindx[p.hashes[vocroot]].skip = true
 			} else {
-				p.vocindx[p.hashes[p.vocroot]].in = p.vocarea[p.vocroot]
+				p.vocindx[p.hashes[vocroot]].in = p.vocarea[vocroot]
 			}
-			p.vocarea[p.vocroot], p.vocbuf[p.vocroot] = p.vocroot, b
+			p.vocarea[vocroot], p.vocbuf[vocroot] = vocroot, b
 			hash := p.hashes[p.voclast] ^ uint16(p.vocbuf[p.voclast]) ^ uint16(b)
 			hash = (hash << 4) | (hash >> 12)
 			p.voclast++
 			p.vocroot++
-			p.buf_size++
+			p.length++
 			p.hashes[p.voclast] = hash
 			if p.vocindx[hash].skip {
 				p.vocindx[hash].in = p.voclast
@@ -216,13 +292,13 @@ putc_loop:
 		}
 		p.cbuffer[0] <<= 1
 		length = LZ_MIN_MATCH
-		if p.buf_size != 0 {
-			symbol = p.vocroot - p.buf_size
+		if p.length != 0 {
+			symbol = p.vocroot - p.length
 			rle_shift, rle = symbol+LZ_BUF_SIZE, symbol+1
 			for rle != p.vocroot && p.vocbuf[symbol] == p.vocbuf[rle] {
 				rle++
 			}
-			if rle -= symbol; p.buf_size > LZ_MIN_MATCH && rle != p.buf_size {
+			if rle -= symbol; p.length > LZ_MIN_MATCH && rle != p.length {
 				for cnode := p.vocindx[p.hashes[symbol]].in; cnode != symbol; {
 					if p.vocbuf[uint16(symbol+length)] == p.vocbuf[uint16(cnode+length)] {
 						i, k := symbol, cnode
@@ -235,7 +311,7 @@ putc_loop:
 								continue
 							}
 							length, offset = i, k
-							if i == p.buf_size {
+							if i == p.length {
 								break
 							}
 						}
@@ -254,11 +330,11 @@ putc_loop:
 				p.cbuffer[p.cpos], p.cntxs[p.cpos] = uint8(offset), 2
 				p.cpos++
 				p.cbuffer[p.cpos], p.cntxs[p.cpos] = uint8(offset>>8), 3
-				p.buf_size -= length
+				p.length -= length
 			} else {
 				p.cbuffer[p.cpos], p.cntxs[p.cpos] = p.vocbuf[symbol], p.vocbuf[uint16(symbol-1)]
 				p.cbuffer[0] |= 1
-				p.buf_size--
+				p.length--
 			}
 		} else {
 			p.cntxs[p.cpos] = 1
@@ -275,7 +351,7 @@ putc_loop:
 		}
 		p.cbuffer[0] <<= p.flags
 		for i := range p.cpos {
-			if p.rc32_putc(p.cbuffer[i], p.cntxs[i]); p.Err != 0 {
+			if p.rc32(p.cbuffer[i], p.cntxs[i]); p.Err != 0 {
 				break putc_loop
 			}
 		}
@@ -285,80 +361,63 @@ putc_loop:
 	}
 }
 
-func (p *Packer) GetC(b *uint8) {
-getc_start:
-	if p.length != 0 {
-		if !p.rle_flag {
-			p.cbuffer[1] = p.vocbuf[p.offset]
-			p.offset++
-		}
-		p.vocbuf[p.vocroot], *b = p.cbuffer[1], p.cbuffer[1]
-		p.vocroot++
-		p.length--
-		return
-	}
-	if p.flags != 0 {
-		p.length, p.rle_flag = 1, true
-		if p.cbuffer[0]&0x80 != 0 {
-			if p.rc32_getc(&p.cbuffer[1], p.vocbuf[uint16(uint16((p.vocroot)-1))]); p.Err != 0 {
-				return
+func (p *Decompressor) GetC() (b uint8) {
+getc_loop:
+	for {
+		if p.length != 0 {
+			if !p.rle_flag {
+				p.cbuffer[1] = p.vocbuf[p.offset]
+				p.offset++
 			}
-		} else {
-			for c := uint8(1); c < 4; c++ {
-				if p.rc32_getc(&p.cbuffer[c], uint8(c)); p.Err != 0 {
-					return
+			p.vocbuf[p.vocroot], b = p.cbuffer[1], p.cbuffer[1]
+			p.vocroot++
+			p.length--
+			break
+		}
+		if p.flags != 0 {
+			p.length, p.rle_flag = 1, true
+			if p.cbuffer[0]&0x80 != 0 {
+				if p.rc32(&p.cbuffer[1], p.vocbuf[uint16((p.vocroot)-1)]); p.Err != 0 {
+					break
+				}
+			} else {
+				for c := uint8(1); c < 4; c++ {
+					if p.rc32(&p.cbuffer[c], uint8(c)); p.Err != 0 {
+						break getc_loop
+					}
+				}
+				p.length, p.offset = LZ_MIN_MATCH+1+uint16(p.cbuffer[1]), uint16(p.cbuffer[2])
+				p.offset |= uint16(p.cbuffer[3]) << 8
+				switch {
+				case p.offset > 0x0100:
+					p.offset, p.rle_flag = ^p.offset+p.vocroot+LZ_BUF_SIZE, false
+				case p.offset == 0x0100:
+					p.eoff = true
+					break getc_loop
+				default:
+					p.cbuffer[1] = uint8(p.offset)
 				}
 			}
-			p.length, p.offset = LZ_MIN_MATCH+1+uint16(p.cbuffer[1]), uint16(p.cbuffer[2])
-			p.offset |= uint16(p.cbuffer[3]) << 8
-			switch {
-			case p.offset > 0x0100:
-				p.offset, p.rle_flag = ^p.offset+p.vocroot+LZ_BUF_SIZE, false
-			case p.offset == 0x0100:
-				p.eoff = true
-				return
-			default:
-				p.cbuffer[1] = uint8(p.offset)
-			}
+			p.cbuffer[0] <<= 1
+			p.flags--
+			continue
 		}
-		p.cbuffer[0] <<= 1
-		p.flags--
-		goto getc_start
-	}
-	if p.rc32_getc(&p.cbuffer[0], 0); p.Err != 0 {
-		return
-	}
-	p.flags = 8
-	goto getc_start
-}
-
-func (p *Packer) Init_Unpack() {
-	p.length, p.flags = 0, 0
-	for range 4 {
-		p.hlp <<= 8
-		if p.hlp |= uint32(p.Rbuf()); p.rpos == 0 {
-			p.Err = 9
+		p.flags = 8
+		if p.rc32(&p.cbuffer[0], 0); p.Err != 0 {
 			break
 		}
 	}
+	return
 }
 
-func (p *Packer) Unpack() {
-	if p.Init_Unpack(); p.Err != 0 {
-		return
-	}
+func (p *Decompressor) Proceed() {
 	var c uint8
 	for {
-		if p.GetC(&c); p.Err != 0 {
+		if c = p.GetC(); p.Err != 0 {
 			break
 		}
 		if p.eoff {
-			if _, err := p.ofile.Write(p.obuf[:p.wpos]); err != nil {
-				p.Err = 8
-			}
-			if p.stat != nil {
-				p.stat <- [2]int{0, int(p.wpos)}
-			}
+			p.Finalize()
 			break
 		}
 		if p.Wbuf(c); p.Err != 0 {
@@ -367,17 +426,10 @@ func (p *Packer) Unpack() {
 	}
 }
 
-func (p *Packer) Pack() {
-pack_loop:
+func (p *Compressor) Proceed() {
 	for {
 		if b := p.Rbuf(); p.rpos == 0 {
-			p.eoff = true
-			for p.buf_size != 0 {
-				if p.PutC(0); p.Err != 0 {
-					break pack_loop
-				}
-			}
-			p.Finalize_Pack()
+			p.Finalize()
 			break
 		} else if p.PutC(b); p.Err != 0 {
 			break
@@ -387,13 +439,13 @@ pack_loop:
 
 func main() {
 	var (
-		exitCode int = 0
-		errMsg   string
-		wg       sync.WaitGroup
-		ifile    *os.File
-		ofile    *os.File
-		info     os.FileInfo
-		err      error
+		exitCode     int = 0
+		errMsg       string
+		wg           sync.WaitGroup
+		ifile, ofile *os.File
+		info         os.FileInfo
+		stat         chan [2]int
+		err          error
 	)
 	n := filepath.Base(os.Args[0])
 	help := func() {
@@ -436,12 +488,19 @@ func main() {
 			errMsg = "Error: the input file is corrupt or of an unknown/unsupported type!"
 		}
 		if exitCode != 0 {
-			log.Println(errMsg)
 			if exitCode == 1 {
 				help()
+			} else {
+				log.Println(errMsg)
 			}
 		}
 		os.Exit(exitCode)
+	}()
+	defer func() {
+		if stat != nil {
+			close(stat)
+			wg.Wait()
+		}
 	}()
 	if len(os.Args) == 4 {
 		goto normal
@@ -467,13 +526,6 @@ normal:
 			return
 		}
 	}
-	if os.Args[3] != "-" {
-		if _, err = os.Stat(os.Args[3]); !errors.Is(err, os.ErrNotExist) {
-			exitCode = 5
-			return
-		}
-	}
-	var pack Packer
 	switch os.Args[1][0] {
 	case 'c', 'd':
 		if os.Args[2] != "-" {
@@ -487,26 +539,28 @@ normal:
 			ifile = os.Stdin
 		}
 		if os.Args[3] != "-" {
-			ofile, err = os.OpenFile(os.Args[3], os.O_CREATE|os.O_WRONLY, 0644)
+			ofile, err = os.OpenFile(os.Args[3], os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0644)
 			if err != nil {
-				exitCode = 7
+				if os.IsExist(err) {
+					exitCode = 5
+				} else {
+					exitCode = 7
+				}
 				return
 			}
-			defer ofile.Close()
+			defer func() {
+				ofile.Sync()
+				ofile.Close()
+			}()
 		} else {
 			ofile = os.Stdout
 		}
-		defer ofile.Sync()
-		pack.Initialize(ifile, ofile)
 		if !(len(os.Args[1]) != 1 && os.Args[1][1] == 's') {
-			pack.stat = make(chan [2]int, 2)
+			stat = make(chan [2]int, 8)
 			wg.Go(func() {
-				var (
-					rsize int64 = 0
-					wsize int64 = 0
-				)
+				var rsize, wsize int64 = 0, 0
 				start := time.Now()
-				for v := range pack.stat {
+				for v := range stat {
 					rsize += int64(v[0])
 					wsize += int64(v[1])
 					fmt.Fprintf(os.Stderr, "\rProcessing [%#07.02fs] : %#-12d->%#12d", time.Since(start).Seconds(), rsize, wsize)
@@ -515,15 +569,14 @@ normal:
 			})
 		}
 		if os.Args[1][0] == 'c' {
-			pack.Pack()
+			pack := NewCompressor(ifile, ofile, stat)
+			pack.Proceed()
+			exitCode = pack.Err
 		} else {
-			pack.Unpack()
-		}
-		if pack.stat != nil {
-			close(pack.stat)
-			wg.Wait()
-		}
-		if pack.Err != 0 {
+			pack := NewDecompressor(ifile, ofile, stat)
+			if pack.Err == 0 {
+				pack.Proceed()
+			}
 			exitCode = pack.Err
 		}
 	default:
