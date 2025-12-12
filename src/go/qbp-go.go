@@ -58,8 +58,8 @@ type Compressor struct {
 	commonwork
 	cbuffer [LZ_CAPACITY + 1]uint8
 	cntxs   [LZ_CAPACITY + 1]uint8
-	vocarea []uint16
-	hashes  []uint16
+	vocarea [0x10000]uint16
+	hashes  [0x10000]uint16
 	vocindx []vocpntr
 	cpos    uint8
 	voclast uint16
@@ -96,12 +96,6 @@ func (p *Compressor) Initialize(ifile, ofile iotype, stat chan [2]int) {
 	p.initialize(ifile, ofile, stat)
 	p.flags, p.cpos, p.cntxs[0] = 8, 1, 0
 	p.low, p.rnge, p.voclast = 0, 0xffffffff, 0xfffc
-	if p.vocarea == nil {
-		p.vocarea = make([]uint16, 0x10000)
-	}
-	if p.hashes == nil {
-		p.hashes = make([]uint16, 0x10000)
-	}
 	if p.vocindx == nil {
 		p.vocindx = make([]vocpntr, 0x10000)
 	}
@@ -269,13 +263,12 @@ func (p *Compressor) PutC(b uint8) {
 putc_loop:
 	for {
 		if p.length != LZ_BUF_SIZE && !p.eoff {
-			vocroot := p.vocroot
-			if p.vocarea[vocroot] == vocroot {
-				p.vocindx[p.hashes[vocroot]].skip = true
+			if p.vocarea[p.vocroot] == p.vocroot {
+				p.vocindx[p.hashes[p.vocroot]].skip = true
 			} else {
-				p.vocindx[p.hashes[vocroot]].in = p.vocarea[vocroot]
+				p.vocindx[p.hashes[p.vocroot]].in = p.vocarea[p.vocroot]
 			}
-			p.vocarea[vocroot], p.vocbuf[vocroot] = vocroot, b
+			p.vocarea[p.vocroot], p.vocbuf[p.vocroot] = p.vocroot, b
 			hash := p.hashes[p.voclast] ^ uint16(p.vocbuf[p.voclast]) ^ uint16(b)
 			hash = (hash << 4) | (hash >> 12)
 			p.voclast++
@@ -369,7 +362,8 @@ getc_loop:
 				p.cbuffer[1] = p.vocbuf[p.offset]
 				p.offset++
 			}
-			p.vocbuf[p.vocroot], b = p.cbuffer[1], p.cbuffer[1]
+			b = p.cbuffer[1]
+			p.vocbuf[p.vocroot] = b
 			p.vocroot++
 			p.length--
 			break
@@ -386,8 +380,8 @@ getc_loop:
 						break getc_loop
 					}
 				}
-				p.length, p.offset = LZ_MIN_MATCH+1+uint16(p.cbuffer[1]), uint16(p.cbuffer[2])
-				p.offset |= uint16(p.cbuffer[3]) << 8
+				p.length = LZ_MIN_MATCH + 1 + uint16(p.cbuffer[1])
+				p.offset = uint16(p.cbuffer[2]) | uint16(p.cbuffer[3])<<8
 				switch {
 				case p.offset > 0x0100:
 					p.offset, p.rle_flag = ^p.offset+p.vocroot+LZ_BUF_SIZE, false
