@@ -300,13 +300,10 @@ putc_loop:
 							k++
 						}
 						if i -= symbol; i >= length {
-							if k = cnode - rle_shift; k > 0xfefe {
-								cnode = p.vocarea[cnode]
-								continue
-							}
-							length, offset = i, k
-							if i == p.length {
-								break
+							if k = cnode - rle_shift; k <= 0xfefe {
+								if length, offset = i, k; i >= p.length {
+									break
+								}
 							}
 						}
 					}

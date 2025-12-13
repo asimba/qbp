@@ -98,8 +98,7 @@ void pack_file(){
             uint16_t i=symbol,j=cnode;
             while(i!=vocroot&&vocbuf[i]==vocbuf[j++]) i++;
             if((i-=symbol)>=length){
-              if(buf_size!=LZ_BUF_SIZE&&(uint16_t)(cnode-rle_shift)>0xfefe) cnode=vocarea[cnode];
-              else{
+              if((uint16_t)(cnode-rle_shift)<=0xfefe){
                 offset=cnode;
                 if((length=i)==buf_size) break;
               };

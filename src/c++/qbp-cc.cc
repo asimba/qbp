@@ -44,8 +44,6 @@ class packer{
     uint8_t *cbuffer;
     uint8_t *cntxs;
     uint8_t *vocbuf;
-    uint8_t *lowp;
-    uint8_t *hlpp;
     uint8_t *cpos;
     uint8_t rle_flag;
     uint16_t *vocarea;
@@ -108,8 +106,6 @@ packer::packer(){
   frequency=new uint16_t*[256];
   for(int i=0;i<256;i++) _frequency[i]=new uint16_t[260];
   fcs=new uint16_t[256];
-  lowp=&((uint8_t *)&low)[3];
-  hlpp=&((uint8_t *)&hlp)[0];
   read=NULL;
   write=NULL;
 }
@@ -126,8 +122,6 @@ packer::~packer(){
   del(frequency,256,(uint16_t*)NULL);
   del(fcs,256,(uint16_t)0);
   del(vocindx,0x10000,(vocpntr){0,0});
-  lowp=NULL;
-  hlpp=NULL;
   read=NULL;
   write=NULL;
   cnt=flags=buf_size=vocroot=voclast=range=low=hlp=icbuf=wpos=rpos=0;
@@ -191,8 +185,9 @@ inline bool packer::rbuf(void *file, uint8_t *c){
 inline bool packer::rc32_getc(void *file, uint8_t *c, const uint8_t cntx){
   uint16_t fc=fcs[cntx];
   while(hlp<low||(low^(low+range))<0x1000000||range<fc){
-    hlp<<=8;
-    if(rbuf(file,hlpp)) return true;
+    uint8_t h=0;
+    if(rbuf(file,&h)) return true;
+    hlp=(hlp<<8)|h;
     if(!rpos) return false;
     rc32_shift();
   };
@@ -209,7 +204,7 @@ inline bool packer::rc32_getc(void *file, uint8_t *c, const uint8_t cntx){
 inline bool packer::rc32_putc(void *file, uint32_t c, const uint8_t cntx){
   uint16_t fc=fcs[cntx];
   while((low^(low+range))<0x1000000||range<fc){
-    if(!(wbuf(file,*lowp),wpos)) return true;
+    if(!(wbuf(file,low>>24),wpos)) return true;
     rc32_shift();
   };
   uint16_t *f=_frequency[cntx]+(c&3);
@@ -249,8 +244,7 @@ bool packer::packer_putc(void *file, uint8_t c){
               uint16_t i=symbol,j=cnode;
               while(i!=vocroot&&vocbuf[i]==vocbuf[j++]) i++;
               if((i-=symbol)>=length){
-                if(buf_size!=LZ_BUF_SIZE&&(uint16_t)(cnode-rle_shift)>0xfefe) cnode=vocarea[cnode];
-                else{
+                if((uint16_t)(cnode-rle_shift)<=0xfefe){
                   offset=cnode;
                   if((length=i)==buf_size) break;
                 };
@@ -297,7 +291,7 @@ bool packer::packer_putc(void *file, uint8_t c){
         if(rc32_putc(file,cbuffer[i],cntxs[i])) return true;
       if(!length){
         for(int i=4;i;i--){
-          if(!(wbuf(file,*lowp),wpos)) return true;
+          if(!(wbuf(file,low>>24),wpos)) return true;
           low<<=8;
         };
         if((*write)(file,(char*)iobuf,wpos)<=0) return true;
@@ -313,8 +307,9 @@ bool packer::packer_putc(void *file, uint8_t c){
 
 bool packer::load_header(void *file){
   for(unsigned int i=0;i<sizeof(uint32_t);i++){
-    hlp<<=8;
-    if(rbuf(file,hlpp)||!rpos) return true;
+    uint8_t h=0;
+    if(rbuf(file,&h)||!rpos) return true;
+    hlp=(hlp<<8)|h;
   };
   return false;
 }

@@ -5,7 +5,7 @@
 use std::env::args;
 use std::path::Path;
 use std::fs::{File,metadata};
-use std::{panic,ptr,usize};
+use std::{panic,usize};
 use std::io::{Read, Write};
 
 const LZ_BUF_SIZE: u16=259;
@@ -48,8 +48,6 @@ pub struct Packer {
   length: u16,
   symbol: u16,
   hs: u16,
-  lowp: *mut u8,
-  hlpp: *mut u8,
   flags: u8,
   pub ifile: File,
   pub ofile: File,
@@ -88,8 +86,6 @@ impl Packer {
       fcs: [0 as u16; 256],
       icbuf: 0,wpos: 0,rpos: 0,low: 0,hlp: 0,range: 0,
       buf_size: 0,voclast: 0,vocroot: 0,offset: 0,length: 0,symbol: 0,hs: 0,
-      lowp: ptr::null_mut(),
-      hlpp: ptr::null_mut(),
       flags: 0,
       ifile:match File::open(&Path::new(i)){
         Err(why)=>{
@@ -139,9 +135,6 @@ impl Packer {
     self.vocarea[0xfffe]=0xfffe;
     self.vocarea[0xffff]=0xffff;
     self.hs=0x00ff;
-    self.lowp=ptr::addr_of_mut!(self.low) as *mut u8;
-    unsafe { self.lowp=self.lowp.add(3) };
-    self.hlpp=ptr::addr_of_mut!(self.hlp) as *mut u8;
   }
 
   #[inline(always)]
@@ -195,8 +188,7 @@ impl Packer {
 
   fn rc32_getc(&mut self,cntx: u8) {
     while (self.low^(self.low+self.range))<0x1000000 || self.range<self.fcs[cntx as usize] as u32 || self.hlp<self.low {
-      self.hlp<<=8;
-      unsafe{ *self.hlpp=self.rbuf() };
+      self.hlp=(self.hlp<<8)|(self.rbuf() as u32);
       if self.rpos==0 {
         read_err!()
       }
@@ -225,7 +217,7 @@ impl Packer {
   
   fn rc32_putc(&mut self,c: u8,cntx: u8) {
     while (self.low^(self.low+self.range))<0x1000000 || self.range<self.fcs[cntx as usize] as u32 {
-      self.wbuf(unsafe { *self.lowp });
+      self.wbuf((self.low>>24) as u8);
       self.low<<=8;
       self.range<<=8;
       if self.range>!self.low  {
@@ -311,16 +303,12 @@ impl Packer {
               }
               i-=self.symbol;
               if i>=self.length {
-                if self.buf_size<LZ_BUF_SIZE {
-                  if (cnode-rle_shift) as u16>0xfefe {
-                    cnode=self.vocarea[cnode as usize];
-                    continue;
+                if (cnode-rle_shift) as u16<=0xfefe {
+                  self.offset=cnode;
+                  self.length=i;
+                  if i==self.buf_size {
+                    break;
                   }
-                }
-                self.offset=cnode;
-                self.length=i;
-                if i==self.buf_size {
-                  break;
                 }
               }
             }
@@ -383,7 +371,7 @@ impl Packer {
         if eofs {
           i=4;
           while i>0 {
-            self.wbuf(unsafe { *self.lowp });
+            self.wbuf((self.low>>24) as u8);
             self.low<<=8;
             i-=1;
           }
@@ -402,8 +390,7 @@ impl Packer {
     let mut cflags: u8=0;
     let mut rle_flag: bool=false;
     for _i in 0..4 {
-      self.hlp<<=8;
-      unsafe{ *self.hlpp=self.rbuf() };
+      self.hlp=(self.hlp<<8)|(self.rbuf() as u32);
       if self.rpos==0 {
         read_err!()
       }

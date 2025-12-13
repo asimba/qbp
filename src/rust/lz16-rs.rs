@@ -211,16 +211,12 @@ impl Packer {
               }
               i-=self.symbol;
               if i>=self.length {
-                if self.buf_size<LZ_BUF_SIZE {
-                  if (cnode-rle_shift) as u16>0xfefe {
-                    cnode=self.vocarea[cnode as usize];
-                    continue;
+                if (cnode-rle_shift) as u16<=0xfefe {
+                  self.offset=cnode;
+                  self.length=i;
+                  if i==self.buf_size {
+                    break;
                   }
-                }
-                self.offset=cnode;
-                self.length=i;
-                if i==self.buf_size {
-                  break;
                 }
               }
             }
