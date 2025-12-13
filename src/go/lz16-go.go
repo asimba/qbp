@@ -23,6 +23,7 @@ const (
 	LZ_BUF_SIZE  uint16 = 259
 	LZ_CAPACITY  uint8  = 24
 	LZ_MIN_MATCH uint16 = 3
+	LZ_EOF       uint16 = 0x100
 	IO_BUF_SIZE  int    = 0x10000
 )
 
@@ -292,9 +293,9 @@ getc_loop:
 				p.length = LZ_MIN_MATCH + 1 + uint16(p.cbuffer[1])
 				p.offset = uint16(p.cbuffer[2]) | uint16(p.cbuffer[3])<<8
 				switch {
-				case p.offset > 0x0100:
+				case p.offset > LZ_EOF:
 					p.offset, p.rle_flag = ^p.offset+p.vocroot+LZ_BUF_SIZE, false
-				case p.offset == 0x0100:
+				case p.offset == LZ_EOF:
 					p.eoff = true
 					break getc_loop
 				default:
@@ -352,7 +353,8 @@ func main() {
 	)
 	n := filepath.Base(os.Args[0])
 	help := func() {
-		fmt.Print("\n--------------------------------------------------------------\n",
+		fmt.Print("\n",
+			"--------------------------------------------------------------\n",
 			"\t\t      lz16 file compressor\n",
 			"--------------------------------------------------------------\n",
 			"Usage:\n",
@@ -426,18 +428,18 @@ normal:
 			exitCode = 4
 			return
 		}
+	} else {
+		ifile = os.Stdin
 	}
 	switch os.Args[1][0] {
 	case 'c', 'd':
-		if os.Args[2] != "-" {
+		if ifile == nil {
 			ifile, err = os.OpenFile(os.Args[2], os.O_RDONLY, 0644)
 			if err != nil {
 				exitCode = 6
 				return
 			}
 			defer ifile.Close()
-		} else {
-			ifile = os.Stdin
 		}
 		if os.Args[3] != "-" {
 			ofile, err = os.OpenFile(os.Args[3], os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0644)
@@ -475,9 +477,7 @@ normal:
 			exitCode = pack.Err
 		} else {
 			pack := NewDecompressor(ifile, ofile, stat)
-			if pack.Err == 0 {
-				pack.Proceed()
-			}
+			pack.Proceed()
 			exitCode = pack.Err
 		}
 	default:
