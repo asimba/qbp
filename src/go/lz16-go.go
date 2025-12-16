@@ -170,7 +170,7 @@ func (p *Decompressor) Finalize() {
 }
 
 func (p *Compressor) PutC(b uint8) {
-	var offset, symbol, rle, rle_shift, length uint16
+	var offset, symbol, rle, rle_shift, length, i, k uint16
 putc_loop:
 	for {
 		if p.length != LZ_BUF_SIZE && !p.eoff {
@@ -198,16 +198,13 @@ putc_loop:
 		length = LZ_MIN_MATCH
 		if p.length != 0 {
 			symbol = p.vocroot - p.length
-			rle_shift, rle = symbol+LZ_BUF_SIZE, symbol+1
-			for rle != p.vocroot && p.vocbuf[symbol] == p.vocbuf[rle] {
-				rle++
+			rle_shift = symbol + LZ_BUF_SIZE
+			for rle = symbol + 1; rle != p.vocroot && p.vocbuf[symbol] == p.vocbuf[rle]; rle++ {
 			}
 			if rle -= symbol; p.length > LZ_MIN_MATCH && rle != p.length {
-				for cnode := p.vocindx[p.hashes[symbol]].in; cnode != symbol; {
+				for cnode := p.vocindx[p.hashes[symbol]].in; cnode != symbol; cnode = p.vocarea[cnode] {
 					if p.vocbuf[uint16(symbol+length)] == p.vocbuf[uint16(cnode+length)] {
-						i, k := symbol, cnode
-						for ; i != p.vocroot && p.vocbuf[i] == p.vocbuf[k]; i++ {
-							k++
+						for i, k = symbol, cnode; i != p.vocroot && p.vocbuf[i] == p.vocbuf[k]; i, k = i+1, k+1 {
 						}
 						if i -= symbol; i >= length {
 							if k = cnode - rle_shift; k <= 0xfefe {
@@ -217,7 +214,6 @@ putc_loop:
 							}
 						}
 					}
-					cnode = p.vocarea[cnode]
 				}
 			}
 			if rle > length {
@@ -269,8 +265,7 @@ getc_loop:
 				p.cbuffer[1] = p.vocbuf[p.offset]
 				p.offset++
 			}
-			b = p.cbuffer[1]
-			p.vocbuf[p.vocroot] = b
+			b, p.vocbuf[p.vocroot] = p.cbuffer[1], p.cbuffer[1]
 			p.vocroot++
 			p.length--
 			break
