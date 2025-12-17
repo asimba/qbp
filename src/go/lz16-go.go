@@ -25,6 +25,7 @@ const (
 	LZ_MIN_MATCH uint16 = 3
 	LZ_EOF       uint16 = 0x100
 	IO_BUF_SIZE  int    = 0x10000
+	VOC_SIZE     int    = 0x10000
 )
 
 type vocpntr struct {
@@ -36,7 +37,7 @@ type vocpntr struct {
 type commonwork struct {
 	ibuf    []uint8
 	obuf    []uint8
-	vocbuf  [0x10000]uint8
+	vocbuf  [VOC_SIZE]uint8
 	icbuf   int
 	rpos    int
 	wpos    int
@@ -54,8 +55,8 @@ type commonwork struct {
 type Compressor struct {
 	commonwork
 	cbuffer [LZ_CAPACITY + 1]uint8
-	vocarea [0x10000]uint16
-	hashes  [0x10000]uint16
+	vocarea [VOC_SIZE]uint16
+	hashes  [VOC_SIZE]uint16
 	vocindx []vocpntr
 	cpos    uint8
 	voclast uint16
@@ -81,10 +82,10 @@ func (p *commonwork) initialize(ifile, ofile iotype, stat chan [2]int) {
 func (p *Compressor) Initialize(ifile, ofile iotype, stat chan [2]int) {
 	p.initialize(ifile, ofile, stat)
 	p.flags, p.cpos, p.voclast = 8, 1, 0xfffc
-	if p.vocindx == nil {
-		p.vocindx = make([]vocpntr, 0x10000)
+	if p.vocindx == nil || len(p.vocindx) != VOC_SIZE {
+		p.vocindx = make([]vocpntr, VOC_SIZE)
 	}
-	for i := range 0x10000 {
+	for i := range VOC_SIZE {
 		p.vocbuf[i], p.hashes[i], p.vocindx[i].skip, p.vocarea[i] = 0xff, 0, true, uint16(i)+1
 	}
 	p.vocindx[0].in, p.vocindx[0].out, p.vocindx[0].skip = 0, 0xfffc, false
@@ -94,7 +95,7 @@ func (p *Compressor) Initialize(ifile, ofile iotype, stat chan [2]int) {
 func (p *Decompressor) Initialize(ifile, ofile iotype, stat chan [2]int) {
 	p.initialize(ifile, ofile, stat)
 	p.flags = 0
-	for i := range 0x10000 {
+	for i := range VOC_SIZE {
 		p.vocbuf[i] = 0xff
 	}
 	p.rle_flag = false
@@ -131,12 +132,11 @@ func (p *commonwork) Rbuf() (c uint8) {
 	var err error
 	if p.rpos == p.icbuf {
 		p.rpos = 0
-		p.icbuf, err = p.ifile.Read(p.ibuf)
+		if p.icbuf, err = p.ifile.Read(p.ibuf); err != nil || p.icbuf == 0 {
+			return
+		}
 		if p.stat != nil {
 			p.stat <- [2]int{p.icbuf, 0}
-		}
-		if err != nil || p.icbuf == 0 {
-			return
 		}
 	}
 	c = p.ibuf[p.rpos]
