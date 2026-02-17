@@ -341,10 +341,8 @@ getc_loop:
 			continue
 		}
 		p.flags = 8
-		if p.cbuffer[0] = p.Rbuf(); p.err != 0 || p.rpos == 0 {
-			if p.rpos == 0 {
-				p.err = 9
-			}
+		if p.cbuffer[0] = p.Rbuf(); p.rpos == 0 {
+			p.err = 9
 			break
 		}
 	}
