@@ -1,5 +1,5 @@
 /***********************************************************************************************************/
-//Базовая реализация упаковки/распаковки файла по упрощённому алгоритму LZSS+RLE
+//Базовая реализация упаковки/распаковки файла по упрощённому алгоритму LZSS+RLE+RC32
 /***********************************************************************************************************/
 
 package main
@@ -14,6 +14,49 @@ import (
 	"sync"
 	"time"
 )
+
+const (
+	_ = iota
+	ErrWrongMode
+	ErrInputNotFound
+	ErrIsDirectory
+	ErrNotRegular
+	ErrOutputExists
+	ErrInputOpen
+	ErrOutputCreate
+	ErrWrite
+	ErrRead
+	ErrCorrupt
+)
+
+type PackError int
+
+func (e PackError) Error() string {
+	switch e {
+	case ErrWrongMode:
+		return "Error: wrong mode!"
+	case ErrInputNotFound:
+		return "Error: input file doesn't exist!"
+	case ErrIsDirectory:
+		return "Error: input file is a directory!"
+	case ErrNotRegular:
+		return "Error: input file is not a regular file!"
+	case ErrOutputExists:
+		return "Error: output file is already exist!"
+	case ErrInputOpen:
+		return "Error: unable to open input file!"
+	case ErrOutputCreate:
+		return "Error: unable to create output file!"
+	case ErrWrite:
+		return "Error writing output file!"
+	case ErrRead:
+		return "Error reading input file!"
+	case ErrCorrupt:
+		return "Error: the input file is corrupt or of an unknown/unsupported type!"
+	default:
+		return fmt.Sprintf("De/Compression error code %d", e)
+	}
+}
 
 type iotype interface {
 	Read([]byte) (int, error)
@@ -66,6 +109,7 @@ type compressor struct {
 type decompressor struct {
 	commonwork
 	cbuffer  [LZ_MIN_MATCH + 1]uint8
+	hlp      uint32
 	rle_flag bool
 }
 
@@ -109,7 +153,7 @@ func (p *commonwork) Wbuf(c uint8) {
 	if p.wpos == IO_BUF_SIZE {
 		p.wpos = 0
 		if _, err := p.ofile.Write(p.obuf); err != nil {
-			p.err = 8
+			p.err = ErrWrite
 			return
 		}
 		if p.stat != nil {
@@ -126,7 +170,7 @@ func (p *commonwork) Rbuf() (c uint8) {
 		p.rpos = 0
 		if p.icbuf, err = p.ifile.Read(p.ibuf); err != nil || p.icbuf == 0 {
 			if err != nil && err != io.EOF {
-				p.err = 9
+				p.err = ErrRead
 			}
 			return
 		}
@@ -139,28 +183,29 @@ func (p *commonwork) Rbuf() (c uint8) {
 	return
 }
 
-func (p *commonwork) finalize() {
+func (p *commonwork) finalize() error {
 	if _, err := p.ofile.Write(p.obuf[:p.wpos]); err != nil {
-		p.err = 8
-		return
+		p.err = ErrWrite
+		return PackError(p.err)
 	}
 	if p.stat != nil {
 		p.stat <- [2]int{0, int(p.wpos)}
 	}
+	return nil
 }
 
-func (p *compressor) Finalize() {
+func (p *compressor) Finalize() error {
 	p.eoff = true
 	for p.length != 0 {
 		if p.PutC(0); p.err != 0 {
-			return
+			return PackError(p.err)
 		}
 	}
-	p.finalize()
+	return p.finalize()
 }
 
-func (p *decompressor) Finalize() {
-	p.finalize()
+func (p *decompressor) Finalize() error {
+	return p.finalize()
 }
 
 func (p *compressor) PutC(b uint8) {
@@ -306,40 +351,37 @@ getc_loop:
 	return
 }
 
-func (p *decompressor) Proceed() int {
+func (p *decompressor) Proceed() error {
 	var c uint8
 	for {
 		if c = p.GetC(); p.err != 0 {
 			break
 		}
 		if p.eoff {
-			p.Finalize()
-			break
+			return p.Finalize()
 		}
 		if p.Wbuf(c); p.err != 0 {
 			break
 		}
 	}
-	return p.err
+	return PackError(p.err)
 }
 
-func (p *compressor) Proceed() int {
+func (p *compressor) Proceed() error {
 	for {
 		if b := p.Rbuf(); p.rpos == 0 {
-			p.Finalize()
-			break
+			return p.Finalize()
 		} else if p.PutC(b); p.err != 0 {
-			break
+			return PackError(p.err)
 		}
 	}
-	return p.err
 }
 
 type commoncompress interface {
-	Finalize()
+	Finalize() error
 	Wbuf(uint8)
 	Rbuf() uint8
-	Proceed() int
+	Proceed() error
 	GetErr() int
 }
 
@@ -369,12 +411,11 @@ func main() {
 	var (
 		pack         commoncompress
 		exitCode     int = 0
-		errMsg       string
 		wg           sync.WaitGroup
 		ifile, ofile *os.File
 		info         os.FileInfo
 		stat         chan [2]int
-		err          error
+		err          error = nil
 	)
 	n := filepath.Base(os.Args[0])
 	help := func() {
@@ -395,31 +436,15 @@ func main() {
 			"---------------------------------------------------------------\n")
 	}
 	defer func() {
-		switch exitCode {
-		case 1:
-			errMsg = "Error: wrong mode!"
-		case 2:
-			errMsg = "Error: input file doesn't exist!"
-		case 3:
-			errMsg = "Error: input file is a directory!"
-		case 4:
-			errMsg = "Error: input file is not a regular file!"
-		case 5:
-			errMsg = "Error: output file is already exist!"
-		case 6:
-			errMsg = "Error: unable to open input file!"
-		case 7:
-			errMsg = "Error: unable to create output file!"
-		case 8:
-			errMsg = "Error writing output file!"
-		case 9:
-			errMsg = "Error reading input file!"
-		}
-		if exitCode != 0 {
-			if exitCode == 1 {
-				help()
-			} else {
-				log.Println(errMsg)
+		if err != nil {
+			if v, ok := err.(PackError); ok {
+				if exitCode = int(v); exitCode != 0 {
+					if exitCode == 1 {
+						help()
+					} else {
+						log.Println(err.Error())
+					}
+				}
 			}
 		}
 		os.Exit(exitCode)
@@ -433,7 +458,7 @@ func main() {
 	if len(os.Args) == 4 {
 		goto normal
 	} else if len(os.Args) != 1 {
-		exitCode = 1
+		err = PackError(ErrWrongMode)
 		return
 	}
 	help()
@@ -442,15 +467,15 @@ normal:
 	if os.Args[2] != "-" {
 		info, err = os.Stat(os.Args[2])
 		if errors.Is(err, os.ErrNotExist) {
-			exitCode = 2
+			err = PackError(ErrInputNotFound)
 			return
 		}
 		if info.IsDir() {
-			exitCode = 3
+			err = PackError(ErrIsDirectory)
 			return
 		}
 		if !info.Mode().IsRegular() {
-			exitCode = 4
+			err = PackError(ErrNotRegular)
 			return
 		}
 	} else {
@@ -460,7 +485,7 @@ normal:
 	case 'c', 'd':
 		if ifile == nil {
 			if ifile, err = os.OpenFile(os.Args[2], os.O_RDONLY, 0644); err != nil {
-				exitCode = 6
+				err = PackError(ErrInputOpen)
 				break
 			}
 			defer ifile.Close()
@@ -468,9 +493,9 @@ normal:
 		if os.Args[3] != "-" {
 			if ofile, err = os.OpenFile(os.Args[3], os.O_CREATE|os.O_WRONLY|os.O_EXCL, 0644); err != nil {
 				if os.IsExist(err) {
-					exitCode = 5
+					err = PackError(ErrOutputExists)
 				} else {
-					exitCode = 7
+					err = PackError(ErrOutputCreate)
 				}
 				return
 			}
@@ -501,8 +526,8 @@ normal:
 				break
 			}
 		}
-		exitCode = pack.Proceed()
+		err = pack.Proceed()
 	default:
-		exitCode = 1
+		err = PackError(ErrWrongMode)
 	}
 }
