@@ -122,9 +122,6 @@ func (p *commonwork) init(ifile, ofile iotype, stat chan [2]int) {
 	if p.ibuf == nil || len(p.ibuf) != IO_BUF_SIZE {
 		p.ibuf = make([]uint8, IO_BUF_SIZE)
 	}
-	if p.obuf == nil || len(p.obuf) != IO_BUF_SIZE {
-		p.obuf = make([]uint8, IO_BUF_SIZE)
-	}
 	if p.frequency == nil || len(p.frequency) != 256 {
 		p.frequency = make([][256]uint16, 256)
 	}
@@ -144,6 +141,9 @@ func (p *commonwork) GetErr() int {
 
 func (p *compressor) initialize(ifile, ofile iotype, stat chan [2]int) {
 	p.init(ifile, ofile, stat)
+	if p.obuf == nil || len(p.obuf) != IO_BUF_SIZE {
+		p.obuf = make([]uint8, IO_BUF_SIZE)
+	}
 	if p.vocindx == nil || len(p.vocindx) != VOC_SIZE {
 		p.vocindx = make([]vocpntr, VOC_SIZE)
 	}
@@ -157,6 +157,7 @@ func (p *compressor) initialize(ifile, ofile iotype, stat chan [2]int) {
 
 func (p *decompressor) initialize(ifile, ofile iotype, stat chan [2]int) {
 	p.init(ifile, ofile, stat)
+	p.obuf = nil
 	p.rle_flag, p.flags, p.low, p.hlp, p.rnge = false, 0, 0, 0, 0xffffffff
 	for i := range VOC_SIZE {
 		p.vocbuf[i] = 0xff
@@ -171,6 +172,10 @@ func (p *decompressor) initialize(ifile, ofile iotype, stat chan [2]int) {
 }
 
 func (p *commonwork) Wbuf(c uint8) {
+	if p.obuf == nil {
+		p.err = ErrWrite
+		return
+	}
 	if p.wpos == IO_BUF_SIZE {
 		p.wpos = 0
 		if _, err := p.ofile.Write(p.obuf); err != nil {
@@ -189,7 +194,7 @@ func (p *commonwork) Rbuf() (c uint8) {
 	var err error
 	if p.rpos == p.icbuf {
 		p.rpos = 0
-		if p.icbuf, err = p.ifile.Read(p.ibuf); err != nil || p.icbuf == 0 {
+		if p.icbuf, err = p.ifile.Read(p.ibuf); p.icbuf == 0 {
 			if err != nil && err != io.EOF {
 				p.err = ErrRead
 			}
@@ -384,7 +389,7 @@ putc_loop:
 	}
 }
 
-func (p *decompressor) GetC() (b uint8) {
+func (p *decompressor) GetC() uint8 {
 getc_loop:
 	for {
 		if p.length != 0 {
@@ -392,7 +397,7 @@ getc_loop:
 				p.cbuffer[1] = p.vocbuf[p.offset]
 				p.offset++
 			}
-			b, p.vocbuf[p.vocroot] = p.cbuffer[1], p.cbuffer[1]
+			p.vocbuf[p.vocroot] = p.cbuffer[1]
 			p.vocroot++
 			p.length--
 			break
@@ -430,20 +435,26 @@ getc_loop:
 			break
 		}
 	}
-	return
+	return p.cbuffer[1]
 }
 
 func (p *decompressor) Proceed() error {
-	var c uint8
 	for {
-		if c = p.GetC(); p.err != 0 {
-			break
-		}
-		if p.eoff {
-			return p.Finalize()
-		}
-		if p.Wbuf(c); p.err != 0 {
-			break
+		var c int = VOC_SIZE
+		if p.GetC(); p.err == 0 && (p.vocroot == 0 || p.eoff) {
+			if p.vocroot != 0 {
+				c = int(p.vocroot)
+			}
+			if _, err := p.ofile.Write(p.vocbuf[:c]); err != nil {
+				p.err = ErrWrite
+				break
+			}
+			if p.stat != nil {
+				p.stat <- [2]int{0, c}
+			}
+			if p.eoff {
+				break
+			}
 		}
 	}
 	return PackError(p.err)
