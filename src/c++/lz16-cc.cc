@@ -172,13 +172,18 @@ void packer::pack(){
 
 void packer::unpack(){
   uint8_t c,rle_flag=0,cflags=0;
+  bool flush=false;
   length=0;
   for(;;){
     if(length){
       if(rle_flag) vocbuf[vocroot++]=offset;
       else vocbuf[vocroot++]=vocbuf[offset++];
       length--;
-      if(!vocroot&&(ofile.write((char *)vocbuf,0x10000).bad())) break;
+      flush=true;
+      if(!vocroot){
+        if(ofile.write((char *)vocbuf,0x10000).bad()) break;
+        flush=false;
+      };
       continue;
     };
     if(flags){
@@ -203,7 +208,7 @@ void packer::unpack(){
     if(!(rbuf(&cflags),rpos)) break;
     flags=0xff;
   };
-  if(length) ofile.write((char *)vocbuf,vocroot?vocroot:0x10000);
+  if(length&&flush) ofile.write((char *)vocbuf,vocroot?vocroot:0x10000);
 }
 
 int main(int argc, char *argv[]){

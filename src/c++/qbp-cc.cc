@@ -359,7 +359,7 @@ int32_t packer::packer_read(void* file, char *buf, int32_t l){
   int32_t ret=0;
   while(l--){
     if(packer_getc(file,(uint8_t *)buf++)) return -1;
-    if(finalize) return 0;
+    if(finalize) break;
     else ret++;
   };
   return ret;

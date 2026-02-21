@@ -439,18 +439,31 @@ getc_loop:
 }
 
 func (p *decompressor) Proceed() error {
+	var (
+		c     int  = VOC_SIZE
+		flush bool = false
+	)
 	for {
-		var c int = VOC_SIZE
-		if p.GetC(); p.err == 0 && (p.vocroot == 0 || p.eoff) {
+		if p.GetC(); p.err != 0 {
+			break
+		} else {
+			if !p.eoff {
+				flush = true
+			}
+		}
+		if p.vocroot == 0 || p.eoff {
 			if p.vocroot != 0 {
 				c = int(p.vocroot)
 			}
-			if _, err := p.ofile.Write(p.vocbuf[:c]); err != nil {
-				p.err = ErrWrite
-				break
-			}
-			if p.stat != nil {
-				p.stat <- [2]int{0, c}
+			if flush {
+				if _, err := p.ofile.Write(p.vocbuf[:c]); err != nil {
+					p.err = ErrWrite
+					break
+				}
+				flush = false
+				if p.stat != nil {
+					p.stat <- [2]int{0, c}
+				}
 			}
 			if p.eoff {
 				break

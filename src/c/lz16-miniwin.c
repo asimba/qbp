@@ -142,14 +142,18 @@ void pack_file(){
 }
 
 void unpack_file(){
-  uint8_t c,rle_flag=0,cflags=0;
+  uint8_t c,rle_flag=0,cflags=0,flush=0;
   length=0;
   for(;;){
     if(length){
       if(rle_flag) vocbuf[vocroot++]=offset;
       else vocbuf[vocroot++]=vocbuf[offset++];
       length--;
-      if(!vocroot&&(!WriteFile(ofile,vocbuf,0x10000,pwout,NULL))) break;
+      flush=1;
+      if(!vocroot){
+        if(!WriteFile(ofile,vocbuf,0x10000,pwout,NULL)) break;
+        flush=0;
+      };
       continue;
     };
     if(flags){
@@ -174,7 +178,7 @@ void unpack_file(){
     if(!(rbuf(&cflags),rpos)) break;
     flags=0xff;
   };
-  if(length) WriteFile(ofile,vocbuf,vocroot?vocroot:0x10000,pwout,NULL);
+  if(length&&flush) WriteFile(ofile,vocbuf,vocroot?vocroot:0x10000,pwout,NULL);
 }
 
 /***********************************************************************************************************/

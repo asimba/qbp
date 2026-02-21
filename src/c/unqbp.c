@@ -54,7 +54,7 @@ int rc32_getc(uint8_t *c,FILE *ifile,const uint8_t cntx){
 }
 
 void unpack_file(FILE *ifile, FILE *ofile){
-  uint8_t cbuffer[3],rle_flag=0,cflags=0,flags=0;
+  uint8_t cbuffer[3],rle_flag=0,cflags=0,flags=0,flush=0;
   uint16_t vocroot=0,length=0,offset=0;
   low=hlp=icbuf=rpos=0;
   range=0xffffffff;
@@ -74,7 +74,11 @@ void unpack_file(FILE *ifile, FILE *ofile){
       if(rle_flag) vocbuf[vocroot++]=offset;
       else vocbuf[vocroot++]=vocbuf[offset++];
       length--;
-      if(!vocroot&&(fwrite(vocbuf,1,0x10000,ofile)<0x10000)) break;
+      flush=1;
+      if(!vocroot){
+        if(fwrite(vocbuf,1,0x10000,ofile)<0x10000) break;
+        flush=0;
+      };
       continue;
     };
     if(flags){
@@ -99,7 +103,7 @@ void unpack_file(FILE *ifile, FILE *ofile){
     if(rc32_getc(&cflags,ifile,0)) break;
     flags=0xff;
   };
-  if(length) fwrite(vocbuf,1,vocroot?vocroot:0x10000,ofile);
+  if(length&&flush) fwrite(vocbuf,1,vocroot?vocroot:0x10000,ofile);
 }
 
 /***********************************************************************************************************/

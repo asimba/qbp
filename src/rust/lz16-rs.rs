@@ -280,6 +280,7 @@ impl Packer {
     let mut cpos: usize=0;
     let mut c: u8=0;
     let mut rle_flag: bool=false;
+    let mut flush: bool=false;
     loop {
       if self.length!=0 {
         if rle_flag==false {
@@ -289,9 +290,10 @@ impl Packer {
         self.vocbuf[self.vocroot as usize]=c;
         self.vocroot+=1;
         self.length-=1;
+        flush=true;
         if self.vocroot==0 {
           match self.ofile.write(&self.vocbuf) {
-            Ok(_) => {},
+            Ok(_) => { flush=false; },
             Err(why) => write_err!(why),
           }
         }
@@ -342,7 +344,7 @@ impl Packer {
         self.flags-=1;
       }
     }
-    if self.length!=0 {
+    if self.length!=0 && flush {
       if self.vocroot!=0 {
         match self.ofile.write(&self.vocbuf[..self.vocroot as usize]) {
           Ok(_) => return,

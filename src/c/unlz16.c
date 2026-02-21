@@ -25,7 +25,7 @@ inline void rbuf(uint8_t *c,FILE *ifile){
 
 void unpack_file(FILE *ifile, FILE *ofile){
   uint16_t vocroot=0,offset=0,length=0;
-  uint8_t flags=0,cflags=0,rle_flag=0,c,cbuffer[3];
+  uint8_t flags=0,cflags=0,rle_flag=0,c,cbuffer[3],flush=0;
   for(int i=0;i<0x10000;i++) vocbuf[i]=0xff;
   cbuffer[0]=icbuf=rpos=0;
   for(;;){
@@ -33,7 +33,11 @@ void unpack_file(FILE *ifile, FILE *ofile){
       if(rle_flag) vocbuf[vocroot++]=offset;
       else vocbuf[vocroot++]=vocbuf[offset++];
       length--;
-      if(!vocroot&&(fwrite(vocbuf,1,0x10000,ofile)<0x10000)) break;
+      flush=1;
+      if(!vocroot){
+        if(fwrite(vocbuf,1,0x10000,ofile)<0x10000) break;
+        flush=0;
+      };
       continue;
     };
     if(flags){
@@ -58,7 +62,7 @@ void unpack_file(FILE *ifile, FILE *ofile){
     if(!(rbuf(&cflags,ifile),rpos)) break;
     flags=0xff;
   };
-  if(length) fwrite(vocbuf,1,vocroot?vocroot:0x10000,ofile);
+  if(length&&flush) fwrite(vocbuf,1,vocroot?vocroot:0x10000,ofile);
 }
 
 /***********************************************************************************************************/
