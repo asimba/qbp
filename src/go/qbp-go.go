@@ -113,8 +113,8 @@ type compressor struct {
 
 type decompressor struct {
 	commonwork
-	cbuffer  [LZ_MIN_MATCH + 1]uint8
 	hlp      uint32
+	cflags   uint8
 	rle_flag bool
 }
 
@@ -393,49 +393,50 @@ func (p *decompressor) GetC() uint8 {
 getc_loop:
 	for {
 		if p.length != 0 {
-			if !p.rle_flag {
-				p.cbuffer[1] = p.vocbuf[p.offset]
+			if p.rle_flag {
+				p.vocbuf[p.vocroot] = uint8(p.offset)
+			} else {
+				p.vocbuf[p.vocroot] = p.vocbuf[p.offset]
 				p.offset++
 			}
-			p.vocbuf[p.vocroot] = p.cbuffer[1]
 			p.vocroot++
 			p.length--
 			break
 		}
 		if p.flags != 0 {
 			p.length, p.rle_flag = 1, true
-			if p.cbuffer[0]&0x80 != 0 {
-				if p.rc32(&p.cbuffer[1], p.vocbuf[uint16((p.vocroot)-1)]); p.err != 0 {
+			var cbuffer [4]uint8
+			if p.cflags>>7 != 0 {
+				if p.rc32(&cbuffer[0], p.vocbuf[uint16((p.vocroot)-1)]); p.err != 0 {
 					break
 				}
+				p.offset = uint16(cbuffer[0])
 			} else {
 				for c := uint8(1); c < 4; c++ {
-					if p.rc32(&p.cbuffer[c], uint8(c)); p.err != 0 {
+					if p.rc32(&cbuffer[c], uint8(c)); p.err != 0 {
 						break getc_loop
 					}
 				}
-				p.length = LZ_MIN_MATCH + 1 + uint16(p.cbuffer[1])
-				p.offset = uint16(p.cbuffer[2]) | uint16(p.cbuffer[3])<<8
+				p.length = LZ_MIN_MATCH + 1 + uint16(cbuffer[1])
+				p.offset = uint16(cbuffer[2]) | uint16(cbuffer[3])<<8
 				switch {
 				case p.offset > LZ_EOF:
 					p.offset, p.rle_flag = ^p.offset+p.vocroot+LZ_BUF_SIZE, false
 				case p.offset == LZ_EOF:
 					p.eoff = true
 					break getc_loop
-				default:
-					p.cbuffer[1] = uint8(p.offset)
 				}
 			}
-			p.cbuffer[0] <<= 1
+			p.cflags <<= 1
 			p.flags--
 			continue
 		}
 		p.flags = 8
-		if p.rc32(&p.cbuffer[0], 0); p.err != 0 {
+		if p.rc32(&p.cflags, 0); p.err != 0 {
 			break
 		}
 	}
-	return p.cbuffer[1]
+	return uint8(p.offset)
 }
 
 func (p *decompressor) Proceed() error {
