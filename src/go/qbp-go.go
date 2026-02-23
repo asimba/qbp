@@ -240,19 +240,17 @@ func (p *decompressor) rc32(c *uint8, cntx uint8) {
 		p.range_shift()
 	}
 	p.rnge /= uint32(*fc)
-	i := uint32((p.hlp - p.low) / p.rnge)
-	if i >= uint32(*fc) {
-		p.err = ErrCorrupt
-		return
-	}
-	for j := range 256 {
-		if s += (*f)[j]; s > uint16(i) {
-			s -= (*f)[j]
-			*c = uint8(j)
-			break
+	if i := uint32((p.hlp - p.low) / p.rnge); i < uint32(*fc) {
+		for j := range 256 {
+			if s += (*f)[j]; s > uint16(i) {
+				*c = uint8(j)
+				p.frequency_rescale(f, fc, *c, s-(*f)[j])
+				break
+			}
 		}
+	} else {
+		p.err = ErrCorrupt
 	}
-	p.frequency_rescale(f, fc, *c, s)
 }
 
 func (p *compressor) rc32(c uint8, cntx uint8) {
