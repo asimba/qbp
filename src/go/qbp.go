@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/asimba/qbp/tree/master/src/go/src/packer"
+	"qbp/packer"
 )
 
 func main() {

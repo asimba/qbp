@@ -1,3 +1,3 @@
-module github.com/asimba/qbp/tree/master/src/go
+module qbp
 
 go 1.26.0
