@@ -23,11 +23,11 @@ const (
 	ErrRead
 	ErrCorrupt
 	LZ_BUF_SIZE  uint16 = 259
-	LZ_CAPACITY  uint8  = 24
+	LZ_CAPACITY  uint8  = 25
 	LZ_MIN_MATCH uint16 = 3
 	LZ_EOF       uint16 = 0x100
 	IO_BUF_SIZE  int    = 0x10000
-	VOC_SIZE     int    = 0x10000
+	VOC_SIZE     int    = IO_BUF_SIZE
 )
 
 type PackError int
@@ -95,13 +95,13 @@ type commonwork struct {
 
 type compressor struct {
 	commonwork
-	cbuffer [LZ_CAPACITY + 1]uint8
-	cntxs   []uint8
+	cbuffer [LZ_CAPACITY]uint8
+	cntxs   [LZ_CAPACITY]uint8
 	vocarea [VOC_SIZE]uint16
 	hashes  [VOC_SIZE]uint16
-	vocindx []vocpntr
-	cpos    uint8
+	vocindx [VOC_SIZE]vocpntr
 	voclast uint16
+	cpos    uint8
 	done    bool
 	queue   unit_func
 	encode  unit_func
@@ -110,8 +110,8 @@ type compressor struct {
 type decompressor struct {
 	commonwork
 	hlp      uint32
-	cflags   uint8
 	cbuffer  [4]uint8
+	cflags   uint8
 	rle_flag bool
 	getflags unit_func
 	getbyte  unit_func
@@ -182,7 +182,6 @@ func (p *commonwork) init_frequency() {
 func (p *compressor) initialize(ifile, ofile iotype, stat chan [2]int, mode int) {
 	p.init(ifile, ofile, stat)
 	p.obuf = make([]uint8, IO_BUF_SIZE)
-	p.vocindx = make([]vocpntr, VOC_SIZE)
 	for i := range VOC_SIZE {
 		p.vocbuf[i], p.vocindx[i].skip, p.vocarea[i] = 0xff, true, uint16(i)+1
 	}
@@ -191,14 +190,7 @@ func (p *compressor) initialize(ifile, ofile iotype, stat chan [2]int, mode int)
 	p.vocarea[0xfffc], p.vocarea[0xfffd], p.vocarea[0xfffe], p.vocarea[0xffff] = 0xfffc, 0xfffd, 0xfffe, 0xffff
 	if mode == RC32 {
 		p.init_frequency()
-		p.cntxs = make([]uint8, LZ_CAPACITY+1)
-		p.queue, p.encode = p.rc32_queue, func() {
-			for i := range p.cpos {
-				if p.rc32(p.cbuffer[i], p.cntxs[i]); p.err != 0 {
-					break
-				}
-			}
-		}
+		p.queue, p.encode = p.rc32_queue, p.rc32
 	} else {
 		p.queue, p.encode = p.lz16_queue, func() {
 			for i := range p.cpos {
@@ -277,23 +269,26 @@ func (p *commonwork) range_shift() {
 	}
 }
 
-func (p *compressor) rc32(c uint8, cntx uint8) {
-	fc, f, s := &p.fcs[cntx], &p.frequency[cntx], uint16(0)
-	for p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
-		if p.Wbuf(uint8(p.low >> 24)); p.err != 0 {
-			return
+func (p *compressor) rc32() {
+	for v := range p.cpos {
+		fc, f := &p.fcs[p.cntxs[v]], &p.frequency[p.cntxs[v]]
+		for p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
+			if p.Wbuf(uint8(p.low >> 24)); p.err != 0 {
+				return
+			}
+			p.range_shift()
 		}
-		p.range_shift()
+		var s uint16
+		for i := range p.cbuffer[v] {
+			s += (*f)[i]
+		}
+		p.rnge /= uint32(*fc)
+		p.frequency_rescale(f, fc, p.cbuffer[v], s)
 	}
-	for i := range c {
-		s += (*f)[i]
-	}
-	p.rnge /= uint32(*fc)
-	p.frequency_rescale(f, fc, c, s)
 }
 
 func (p *decompressor) rc32(c *uint8, cntx uint8) {
-	fc, f, s := &p.fcs[cntx], &p.frequency[cntx], uint16(0)
+	fc, f := &p.fcs[cntx], &p.frequency[cntx]
 	for p.hlp < p.low || p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
 		p.hlp <<= 8
 		if p.hlp |= uint32(p.Rbuf()); p.rpos == 0 {
@@ -303,13 +298,17 @@ func (p *decompressor) rc32(c *uint8, cntx uint8) {
 		p.range_shift()
 	}
 	p.rnge /= uint32(*fc)
-	if i := uint32((p.hlp - p.low) / p.rnge); i < uint32(*fc) {
-		for j := range 256 {
-			if s += (*f)[j]; s > uint16(i) {
-				*c = uint8(j)
+	if i := uint16((p.hlp - p.low) / p.rnge); i < *fc {
+		var j uint8
+		s := (*f)[j]
+		for {
+			if s > i {
+				*c = j
 				p.frequency_rescale(f, fc, *c, s-(*f)[j])
 				break
 			}
+			j++
+			s += (*f)[j]
 		}
 	} else {
 		p.err = ErrCorrupt
