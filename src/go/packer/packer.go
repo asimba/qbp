@@ -75,8 +75,7 @@ type commonwork struct {
 	ibuf      []uint8
 	obuf      []uint8
 	vocbuf    [VOC_SIZE]uint8
-	frequency [][256]uint16
-	fcs       []uint16
+	frequency [][257]uint16
 	icbuf     int
 	rpos      int
 	wpos      int
@@ -171,11 +170,10 @@ func (p *commonwork) init(ifile, ofile iotype, stat chan [2]int) {
 
 func (p *commonwork) init_frequency() {
 	p.rnge = 0xffffffff
-	p.frequency = make([][256]uint16, 256)
-	p.fcs = make([]uint16, 256)
+	p.frequency = make([][257]uint16, 256)
 	for i := range p.frequency {
 		fill(p.frequency[i][:], 1)
-		p.fcs[i] = 256
+		p.frequency[i][256] = 256
 	}
 }
 
@@ -222,10 +220,8 @@ func (p *decompressor) initialize(ifile, ofile iotype, stat chan [2]int, mode in
 			p.rc32(&p.cbuffer[0], p.vocbuf[uint16((p.vocroot)-1)])
 		}
 		p.getpair = func() {
-			for c := uint8(1); c < 4; c++ {
-				if p.rc32(&p.cbuffer[c], c); p.err != 0 {
-					break
-				}
+			for c := 1; c < 4; c++ {
+				p.rc32(&p.cbuffer[c], uint8(c))
 			}
 		}
 	} else {
@@ -240,8 +236,9 @@ func (p *decompressor) initialize(ifile, ofile iotype, stat chan [2]int, mode in
 			}
 		}
 		p.getpair = func() {
-			for c := uint8(1); c < 4; c++ {
-				if p.cbuffer[c] = p.Rbuf(); p.err != 0 {
+			for c := 1; c < 4; c++ {
+				if p.cbuffer[c] = p.Rbuf(); p.rpos == 0 {
+					p.err = ErrRead
 					break
 				}
 			}
@@ -249,14 +246,14 @@ func (p *decompressor) initialize(ifile, ofile iotype, stat chan [2]int, mode in
 	}
 }
 
-func (p *commonwork) frequency_rescale(f *[256]uint16, fc *uint16, c uint8, s uint16) {
-	p.low += uint32(s) * p.rnge
+func (p *commonwork) frequency_rescale(f *[257]uint16, c uint8, s uint32) {
+	p.low += s * p.rnge
 	p.rnge *= uint32((*f)[c])
 	(*f)[c]++
-	if *fc++; *fc == 0 {
+	if (*f)[256]++; (*f)[256] == 0 {
 		for i := range 256 {
 			(*f)[i] = ((*f)[i] >> 1) | ((*f)[i] & 1)
-			*fc += (*f)[i]
+			(*f)[256] += (*f)[i]
 		}
 	}
 }
@@ -271,25 +268,25 @@ func (p *commonwork) range_shift() {
 
 func (p *compressor) rc32() {
 	for v := range p.cpos {
-		fc, f := &p.fcs[p.cntxs[v]], &p.frequency[p.cntxs[v]]
-		for p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
+		f := &p.frequency[p.cntxs[v]]
+		for p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32((*f)[256]) {
 			if p.Wbuf(uint8(p.low >> 24)); p.err != 0 {
 				return
 			}
 			p.range_shift()
 		}
 		var s uint16
-		for i := range p.cbuffer[v] {
+		for i := range uint32(p.cbuffer[v]) {
 			s += (*f)[i]
 		}
-		p.rnge /= uint32(*fc)
-		p.frequency_rescale(f, fc, p.cbuffer[v], s)
+		p.rnge /= uint32((*f)[256])
+		p.frequency_rescale(f, p.cbuffer[v], uint32(s))
 	}
 }
 
 func (p *decompressor) rc32(c *uint8, cntx uint8) {
-	fc, f := &p.fcs[cntx], &p.frequency[cntx]
-	for p.hlp < p.low || p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
+	f := &p.frequency[cntx]
+	for p.hlp < p.low || p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32((*f)[256]) {
 		p.hlp <<= 8
 		if p.hlp |= uint32(p.Rbuf()); p.rpos == 0 {
 			p.err = ErrRead
@@ -297,14 +294,14 @@ func (p *decompressor) rc32(c *uint8, cntx uint8) {
 		}
 		p.range_shift()
 	}
-	p.rnge /= uint32(*fc)
-	if i := uint16((p.hlp - p.low) / p.rnge); i < *fc {
+	p.rnge /= uint32((*f)[256])
+	if i := uint16((p.hlp - p.low) / p.rnge); i < (*f)[256] {
 		var j uint8
 		s := (*f)[j]
 		for {
 			if s > i {
 				*c = j
-				p.frequency_rescale(f, fc, *c, s-(*f)[j])
+				p.frequency_rescale(f, *c, uint32(s-(*f)[j]))
 				break
 			}
 			j++
