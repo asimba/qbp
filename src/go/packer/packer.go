@@ -7,6 +7,7 @@ package packer
 import (
 	"fmt"
 	"io"
+	"unsafe"
 )
 
 const (
@@ -246,8 +247,8 @@ func (p *decompressor) initialize(ifile, ofile iotype, stat chan [2]int, mode in
 	}
 }
 
-func (p *commonwork) frequency_rescale(f *[257]uint16, c uint8, s uint32) {
-	p.low += s * p.rnge
+func (p *commonwork) frequency_rescale(f *[257]uint16, c uint32, s uint16) {
+	p.low += uint32(s) * p.rnge
 	p.rnge *= uint32((*f)[c])
 	(*f)[c]++
 	if (*f)[256]++; (*f)[256] == 0 {
@@ -269,18 +270,25 @@ func (p *commonwork) range_shift() {
 func (p *compressor) rc32() {
 	for v := range p.cpos {
 		f := &p.frequency[p.cntxs[v]]
+		f_ := (*[64]uint64)(unsafe.Pointer(f))
 		for p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32((*f)[256]) {
 			if p.Wbuf(uint8(p.low >> 24)); p.err != 0 {
 				return
 			}
 			p.range_shift()
 		}
-		var s uint16
-		for i := range uint32(p.cbuffer[v]) {
-			s += (*f)[i]
+		c := uint32(p.cbuffer[v])
+		o := c >> 2
+		var s uint64
+		for i := range o {
+			s += (*f_)[i]
+		}
+		for i := o << 2; i < c; i++ {
+			s += uint64((*f)[i])
 		}
 		p.rnge /= uint32((*f)[256])
-		p.frequency_rescale(f, p.cbuffer[v], uint32(s))
+		s += s >> 32
+		p.frequency_rescale(f, c, uint16(s+s>>16))
 	}
 }
 
@@ -296,12 +304,12 @@ func (p *decompressor) rc32(c *uint8, cntx uint8) {
 	}
 	p.rnge /= uint32((*f)[256])
 	if i := uint16((p.hlp - p.low) / p.rnge); i < (*f)[256] {
-		var j uint8
+		var j uint32
 		s := (*f)[j]
 		for {
 			if s > i {
-				*c = j
-				p.frequency_rescale(f, *c, uint32(s-(*f)[j]))
+				*c = uint8(j)
+				p.frequency_rescale(f, j, s-(*f)[j])
 				break
 			}
 			j++
