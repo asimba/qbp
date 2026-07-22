@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 
@@ -23,7 +24,7 @@ func main() {
 		wg           sync.WaitGroup
 		ifile, ofile *os.File
 		info         os.FileInfo
-		stat         chan [2]int
+		stat         chan packer.Progress
 		err          error = nil
 	)
 	n := filepath.Base(os.Args[0])
@@ -153,18 +154,19 @@ normal:
 		ofile = os.Stdout
 	}
 	if _silent {
-		stat = make(chan [2]int, 8)
+		stat = make(chan packer.Progress, 8)
 		wg.Go(func() {
 			var rsize, wsize int64 = 0, 0
 			start := time.Now()
 			for v := range stat {
-				rsize += int64(v[0])
-				wsize += int64(v[1])
+				rsize += int64(v.In)
+				wsize += int64(v.Out)
 				fmt.Fprintf(os.Stderr, "\rProcessing [%#07.02fs] : %#-12d->%#12d", time.Since(start).Seconds(), rsize, wsize)
 			}
 			fmt.Fprintf(os.Stderr, "\n")
 		})
 	}
+	runtime.GC()
 	if _mode {
 		if pack = packer.NewCompressor(ifile, ofile, stat, _method); pack.GetErr() != 0 {
 			return

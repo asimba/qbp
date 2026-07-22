@@ -72,6 +72,11 @@ type vocpntr struct {
 	skip bool
 }
 
+type Progress struct {
+	In  int
+	Out int
+}
+
 type commonwork struct {
 	ibuf      []uint8
 	obuf      []uint8
@@ -90,7 +95,7 @@ type commonwork struct {
 	ofile     iotype
 	eof       bool
 	err       int
-	stat      chan [2]int
+	stat      chan Progress
 }
 
 type compressor struct {
@@ -126,15 +131,11 @@ func fill[T any](slice []T, val T) {
 
 func (p *commonwork) progress(i, o int) {
 	if p.stat != nil {
-		p.stat <- [2]int{i, o}
+		p.stat <- Progress{i, o}
 	}
 }
 
 func (p *commonwork) Wbuf(c uint8) {
-	if p.obuf == nil {
-		p.err = ErrWrite
-		return
-	}
 	if p.wpos == IO_BUF_SIZE {
 		p.wpos = 0
 		if _, err := p.ofile.Write(p.obuf); err != nil {
@@ -164,7 +165,7 @@ func (p *commonwork) Rbuf() (c uint8) {
 	return
 }
 
-func (p *commonwork) init(ifile, ofile iotype, stat chan [2]int) {
+func (p *commonwork) init(ifile, ofile iotype, stat chan Progress) {
 	p.ibuf = make([]uint8, IO_BUF_SIZE)
 	p.ifile, p.ofile, p.stat = ifile, ofile, stat
 }
@@ -178,7 +179,7 @@ func (p *commonwork) init_frequency() {
 	}
 }
 
-func (p *compressor) initialize(ifile, ofile iotype, stat chan [2]int, mode int) {
+func (p *compressor) initialize(ifile, ofile iotype, stat chan Progress, mode int) {
 	p.init(ifile, ofile, stat)
 	p.obuf = make([]uint8, IO_BUF_SIZE)
 	for i := range VOC_SIZE {
@@ -201,7 +202,7 @@ func (p *compressor) initialize(ifile, ofile iotype, stat chan [2]int, mode int)
 	}
 }
 
-func (p *decompressor) initialize(ifile, ofile iotype, stat chan [2]int, mode int) {
+func (p *decompressor) initialize(ifile, ofile iotype, stat chan Progress, mode int) {
 	p.init(ifile, ofile, stat)
 	p.rnge = 0xffffffff
 	fill(p.vocbuf[:], 0xff)
@@ -247,7 +248,7 @@ func (p *decompressor) initialize(ifile, ofile iotype, stat chan [2]int, mode in
 	}
 }
 
-func (p *commonwork) frequency_rescale(f *[257]uint16, c uint32, s uint16) {
+func (p *commonwork) frequency_rescale(f *[257]uint16, c uint8, s uint16) {
 	p.low += uint32(s) * p.rnge
 	p.rnge *= uint32((*f)[c])
 	(*f)[c]++
@@ -277,18 +278,22 @@ func (p *compressor) rc32() {
 			}
 			p.range_shift()
 		}
-		c := uint32(p.cbuffer[v])
-		o := c >> 2
-		var s uint64
-		for i := range o {
+		var (
+			s uint64
+			i uint8
+		)
+		for i < p.cbuffer[v]>>2 {
 			s += (*f_)[i]
+			i++
 		}
-		for i := o << 2; i < c; i++ {
+		i <<= 2
+		for i < p.cbuffer[v] {
 			s += uint64((*f)[i])
+			i++
 		}
 		p.rnge /= uint32((*f)[256])
 		s += s >> 32
-		p.frequency_rescale(f, c, uint16(s+s>>16))
+		p.frequency_rescale(f, i, uint16(s+s>>16))
 	}
 }
 
@@ -309,7 +314,7 @@ func (p *decompressor) rc32(c *uint8, cntx uint8) {
 		for {
 			if s > i {
 				*c = uint8(j)
-				p.frequency_rescale(f, j, s-(*f)[j])
+				p.frequency_rescale(f, *c, s-(*f)[j])
 				break
 			}
 			j++
@@ -582,7 +587,7 @@ type Decompressor interface {
 	GetC() uint8
 }
 
-func NewCompressor(ifile, ofile iotype, stat chan [2]int, mode int) Compressor {
+func NewCompressor(ifile, ofile iotype, stat chan Progress, mode int) Compressor {
 	pack := &compressor{}
 	if mode != RC32 && mode != LZ16 {
 		pack.err = ErrWrongMode
@@ -592,7 +597,7 @@ func NewCompressor(ifile, ofile iotype, stat chan [2]int, mode int) Compressor {
 	return pack
 }
 
-func NewDecompressor(ifile, ofile iotype, stat chan [2]int, mode int) Decompressor {
+func NewDecompressor(ifile, ofile iotype, stat chan Progress, mode int) Decompressor {
 	pack := &decompressor{}
 	if mode != RC32 && mode != LZ16 {
 		pack.err = ErrWrongMode
