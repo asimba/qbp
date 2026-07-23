@@ -10,7 +10,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sync"
 	"time"
 
@@ -156,17 +155,16 @@ normal:
 	if _silent {
 		stat = make(chan packer.Progress, 8)
 		wg.Go(func() {
-			var rsize, wsize int64 = 0, 0
+			var rsize, wsize uint64 = 0, 0
 			start := time.Now()
 			for v := range stat {
-				rsize += int64(v.In)
-				wsize += int64(v.Out)
+				rsize += uint64(v.In)
+				wsize += uint64(v.Out)
 				fmt.Fprintf(os.Stderr, "\rProcessing [%#07.02fs] : %#-12d->%#12d", time.Since(start).Seconds(), rsize, wsize)
 			}
 			fmt.Fprintf(os.Stderr, "\n")
 		})
 	}
-	runtime.GC()
 	if _mode {
 		if pack = packer.NewCompressor(ifile, ofile, stat, _method); pack.GetErr() != 0 {
 			return

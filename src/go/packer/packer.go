@@ -250,12 +250,12 @@ func (p *decompressor) initialize(ifile, ofile iotype, stat chan Progress, mode 
 
 func (p *commonwork) frequency_rescale(f *[257]uint16, c uint8, s uint16) {
 	p.low += uint32(s) * p.rnge
-	p.rnge *= uint32((*f)[c])
-	(*f)[c]++
-	if (*f)[256]++; (*f)[256] == 0 {
+	p.rnge *= uint32(f[c])
+	f[c]++
+	if f[256]++; f[256] == 0 {
 		for i := range 256 {
-			(*f)[i] = ((*f)[i] >> 1) | ((*f)[i] & 1)
-			(*f)[256] += (*f)[i]
+			f[i] = (f[i] >> 1) | (f[i] & 1)
+			f[256] += f[i]
 		}
 	}
 }
@@ -272,7 +272,7 @@ func (p *compressor) rc32() {
 	for v := range p.cpos {
 		f := &p.frequency[p.cntxs[v]]
 		f_ := (*[64]uint64)(unsafe.Pointer(f))
-		for p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32((*f)[256]) {
+		for p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(f[256]) {
 			if p.Wbuf(uint8(p.low >> 24)); p.err != 0 {
 				return
 			}
@@ -283,12 +283,12 @@ func (p *compressor) rc32() {
 			i uint8
 		)
 		for i < p.cbuffer[v]>>2 {
-			s += (*f_)[i]
+			s += f_[i]
 			i++
 		}
 		i <<= 2
 		for i < p.cbuffer[v] {
-			s += uint64((*f)[i])
+			s += uint64(f[i])
 			i++
 		}
 		p.rnge /= uint32((*f)[256])
@@ -299,7 +299,7 @@ func (p *compressor) rc32() {
 
 func (p *decompressor) rc32(c *uint8, cntx uint8) {
 	f := &p.frequency[cntx]
-	for p.hlp < p.low || p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32((*f)[256]) {
+	for p.hlp < p.low || p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(f[256]) {
 		p.hlp <<= 8
 		if p.hlp |= uint32(p.Rbuf()); p.rpos == 0 {
 			p.err = ErrRead
@@ -307,18 +307,18 @@ func (p *decompressor) rc32(c *uint8, cntx uint8) {
 		}
 		p.range_shift()
 	}
-	p.rnge /= uint32((*f)[256])
-	if i := uint16((p.hlp - p.low) / p.rnge); i < (*f)[256] {
-		var j uint32
-		s := (*f)[j]
+	p.rnge /= uint32(f[256])
+	if i := uint16((p.hlp - p.low) / p.rnge); i < f[256] {
+		var j uint8
+		s := f[j]
 		for {
 			if s > i {
-				*c = uint8(j)
-				p.frequency_rescale(f, *c, s-(*f)[j])
+				*c = j
+				p.frequency_rescale(f, j, s-f[j])
 				break
 			}
 			j++
-			s += (*f)[j]
+			s += f[j]
 		}
 	} else {
 		p.err = ErrCorrupt
