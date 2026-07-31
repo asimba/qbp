@@ -291,7 +291,7 @@ func (p *compressor) rc32() {
 			s += uint64(f[i])
 			i++
 		}
-		p.rnge /= uint32((*f)[256])
+		p.rnge /= uint32(f[256])
 		s += s >> 32
 		p.frequency_rescale(f, i, uint16(s+s>>16))
 	}
