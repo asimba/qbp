@@ -34,7 +34,7 @@ func main() {
 			"--------------------------------------------------------------\n",
 			"Usage:\n",
 			"--------------------------------------------------------------\n\t",
-			n, " <c|d>[s] <input_file|-> <output_file|->\n",
+			n, " <c|d>[s][l] <input_file|-> <output_file|->\n",
 			"\t------------------------------------------------------\n",
 			"\texample:\n\t\t", n, " cs input_file_name output_file_name\n",
 			"\t\t", n, " c input_file_name output_file_name\n",

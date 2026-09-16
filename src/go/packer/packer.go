@@ -13,6 +13,10 @@ import (
 const (
 	RC32 = iota
 	LZ16
+)
+
+const (
+	_ = iota
 	ErrWrongMode
 	ErrInputNotFound
 	ErrIsDirectory
@@ -23,6 +27,9 @@ const (
 	ErrWrite
 	ErrRead
 	ErrCorrupt
+)
+
+const (
 	LZ_BUF_SIZE  uint16 = 259
 	LZ_CAPACITY  uint8  = 25
 	LZ_MIN_MATCH uint16 = 3
@@ -139,11 +146,11 @@ func (p *commonwork) progress(i, o int) {
 
 func (p *commonwork) Wbuf(c uint8) {
 	if p.wpos == IO_BUF_SIZE {
-		p.wpos = 0
 		if _, err := p.ofile.Write(p.obuf); err != nil {
 			p.err = ErrWrite
 			return
 		}
+		p.wpos = 0
 		p.progress(0, IO_BUF_SIZE)
 	}
 	p.obuf[p.wpos] = c
@@ -176,12 +183,12 @@ func (p *commonwork) init_frequency() {
 	p.rnge = 0xffffffff
 	p.frequency = make([][260]uint16, 256)
 	for i := range p.frequency {
-		fill(p.frequency[i][:], 1)
 		p.frequency[i][0] = 0
 		p.frequency[i][1] = 0
 		p.frequency[i][2] = 0
 		p.frequency[i][3] = 0
 		p.frequency_[i] = (*[256]uint16)(unsafe.Pointer(&p.frequency[i][4]))
+		fill(p.frequency_[i][:], 1)
 		p.fcs[i] = 256
 	}
 }
@@ -211,9 +218,9 @@ func (p *compressor) initialize(ifile, ofile iotype, stat chan Progress, mode in
 
 func (p *decompressor) initialize(ifile, ofile iotype, stat chan Progress, mode int) {
 	p.init(ifile, ofile, stat)
-	p.rnge = 0xffffffff
 	fill(p.vocbuf[:], 0xff)
 	if mode == RC32 {
+		p.rnge = 0xffffffff
 		p.init_frequency()
 		for range 4 {
 			p.hlp <<= 8
@@ -589,9 +596,9 @@ func NewCompressor(ifile, ofile iotype, stat chan Progress, mode int) Compressor
 	pack := &compressor{}
 	if mode != RC32 && mode != LZ16 {
 		pack.err = ErrWrongMode
-		return nil
+	} else {
+		pack.initialize(ifile, ofile, stat, mode)
 	}
-	pack.initialize(ifile, ofile, stat, mode)
 	return pack
 }
 
@@ -599,8 +606,8 @@ func NewDecompressor(ifile, ofile iotype, stat chan Progress, mode int) Decompre
 	pack := &decompressor{}
 	if mode != RC32 && mode != LZ16 {
 		pack.err = ErrWrongMode
-		return nil
+	} else {
+		pack.initialize(ifile, ofile, stat, mode)
 	}
-	pack.initialize(ifile, ofile, stat, mode)
 	return pack
 }
