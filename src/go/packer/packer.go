@@ -315,7 +315,7 @@ func (p *decompressor) rc32(c *uint8, cntx uint8) {
 	}
 	p.rnge /= uint32(fcs[16])
 	if i := uint16((p.hlp - p.low) / p.rnge); i < fcs[16] {
-		lo, hi := 0, 16
+		lo, hi := uint8(0), uint8(16)
 		for lo < hi {
 			mid := (lo + hi + 1) >> 1
 			if fcs[mid] <= i {
@@ -324,7 +324,7 @@ func (p *decompressor) rc32(c *uint8, cntx uint8) {
 				hi = mid - 1
 			}
 		}
-		j := uint8(lo * 16)
+		j := lo << 4
 		s := fcs[lo]
 		for {
 			s += f[j]
@@ -333,7 +333,7 @@ func (p *decompressor) rc32(c *uint8, cntx uint8) {
 				p.low += uint32(s-f[j]) * p.rnge
 				p.rnge *= uint32(f[j])
 				f[j]++
-				p.frequency_rescale(f, fcs, uint8(lo+1))
+				p.frequency_rescale(f, fcs, lo+1)
 				break
 			}
 			j++
