@@ -153,7 +153,7 @@ normal:
 		ofile = os.Stdout
 	}
 	if _silent {
-		stat = make(chan packer.Progress, 8)
+		stat = make(chan packer.Progress, 12)
 		wg.Go(func() {
 			var rsize, wsize uint64 = 0, 0
 			start := time.Now()

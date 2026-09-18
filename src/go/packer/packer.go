@@ -7,7 +7,6 @@ package packer
 import (
 	"fmt"
 	"io"
-	"unsafe"
 )
 
 const (
@@ -85,26 +84,25 @@ type Progress struct {
 }
 
 type commonwork struct {
-	ibuf       []uint8
-	obuf       []uint8
-	vocbuf     [VOC_SIZE]uint8
-	frequency  [][260]uint16
-	frequency_ [256]*[256]uint16
-	fcs        [256]uint16
-	icbuf      int
-	rpos       int
-	wpos       int
-	low        uint32
-	rnge       uint32
-	vocroot    uint16
-	length     uint16
-	offset     uint16
-	flags      uint8
-	ifile      iotype
-	ofile      iotype
-	eof        bool
-	err        int
-	stat       chan Progress
+	ibuf      []uint8
+	obuf      []uint8
+	vocbuf    [VOC_SIZE]uint8
+	frequency [][256]uint16
+	fcs       [][17]uint16
+	icbuf     int
+	rpos      int
+	wpos      int
+	low       uint32
+	rnge      uint32
+	vocroot   uint16
+	length    uint16
+	offset    uint16
+	flags     uint8
+	ifile     iotype
+	ofile     iotype
+	eof       bool
+	err       int
+	stat      chan Progress
 }
 
 type compressor struct {
@@ -181,15 +179,13 @@ func (p *commonwork) init(ifile, ofile iotype, stat chan Progress) {
 
 func (p *commonwork) init_frequency() {
 	p.rnge = 0xffffffff
-	p.frequency = make([][260]uint16, 256)
+	p.frequency = make([][256]uint16, 256)
+	p.fcs = make([][17]uint16, 256)
 	for i := range p.frequency {
-		p.frequency[i][0] = 0
-		p.frequency[i][1] = 0
-		p.frequency[i][2] = 0
-		p.frequency[i][3] = 0
-		p.frequency_[i] = (*[256]uint16)(unsafe.Pointer(&p.frequency[i][4]))
-		fill(p.frequency_[i][:], 1)
-		p.fcs[i] = 256
+		fill(p.frequency[i][:], 1)
+		for j := range 17 {
+			p.fcs[i][j] = uint16(j * 16)
+		}
 	}
 }
 
@@ -262,14 +258,17 @@ func (p *decompressor) initialize(ifile, ofile iotype, stat chan Progress, mode 
 	}
 }
 
-func (p *commonwork) frequency_rescale(f *[256]uint16, fc *uint16, c uint8, s uint16) {
-	p.low += uint32(s) * p.rnge
-	p.rnge *= uint32(f[c])
-	f[c]++
-	if *fc++; *fc == 0 {
+func (p *commonwork) frequency_rescale(f *[256]uint16, fcs *[17]uint16, s uint8) {
+	for i := s; i < 17; i++ {
+		fcs[i]++
+	}
+	if fcs[16] == 0 {
 		for i := range 256 {
 			f[i] = (f[i] >> 1) | (f[i] & 1)
-			*fc += f[i]
+			fcs[16] += f[i]
+			if (i+1)%16 == 0 {
+				fcs[(i+1)>>4] = fcs[16]
+			}
 		}
 	}
 }
@@ -284,27 +283,29 @@ func (p *commonwork) range_shift() {
 
 func (p *compressor) rc32() {
 	for v := range p.cpos {
-		fc, c := &p.fcs[p.cntxs[v]], p.cbuffer[v]
-		f_ := (*[64]uint64)(unsafe.Pointer(&p.frequency[p.cntxs[v]][c&3]))
-		for p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
+		l, x := p.cbuffer[v], p.cntxs[v]
+		f, fcs, c := &p.frequency[x], &p.fcs[x], l>>4
+		for p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(fcs[16]) {
 			if p.Wbuf(uint8(p.low >> 24)); p.err != 0 {
 				return
 			}
 			p.range_shift()
 		}
-		var s uint64
-		for i := uint8(0); i < (c>>2)+1; i++ {
-			s += f_[i]
+		s := fcs[c]
+		for i := c << 4; i < l; i++ {
+			s += f[i]
 		}
-		p.rnge /= uint32(*fc)
-		s += s >> 32
-		p.frequency_rescale(p.frequency_[p.cntxs[v]], fc, c, uint16(s+s>>16))
+		p.rnge /= uint32(fcs[16])
+		p.low += uint32(s) * p.rnge
+		p.rnge *= uint32(f[l])
+		f[l]++
+		p.frequency_rescale(f, fcs, c+1)
 	}
 }
 
 func (p *decompressor) rc32(c *uint8, cntx uint8) {
-	fc, f := &p.fcs[cntx], p.frequency_[cntx]
-	for p.hlp < p.low || p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(*fc) {
+	f, fcs := &p.frequency[cntx], &p.fcs[cntx]
+	for p.hlp < p.low || p.low^(p.low+p.rnge) < 0x1000000 || p.rnge < uint32(fcs[16]) {
 		p.hlp <<= 8
 		if p.hlp |= uint32(p.Rbuf()); p.rpos == 0 {
 			p.err = ErrRead
@@ -312,18 +313,30 @@ func (p *decompressor) rc32(c *uint8, cntx uint8) {
 		}
 		p.range_shift()
 	}
-	p.rnge /= uint32(*fc)
-	if i := uint16((p.hlp - p.low) / p.rnge); i < *fc {
-		var j uint8
-		s := f[j]
+	p.rnge /= uint32(fcs[16])
+	if i := uint16((p.hlp - p.low) / p.rnge); i < fcs[16] {
+		lo, hi := 0, 16
+		for lo < hi {
+			mid := (lo + hi + 1) >> 1
+			if fcs[mid] <= i {
+				lo = mid
+			} else {
+				hi = mid - 1
+			}
+		}
+		j := uint8(lo * 16)
+		s := fcs[lo]
 		for {
+			s += f[j]
 			if s > i {
 				*c = j
-				p.frequency_rescale(f, fc, j, s-f[j])
+				p.low += uint32(s-f[j]) * p.rnge
+				p.rnge *= uint32(f[j])
+				f[j]++
+				p.frequency_rescale(f, fcs, uint8(lo+1))
 				break
 			}
 			j++
-			s += f[j]
 		}
 	} else {
 		p.err = ErrCorrupt
