@@ -5,7 +5,7 @@
 use std::env::args;
 use std::path::Path;
 use std::fs::{File,metadata};
-use std::{panic,usize};
+use std::panic;
 use std::io::{Read,Write};
 
 const LZ_BUF_SIZE: u16=259;

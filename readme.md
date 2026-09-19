@@ -7,8 +7,8 @@ _Sliding window size (bytes)_ | 65536 |
 _Window buffer size (bytes)_ | 259 |  
 _Minimum match length_ | 4 |  
 _Maximum match length_ | 259 |  
-_Memory requirements (encoding algorithm, bytes)_ | ~724562‬ |  
-_Memory requirements (decoding algorithm, bytes)_ | ~197140 |  
+_Memory requirements (encoding algorithm, bytes)_ | ~732754 |  
+_Memory requirements (decoding algorithm, bytes)_ | ~205332 |  
 _Range coder type_ | byte-oriented, mixed order (0/1) |  
 _Input buffer size (bytes)_ | 65536 |  
 _Output buffer size (bytes)_ | 65536 |  
@@ -114,8 +114,8 @@ _Source hash (SHA1)_ | 2996e86fb978f93cca8f566cc56998923e7fe581 |
 | | 7z (22.01) <br/> [(by Igor Pavlov)](https://7-zip.org/) | a -tzip -m0=Deflate -mx9 | 310706257 | 790,08 | 6,54 |  
 | | yzenc/yzdec (1.06.1) <br/> [(by BinaryTechnology)](https://web.archive.org/web/20040830010118/http://member.nifty.ne.jp/yamazaki/DeepFreezer/) |  | 312789435 | 48,74 | 23,86 |  
 | | lha (1.14i) <br/> [(by Tsugio Okamoto, Koji Arai)](https://sourceforge.net/projects/gnuwin32/files/lha/1.14i/) | a -o7 | 312912781 | 113,52 | 10,46 |  
-| :arrow_right: | <span id="result">$\textbf{qbp}$ <br/> `(built with "gcc -O3")` </span> <br/> [link](https://github.com/asimba/qbp/raw/refs/heads/master/bin/linux-x86_64/qbp) | $\textbf{c}$ | $\textbf{313013756}$ | $\textbf{43,89}$ | $\textbf{28,38}$ |  
-| :arrow_right: | $\textbf{unqbp}$ <br/> `(built with "gcc -O3")` <br/> [link](https://github.com/asimba/qbp/raw/refs/heads/master/bin/linux-x86_64/unqbp) |  | $\textbf{313013756}$ |  | $\textbf{27,88}$ |  
+| :arrow_right: | <span id="result">$\textbf{qbp}$ <br/> `(built with "gcc -O3")` </span> <br/> [link](https://github.com/asimba/qbp/raw/refs/heads/master/bin/linux-x86_64/qbp) | $\textbf{c}$ | $\textbf{313013756}$ | $\textbf{43,89}$ | $\textbf{24,56}$ |  
+| :arrow_right: | $\textbf{unqbp}$ <br/> `(built with "gcc -O3")` <br/> [link](https://github.com/asimba/qbp/raw/refs/heads/master/bin/linux-x86_64/unqbp) |  | $\textbf{313013756}$ |  | $\textbf{24,41}$ |  
 | | uc2 (uc2 3 pro) <br/> (by Ad Infinitum Programs (AIP-NL)) | a -tt | 313795096 | 256,12 | 41,40 |  
 | | thor (0.96a) <br/> [(Oscar Garcia)](https://web.archive.org/web/20080725180307/http://www.maximumcompression.com/thor_096.zip) | e4 | 314092324 | 26,36 | 9,73 |  
 | | lzfse (1.0) <br/> [(LZFSE home page)](https://github.com/lzfse/lzfse/) | -encode | 319756993 | 25,34 | 9,67 |  
@@ -141,8 +141,8 @@ _Source hash (SHA1)_ | 2996e86fb978f93cca8f566cc56998923e7fe581 |
 | :arrow_right: | $\textbf{unlz16}$ <br/> `(built with "gcc -O3")` <br/> [link](https://github.com/asimba/qbp/raw/refs/heads/master/bin/linux-x86_64/unlz16) |  | $\textbf{407180647}$ |  | $\textbf{3,34}$ |  
 | | qpress (1.1) <br/> [(by Lasse Reinhold)](https://web.archive.org/web/20220524060234/http://www.quicklz.com/index.php) | -L3T1i | 422626641 | 41,11 | 8,25 |  
 | | ncompress (5.1) <br/> [(by Mike Frysinger)](https://github.com/vapier/ncompress) |  | 448136005 | 31,98 | 12,85 |  
-| :arrow_right: | $\textbf{rc32}$ <br/> `(built with "gcc -O3")` <br/> [link](https://github.com/asimba/qbp/raw/refs/heads/master/bin/linux-x86_64/rc32) | $\textbf{c}$ | $\textbf{454498180}$ | $\textbf{26,85}$ | $\textbf{60,60}$ |  
-| :arrow_right: | $\textbf{unrc32}$ <br/> `(built with "gcc -O3")` <br/> [link](https://github.com/asimba/qbp/raw/refs/heads/master/bin/linux-x86_64/unrc32) |  | $\textbf{454498180}$ |  | $\textbf{60,91}$ |  
+| :arrow_right: | $\textbf{rc32}$ <br/> `(built with "gcc -O3")` <br/> [link](https://github.com/asimba/qbp/raw/refs/heads/master/bin/linux-x86_64/rc32) | $\textbf{c}$ | $\textbf{454498180}$ | $\textbf{26,85}$ | $\textbf{42,04}$ |  
+| :arrow_right: | $\textbf{unrc32}$ <br/> `(built with "gcc -O3")` <br/> [link](https://github.com/asimba/qbp/raw/refs/heads/master/bin/linux-x86_64/unrc32) |  | $\textbf{454498180}$ |  | $\textbf{42,66}$ |  
 | | larc (3.33) <br/> (by Haruhiko Okumura, Kazuhiko Miki) | a | 455245358 | 214,15 | 36,23 |  
 | | lzss <br/> [(reference realization by Haruhiko Okumura)](https://oku.edu.mie-u.ac.jp/~okumura/compression/lzss.c) | e | 455245327 | 136,39 | 36,33 |  
 | | shrinker <br/> [(by Siyuan Fu)](https://code.google.com/archive/p/data-shrinker/) | c | 459825318 | 4,76 | 1,74 |  

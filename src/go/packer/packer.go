@@ -183,8 +183,8 @@ func (p *commonwork) init_frequency() {
 	p.fcs = make([][17]uint16, 256)
 	for i := range p.frequency {
 		fill(p.frequency[i][:], 1)
-		for j := range 17 {
-			p.fcs[i][j] = uint16(j * 16)
+		for j := range uint16(17) {
+			p.fcs[i][j] = j << 4
 		}
 	}
 }

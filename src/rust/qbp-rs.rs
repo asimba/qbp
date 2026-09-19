@@ -5,7 +5,7 @@
 use std::env::args;
 use std::path::Path;
 use std::fs::{File,metadata};
-use std::{panic,usize};
+use std::panic;
 use std::io::{Read, Write};
 
 const LZ_BUF_SIZE: u16=259;
@@ -34,7 +34,7 @@ pub struct Packer {
   hashes: [u16; 0x10000],
   vocindx: [Vocpntr; 0x10000],
   frequency: Vec<Vec<u16>>,
-  fcs: [u16; 256],
+  fcs: Vec<Vec<u16>>,
   icbuf: u32,
   wpos: u32,
   rpos: u32,
@@ -83,7 +83,7 @@ impl Packer {
       hashes: [0 as u16; 0x10000],
       vocindx: [Vocpntr{v:1 as u32,}; 0x10000],
       frequency: vec![vec![0 as u16; 256]; 256],
-      fcs: [0 as u16; 256],
+      fcs: vec![vec![0 as u16; 17]; 256],
       icbuf: 0,wpos: 0,rpos: 0,low: 0,hlp: 0,range: 0,
       buf_size: 0,voclast: 0,vocroot: 0,offset: 0,length: 0,symbol: 0,hs: 0,
       flags: 0,
@@ -121,7 +121,9 @@ impl Packer {
       for j in 0..256{
         self.frequency[i][j]=1 as u16;
       }
-      self.fcs[i]=256;
+      for j in 0..17{
+        self.fcs[i][j]=(j<<4) as u16;
+      }
     }
     for i in 0..0x10000{
       self.vocbuf[i]=0xff;
@@ -170,24 +172,8 @@ impl Packer {
     self.wpos+=1;
   }
 
-  #[inline(always)]
-  fn rc32_rescale(&mut self,s: u32,cntx: u8) {
-    self.low+=s*self.range;
-    self.range*=self.frequency[cntx as usize][self.symbol as usize] as u32;
-    self.frequency[cntx as usize][self.symbol as usize]+=1;
-    self.fcs[cntx as usize]+=1;
-    if self.fcs[cntx as usize]==0 {
-      let mut fc: u16=0;
-      for i in 0..256 {
-        self.frequency[cntx as usize][i]=(self.frequency[cntx as usize][i]>>1)|(self.frequency[cntx as usize][i]&1);
-        fc+=self.frequency[cntx as usize][i];
-      }
-      self.fcs[cntx as usize]=fc;
-    }
-  }
-
   fn rc32_getc(&mut self,cntx: u8) {
-    while (self.low^(self.low+self.range))<0x1000000 || self.range<self.fcs[cntx as usize] as u32 || self.hlp<self.low {
+    while (self.low^(self.low+self.range))<0x1000000 || self.range<self.fcs[cntx as usize][16] as u32 || self.hlp<self.low {
       self.hlp=(self.hlp<<8)|(self.rbuf() as u32);
       if self.rpos==0 {
         read_err!()
@@ -198,25 +184,52 @@ impl Packer {
         self.range=!self.low;
       }
     }
-    self.range/=self.fcs[cntx as usize] as u32;
+    self.range/=self.fcs[cntx as usize][16] as u32;
     let count: u32=(self.hlp-self.low)/self.range;
-    if count>=self.fcs[cntx as usize] as u32 {
+    if count>=self.fcs[cntx as usize][16] as u32 {
       read_err!()
     }
-    let mut s: u32=0;
-    for i in 0..256 {
-      s+=self.frequency[cntx as usize][i as usize] as u32;
-      if s>count {
-        self.symbol=i as u16;
-        break;
-      };
-    };
-    s-=self.frequency[cntx as usize][self.symbol as usize] as u32;
-    self.rc32_rescale(s,cntx);
+    let mut lo: usize=0;
+    let mut hi: usize=16;
+		while lo < hi {
+			let mid: usize=(lo + hi + 1)>>1;
+			if self.fcs[cntx as usize][mid] as u32<=count {
+				lo=mid;
+			} else {
+				hi=mid-1;
+			}
+		}
+		hi=lo<<4;
+    let mut s: u32=self.fcs[cntx as usize][lo] as u32;
+		loop {
+			s+=self.frequency[cntx as usize][hi as usize] as u32;
+			if s > count {
+        self.symbol=hi as u16;
+				self.low+=(s-self.frequency[cntx as usize][self.symbol as usize] as u32) * self.range;
+				self.range*=self.frequency[cntx as usize][self.symbol as usize] as u32;
+				self.frequency[cntx as usize][self.symbol as usize]+=1;
+        for i in lo+1..17{
+          self.fcs[cntx as usize][i]+=1;
+        }
+        if self.fcs[cntx as usize][16]==0 {
+          let mut fc: u16=0;
+          for i in 0..256 {
+            self.frequency[cntx as usize][i]=(self.frequency[cntx as usize][i]>>1)|(self.frequency[cntx as usize][i]&1);
+            fc+=self.frequency[cntx as usize][i];
+            if (i+1)%16==0 {
+              self.fcs[cntx as usize][(i+1)>>4]=fc;
+            }
+          }
+          self.fcs[cntx as usize][16]=fc;
+        }
+				break
+			}
+			hi+=1;
+		}
   }
   
   fn rc32_putc(&mut self,c: u8,cntx: u8) {
-    while (self.low^(self.low+self.range))<0x1000000 || self.range<self.fcs[cntx as usize] as u32 {
+    while (self.low^(self.low+self.range))<0x1000000 || self.range<self.fcs[cntx as usize][16] as u32 {
       self.wbuf((self.low>>24) as u8);
       self.low<<=8;
       self.range<<=8;
@@ -225,12 +238,23 @@ impl Packer {
       }
     }
     self.symbol=c as u16;
-    self.range/=self.fcs[cntx as usize] as u32;
+    self.range/=self.fcs[cntx as usize][16] as u32;
     let mut s: u32=0;
     for i in 0..self.symbol {
       s+=self.frequency[cntx as usize][i as usize] as u32;
     }
-    self.rc32_rescale(s,cntx);
+    self.low+=s*self.range;
+    self.range*=self.frequency[cntx as usize][self.symbol as usize] as u32;
+    self.frequency[cntx as usize][self.symbol as usize]+=1;
+    self.fcs[cntx as usize][16]+=1;
+    if self.fcs[cntx as usize][16]==0 {
+      let mut fc: u16=0;
+      for i in 0..256 {
+        self.frequency[cntx as usize][i]=(self.frequency[cntx as usize][i]>>1)|(self.frequency[cntx as usize][i]&1);
+        fc+=self.frequency[cntx as usize][i];
+      }
+      self.fcs[cntx as usize][16]=fc;
+    }
   }
 
   pub fn pack(&mut self) {

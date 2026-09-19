@@ -35,7 +35,7 @@ uint16_t hashes[0x10000];
 vocpntr vocindx[0x10000];
 uint16_t _frequency[256][260];
 uint16_t* frequency[256];
-uint16_t fcs[256];
+uint16_t fcs[256][17];
 uint16_t buf_size;
 uint16_t voclast;
 uint16_t vocroot;
@@ -58,7 +58,7 @@ void pack_initialize(){
     frequency[i]=_frequency[i]+4;
     f[0]=0;
     for(int j=1;j<65;j++) f[j]=0x0001000100010001ULL;
-    fcs[i]=256;
+    for(int j=0;j<17;j++) fcs[i][j]=j<<4;
   };
   for(int i=0;i<0x10000;i++){
     vocbuf[i]=0xff;
@@ -84,36 +84,45 @@ void rbuf(uint8_t *c,FILE *ifile){
   *c=ibuf[rpos++];
 }
 
-#define rc32_rescale()\
-    range*=(*f)++;\
-    if(!++fc){\
-      f=frequency[cntx];\
-      for(s=0;s<256;s++) fc+=(*f=((*f)>>1)|(*f&1)),f++;\
-    };\
-    fcs[cntx]=fc;\
-    return 0;
-
 #define rc32_shift() low<<=8; range<<=8; if(range>~low) range=~low;
 
 uint32_t rc32_getc(uint8_t *c,FILE *ifile,const uint8_t cntx){
-  uint16_t fc=fcs[cntx];
-  while(hlp<low||(low^(low+range))<0x1000000||range<fc){
+  uint16_t *_fcs=fcs[cntx],*f=frequency[cntx];
+  register uint32_t s=_fcs[16],i,l=0,j=16;
+  while(hlp<low||(low^(low+range))<0x1000000||range<s){
     hlp<<=8;
     if(!(rbuf(hlpp,ifile),rpos)) return 0;
     rc32_shift();
   };
-  uint32_t i;
-  if((i=(hlp-low)/(range/=fc))>=fc) return 1;
-  uint16_t *f=frequency[cntx];
-  register uint64_t s=0;
-  while((s+=*f)<=i) f++;
-  low+=(s-*f)*range;
-  *c=f-frequency[cntx];
-  rc32_rescale();
+  if((i=(hlp-low)/(range/=s))>=s) return 1;
+  while(l<j){
+    if(_fcs[s=(l+j+1)>>1]<=i) l=s;
+    else j=s-1;
+  };
+  j=l<<4;
+  s=_fcs[l++];
+  for(;l<17;l++) _fcs[l]++;
+  for(;;){
+    if((s+=f[j])>i){
+      *c=j;
+      low+=(s-f[j])*range;
+      range*=f[j]++;
+      if(!_fcs[16]){
+        i=0;
+        for(s=0;s<256;s++){
+          i+=(f[s]=(f[s]>>1)|(f[s]&1));
+          if(!((l=s+1)<<28)) _fcs[l>>4]=i;
+        };
+      };
+      break;
+    };
+    j++;
+  };
+  return 0;
 }
 
 inline uint32_t rc32_putc(uint32_t c,FILE *ofile,const uint8_t cntx){
-  uint16_t fc=fcs[cntx];
+  uint16_t fc=fcs[cntx][16];
   while((low^(low+range))<0x1000000||range<fc){
     if(!(wbuf(*lowp,ofile),wpos)) return 1;
     rc32_shift();
@@ -124,7 +133,13 @@ inline uint32_t rc32_putc(uint32_t c,FILE *ofile,const uint8_t cntx){
   while(c--) s+=*(uint64_t *)f,f+=4;
   s+=s>>32;
   low+=((uint16_t)(s+(s>>16)))*(range/=fc);
-  rc32_rescale();
+  range*=(*f)++;
+  if(!++fc){
+    f=frequency[cntx];
+    for(s=0;s<256;s++) fc+=(*f=((*f)>>1)|(*f&1)),f++;
+  };
+  fcs[cntx][16]=fc;
+  return 0;
 }
 
 void pack_file(FILE *ifile,FILE *ofile){
