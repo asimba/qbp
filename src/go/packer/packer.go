@@ -173,14 +173,14 @@ func (p *commonwork) Rbuf() (c uint8) {
 }
 
 func (p *commonwork) init(ifile, ofile iotype, stat chan Progress) {
-	p.ibuf = make([]uint8, IO_BUF_SIZE)
+	p.ibuf = make([]uint8, IO_BUF_SIZE, IO_BUF_SIZE)
 	p.ifile, p.ofile, p.stat = ifile, ofile, stat
 }
 
 func (p *commonwork) init_frequency() {
 	p.rnge = 0xffffffff
-	p.frequency = make([][256]uint16, 256)
-	p.fcs = make([][17]uint16, 256)
+	p.frequency = make([][256]uint16, 256, 256)
+	p.fcs = make([][17]uint16, 256, 256)
 	for i := range p.frequency {
 		fill(p.frequency[i][:], 1)
 		for j := range uint16(17) {
@@ -191,7 +191,7 @@ func (p *commonwork) init_frequency() {
 
 func (p *compressor) initialize(ifile, ofile iotype, stat chan Progress, mode int) {
 	p.init(ifile, ofile, stat)
-	p.obuf = make([]uint8, IO_BUF_SIZE)
+	p.obuf = make([]uint8, IO_BUF_SIZE, IO_BUF_SIZE)
 	for i := range VOC_SIZE {
 		p.vocbuf[i], p.vocindx[i].skip, p.vocarea[i] = 0xff, true, uint16(i)+1
 	}
