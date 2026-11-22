@@ -18,6 +18,7 @@ const (
 	_ = iota
 	ErrWrongMode
 	ErrInputNotFound
+	ErrNotAccessible
 	ErrIsDirectory
 	ErrNotRegular
 	ErrOutputExists
@@ -50,6 +51,8 @@ func (e PackError) Error() string {
 		return "Error: input file is a directory!"
 	case ErrNotRegular:
 		return "Error: input file is not a regular file!"
+	case ErrNotAccessible:
+		return "Error: input file is not accessible!"
 	case ErrOutputExists:
 		return "Error: output file is already exist!"
 	case ErrInputOpen:
@@ -549,7 +552,10 @@ func (p *decompressor) Proceed() error {
 			}
 		}
 	}
-	return PackError(p.err)
+	if p.err != 0 {
+		return PackError(p.err)
+	}
+	return nil
 }
 
 func (p *compressor) Proceed() error {
@@ -605,22 +611,26 @@ type Decompressor interface {
 	GetC() uint8
 }
 
-func NewCompressor(ifile, ofile iotype, stat chan Progress, mode int) Compressor {
+func NewCompressor(ifile, ofile iotype, stat chan Progress, mode int) (Compressor, error) {
 	pack := &compressor{}
 	if mode != RC32 && mode != LZ16 {
-		pack.err = ErrWrongMode
+		return nil, PackError(ErrWrongMode)
 	} else {
-		pack.initialize(ifile, ofile, stat, mode)
+		if pack.initialize(ifile, ofile, stat, mode); pack.GetErr() != 0 {
+			return nil, PackError(pack.GetErr())
+		}
 	}
-	return pack
+	return pack, nil
 }
 
-func NewDecompressor(ifile, ofile iotype, stat chan Progress, mode int) Decompressor {
+func NewDecompressor(ifile, ofile iotype, stat chan Progress, mode int) (Decompressor, error) {
 	pack := &decompressor{}
 	if mode != RC32 && mode != LZ16 {
-		pack.err = ErrWrongMode
+		return nil, PackError(ErrWrongMode)
 	} else {
-		pack.initialize(ifile, ofile, stat, mode)
+		if pack.initialize(ifile, ofile, stat, mode); pack.GetErr() != 0 {
+			return nil, PackError(pack.GetErr())
+		}
 	}
-	return pack
+	return pack, nil
 }

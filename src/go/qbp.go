@@ -82,12 +82,17 @@ normal:
 			err = packer.PackError(packer.ErrInputNotFound)
 			return
 		}
-		if info.IsDir() {
-			err = packer.PackError(packer.ErrIsDirectory)
-			return
-		}
-		if !info.Mode().IsRegular() {
-			err = packer.PackError(packer.ErrNotRegular)
+		if info != nil {
+			if info.IsDir() {
+				err = packer.PackError(packer.ErrIsDirectory)
+				return
+			}
+			if !info.Mode().IsRegular() {
+				err = packer.PackError(packer.ErrNotRegular)
+				return
+			}
+		} else {
+			err = packer.PackError(packer.ErrNotAccessible)
 			return
 		}
 	} else {
@@ -146,7 +151,9 @@ normal:
 			return
 		}
 		defer func() {
-			ofile.Sync()
+			if e := ofile.Sync(); e != nil && err == nil {
+				err = packer.PackError(packer.ErrWrite)
+			}
 			ofile.Close()
 		}()
 	} else {
@@ -166,11 +173,11 @@ normal:
 		})
 	}
 	if _mode {
-		if pack = packer.NewCompressor(ifile, ofile, stat, _method); pack.GetErr() != 0 {
+		if pack, err = packer.NewCompressor(ifile, ofile, stat, _method); err != nil {
 			return
 		}
 	} else {
-		if pack = packer.NewDecompressor(ifile, ofile, stat, _method); pack.GetErr() != 0 {
+		if pack, err = packer.NewDecompressor(ifile, ofile, stat, _method); err != nil {
 			return
 		}
 	}
