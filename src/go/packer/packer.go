@@ -570,7 +570,7 @@ func (p *compressor) Proceed() error {
 
 func (p *compressor) Finalize() error {
 	p.eof = true
-	for p.length != 0 {
+	for !p.done || p.length != 0 {
 		if p.PutC(0); p.err != 0 {
 			return PackError(p.err)
 		}
