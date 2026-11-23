@@ -27,6 +27,7 @@ const (
 	ErrWrite
 	ErrRead
 	ErrCorrupt
+	ErrInternal
 )
 
 const (
@@ -65,6 +66,8 @@ func (e PackError) Error() string {
 		return "Error reading input file!"
 	case ErrCorrupt:
 		return "Error: the input file is corrupt or of an unknown/unsupported type!"
+	case ErrInternal:
+		return "Error: internal compression error!"
 	default:
 		return fmt.Sprintf("De/Compression error code %d", e)
 	}
@@ -147,7 +150,7 @@ func (p *commonwork) progress(i, o int) {
 
 func (p *commonwork) Wbuf(c uint8) {
 	if p.wpos == IO_BUF_SIZE {
-		if _, err := p.ofile.Write(p.obuf); err != nil {
+		if w, err := p.ofile.Write(p.obuf); err != nil || w != p.wpos {
 			p.err = ErrWrite
 			return
 		}
@@ -347,7 +350,7 @@ func (p *decompressor) rc32(c *uint8, cntx uint8) {
 }
 
 func (p *commonwork) finalize() error {
-	if _, err := p.ofile.Write(p.obuf[:p.wpos]); err != nil {
+	if w, err := p.ofile.Write(p.obuf[:p.wpos]); err != nil || w != p.wpos {
 		p.err = ErrWrite
 		return PackError(p.err)
 	}
@@ -540,7 +543,7 @@ func (p *decompressor) Proceed() error {
 				c = int(p.vocroot)
 			}
 			if flush {
-				if _, err := p.ofile.Write(p.vocbuf[:c]); err != nil {
+				if w, err := p.ofile.Write(p.vocbuf[:c]); err != nil || w != c {
 					p.err = ErrWrite
 					break
 				}
@@ -560,7 +563,10 @@ func (p *decompressor) Proceed() error {
 
 func (p *compressor) Proceed() error {
 	for {
-		if b := p.Rbuf(); p.rpos == 0 {
+		if b := p.Rbuf(); p.rpos == 0 || p.err != 0 {
+			if p.err != 0 {
+				return PackError(p.err)
+			}
 			return p.Finalize()
 		} else if p.PutC(b); p.err != 0 {
 			return PackError(p.err)
@@ -570,10 +576,13 @@ func (p *compressor) Proceed() error {
 
 func (p *compressor) Finalize() error {
 	p.eof = true
-	for !p.done || p.length != 0 {
+	for !p.done {
 		if p.PutC(0); p.err != 0 {
 			return PackError(p.err)
 		}
+	}
+	if p.length != 0 {
+		return PackError(ErrInternal)
 	}
 	if p.rnge != 0 {
 		for j := 3; j >= 0; j-- {
@@ -615,10 +624,9 @@ func NewCompressor(ifile, ofile iotype, stat chan Progress, mode int) (Compresso
 	pack := &compressor{}
 	if mode != RC32 && mode != LZ16 {
 		return nil, PackError(ErrWrongMode)
-	} else {
-		if pack.initialize(ifile, ofile, stat, mode); pack.GetErr() != 0 {
-			return nil, PackError(pack.GetErr())
-		}
+	}
+	if pack.initialize(ifile, ofile, stat, mode); pack.GetErr() != 0 {
+		return nil, PackError(pack.GetErr())
 	}
 	return pack, nil
 }
@@ -627,10 +635,9 @@ func NewDecompressor(ifile, ofile iotype, stat chan Progress, mode int) (Decompr
 	pack := &decompressor{}
 	if mode != RC32 && mode != LZ16 {
 		return nil, PackError(ErrWrongMode)
-	} else {
-		if pack.initialize(ifile, ofile, stat, mode); pack.GetErr() != 0 {
-			return nil, PackError(pack.GetErr())
-		}
+	}
+	if pack.initialize(ifile, ofile, stat, mode); pack.GetErr() != 0 {
+		return nil, PackError(pack.GetErr())
 	}
 	return pack, nil
 }
